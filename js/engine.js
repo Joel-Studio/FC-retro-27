@@ -1531,7 +1531,7 @@ window.RUT = window.RUT || {};
   // cfg.training = { hero: card, mates: [cards], foes: [cards], foeMode: 'cone' | 'press' | 'attack', keeper: card | null }
   const TRAIN_FOES = [[0.55, 0.5], [0.5, 0.3], [0.5, 0.7], [0.62, 0.5]], TRAIN_MATES = [[0.5, 0.12], [0.5, 0.88], [0.72, 0.35]];
   P.trainSetup = function () {
-    const T = this.training, rng = this.rng;
+    const T = this.training, rng = this.rng; this._trCorner = null;
     this.players = [];
     const mk = (card, team, slot, dummy, fx, fy) => {
       const p = makePlayer(card, team, slot, rng, this.tac[team].roles); p.dummy = dummy; p.home = { x: PITCH_W * fx, y: PITCH_H * fy };
@@ -1574,6 +1574,7 @@ window.RUT = window.RUT || {};
   };
   /** Everyone back to their marks, ball at the hero's feet (or at the first attacker's in attack mode). */
   P.trainReset = function () {
+    if (this._trCorner) { this.trainCorner(this._trCorner); return; }
     this.players.forEach(p => {
       const hm = p.start || p.home; p.x = hm.x; p.y = hm.y; p.vx = p.vy = p.tx = p.ty = 0; p.dive = null; p.skill = null; p.stamina = 100;
       for (const k in p.cool) p.cool[k] = 0;
@@ -1600,9 +1601,10 @@ window.RUT = window.RUT || {};
     this.giveBall(h); h.cool.decide = 0;
   };
   /** v182 (JODIO: "test free kicks and penalties in Testing Ground"): put the hero on a direct free kick (20-30 m, random angle) or the penalty spot. */
-  P.trainSet = function (kind) {
+  P.trainSet = function (kind, spot) {
     const h = this.hero, b = this.ball, dir = this.teams[h.team].dir, gx = dir > 0 ? PITCH_W : 0;
-    const pen = kind === 'pen', d = pen ? 11 : 20 + this.rng() * 10, y = pen ? PH2 : PH2 + (this.rng() - 0.5) * 26;
+    // v231 (JODIO: more free-kick spots): spot = [distance m, sideways m from the middle], else random 20-30 m
+    const pen = kind === 'pen', d = pen ? 11 : spot ? spot[0] : 20 + this.rng() * 10, y = pen ? PH2 : spot ? PH2 + spot[1] : PH2 + (this.rng() - 0.5) * 26;
     this.players.forEach(p => { if (p !== h && !p.isGK && Math.hypot(p.x - (gx - dir * d), p.y - y) < 9.5) { p.x -= dir * 10; } });
     h.x = gx - dir * (d + 1.6); h.y = y + (pen ? 0.9 : 1.4); h.vx = h.vy = 0; this.face(h, dir, 0);
     Object.assign(b, { x: gx - dir * d, y, z: 0, vx: 0, vy: 0, vz: 0, spin: 0, tspin: 0, shot: null, trail: [], inNet: null, last: null, indirect: null, passTo: null });
@@ -1615,6 +1617,27 @@ window.RUT = window.RUT || {};
     const gk = this.players.some(p => p.isGK && p.team !== h.team);
     this.say(pen ? (gk ? 'PENALTY - AIM WITH THE ARROWS, HOLD X TO SHOOT' : 'PENALTY - TURN ON "KEEPER IN GOAL" FOR A KEEPER') : 'FREE KICK ' + Math.round(d) + ' M - AIM, HOLD X TO SHOOT');
     this.cam.x = b.x; this.cam.y = b.y;
+  };
+  /** v231 (JODIO: "a corner test where the opponent is a normal AI set up like a corner"): your attackers in the box, AI defenders
+   *  marking them plus two zonal men and a keeper, you on the corner flag. Everyone plays on with the normal match AI after the kick. */
+  P.trainCorner = function (c) {
+    const h = this.hero, rng = this.rng, dir = this.teams[h.team].dir, gx = dir > 0 ? PITCH_W : 0, side = c.side === 'right' ? 1 : -1;
+    const cy = side < 0 ? 0.4 : PITCH_H - 0.4, near = side < 0 ? PH2 - 3.6 : PH2 + 3.6, far = side < 0 ? PH2 + 3.6 : PH2 - 3.6;
+    this.players = [h]; this._trCorner = c;
+    const put = (card, team, slot, x, y) => { const p = makePlayer(card, team, slot, rng, this.tac[team].roles); p.x = x; p.y = y; p.home = { x, y }; p.start = { x, y }; p.fx = -dir * (team ? 1 : -1); p.fy = 0; this.players.push(p); return p; };
+    const runs = [[11, PH2], [7, near], [8, far], [14, PH2 - 6], [17, PH2 + 5]];
+    const att = (c.mates || []).slice(0, 5).map((card, i) => put(card, 0, [9, 10, 8, 7, 6][i], gx - dir * runs[i][0], runs[i][1]));
+    (c.foes || []).slice(0, att.length).forEach((card, i) => { const a = att[i]; const p = put(card, 1, [2, 3, 1, 4, 5][i], a.x + dir * 1.2, a.y + (PH2 - a.y) * 0.08); p.mark = a; });
+    (c.foes || []).slice(att.length, att.length + 2).forEach((card, i) => put(card, 1, [6, 7][i], gx - dir * (i ? 9 : 5.5), i ? PH2 : near));
+    if (c.keeper) put(c.keeper, 1, 0, gx - dir * 1, PH2);
+    h.x = gx - dir * 0.6; h.y = cy; h.vx = h.vy = 0; h.home = h.start = { x: h.x, y: h.y }; this.face(h, -dir, -side * 0.6);
+    Object.assign(this.ball, { x: gx - dir * 0.3, y: side < 0 ? 0.3 : PITCH_H - 0.3, z: 0, vx: 0, vy: 0, vz: 0, spin: 0, tspin: 0, owner: null, shot: null, trail: [], inNet: null, last: null, indirect: null, passTo: null });
+    this.trWall = null; this.penaltyKick = false; this.phase = 'play'; this.goalFlash = 0; this.celebration = null; this.netHit = null; this.offsideList = []; this.advantage = null;
+    this.players.forEach(p => { for (const k in p.cool) p.cool[k] = 0; p.cool.decide = 0.3; p.plan = null; p.space = null; p.dive = null; p.skill = null; });
+    this.ctls[0] && (this.ctls[0].controlled = h);
+    this.giveBall(h); h.cool.decide = 0; this.armSet('CORNER', h.team, h); this._trSet = true;
+    this.say('CORNER - AIM WITH A / D, HOLD X TO CROSS · N = AGAIN');
+    this.cam.x = this.ball.x; this.cam.y = this.ball.y;
   };
   /** v183: the FC-style set-piece camera (behind the ball, facing goal) while a penalty or a direct free kick within 40 m waits to be taken. */
   P.spCamera = function () {
@@ -4050,7 +4073,7 @@ window.RUT = window.RUT || {};
       // too heavy for this machine? after a couple of seconds of slow frames drop to High so the game stays playable
       this._u3n = (this._u3n || 0) + 1; this._u3sum = (this._u3sum || 0) + dt;
       if (this._u3n >= 150) { const av = this._u3sum / this._u3n, u = this._u3scale || 0.9; if (av > 0.024 && !window.RUT_KEEP3D && u > 0.5) this._u3scale = Math.max(0.5, u * 0.85); else if (av < 0.0175 && u < 0.9) this._u3scale = Math.min(0.9, u / 0.9); this._u3n = this._u3sum = 0; }   // v167: slow machine: fewer pixels, still full 3D
-      U.frame(this, { w: CW, h: CH, mode: this.camMode, camX, camY: this.cam.y, fy: CAM_FY, shake, crowd: crowdFrame, dt, sprites: true, spCam: this.spCamera() });   // v171: the 3D world, players drawn below as the normal-mode pixel sprites
+      U.frame(this, { w: CW, h: CH, mode: this.camMode, camX, camY: this.cam.y, fy: CAM_FY, shake, crowd: crowdFrame, dt, sprites: true, spCam: this.spView === 'tv' ? null : (c => c && Object.assign({ view: this.spView || 'behind' }, c))(this.spCamera()) });   // v171: the 3D world, players drawn below as the normal-mode pixel sprites
       ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(U.canvas, 0, 0, CW, CH); ctx.restore();
       const proj = (x, y, z) => U.proj(x, y, z, VIEW_W, VIEW_H);
       this.proj = proj; this._cv = ctx.canvas;
@@ -5352,7 +5375,7 @@ void main(){
       if (this.training && !e.repeat) {
         if (e.code === 'KeyB') this.trainBall(); else if (e.code === 'KeyN') this.trainReset();
         else if (e.code === 'KeyF') this.trainFeed('cross'); else if (e.code === 'KeyG') this.trainFeed('ground');
-        else if (e.code === 'Digit7') this.trainSet('fk'); else if (e.code === 'Digit8') this.trainSet('pen');
+        else if (e.code === 'Digit7') this.trainSet('fk', this.fkSpot || null); else if (e.code === 'Digit8') this.trainSet('pen'); else if (e.code === 'Digit9' && this.cornerCfg) this.trainCorner(this.cornerCfg());
       }
       if ((e.code === 'KeyP' || e.code === 'Escape') && !this.net) this.paused = !this.paused;   // an online match can't be paused
       if (e.code === 'KeyL' && !e.repeat) this.tagMode = (this.tagMode + 1) % 3;

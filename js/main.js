@@ -2028,13 +2028,14 @@
     const touch = touchOn() && (humans.length > 0);
     const btnCam = `<button class="btn sm" data-mact="cam">Camera: ${camLabel(App.camMode)}</button>`, btnGfx = `<button class="btn sm" data-mact="gfx" title="Graphics quality. Auto lowers it by itself if the game runs slowly">Gfx: ${gfxLabel()}</button>`;
     const btnSpeed = o.online || o.noSpeed ? '' : '<button class="btn sm" data-mact="speed">Speed x1</button>', btnPause = o.online ? '' : '<button class="btn sm" data-mact="pause">Pause</button>';
+    const SPV = { behind: 'Behind', high: 'High', side: 'Side', tv: 'Match cam' }, btnSp = `<button class="btn sm" data-mact="spv" title="Camera for penalties, corners and free kicks">Set pieces: ${SPV[SET.spView || 'behind']}</button>`;
     const btnFull = '<button class="btn sm" data-mact="full">Fullscreen</button>', btnQuit = '<button class="btn sm r" data-mact="quit">Quit</button>';
     const ping = o.online ? '<span class="ping" id="m-ping">...</span>' : '';
     const top = touch
-      ? `<div class="match-bar mb-top"><span></span><span></span><span class="mb-right">${ping}${o.online ? '' : '<button class="btn sm ic" data-mact="pause" aria-label="Pause">❚❚</button>'}<button class="btn sm ic" data-mact="menu" aria-label="Menu">☰</button></span><div class="mb-menu" hidden>${btnTac}${btnSub}${btnCam}${btnGfx}${btnSpeed}${btnFull}${btnQuit}</div></div>`
+      ? `<div class="match-bar mb-top"><span></span><span></span><span class="mb-right">${ping}${o.online ? '' : '<button class="btn sm ic" data-mact="pause" aria-label="Pause">❚❚</button>'}<button class="btn sm ic" data-mact="menu" aria-label="Menu">☰</button></span><div class="mb-menu" hidden>${btnTac}${btnSub}${btnCam}${btnSp}${btnGfx}${btnSpeed}${btnFull}${btnQuit}</div></div>`
       : `<div class="match-bar mb-top"><span>${esc(o.home.name)} vs ${esc(o.away.name)}</span>
         <span>${o.live ? "" : hint}</span>
-        <span>${ping}${btnTac}${btnSub}${btnCam}${btnGfx}${btnSpeed}${btnPause}${btnFull}${btnQuit}</span></div>`;
+        <span>${ping}${btnTac}${btnSub}${btnCam}${btnSp}${btnGfx}${btnSpeed}${btnPause}${btnFull}${btnQuit}</span></div>`;
     const tcHTML = `<div class="tc"><div class="tc-zone"></div><div class="tc-stick"><i></i></div>
         <div class="tc-act">
           <button class="tb tb-thru p" data-pad="through"><b>THRU</b><small>switch</small></button><button class="tb tb-lob y" data-pad="lob"><b>LOB</b><small>call</small></button>
@@ -2059,7 +2060,7 @@
       onEnd: res => { if (own) recordPlayerStats(res, o.away); if (recOn) saveRec(m, o); playsLive(m); setTimeout(() => { m.stop(); wrap.remove(); App.match = null; o.onEnd(res); }, 1800); },
     };
     const snap = recOn ? RUT.Rec.snapshot(mcfg) : null;
-    const m = new Engine.Match(mcfg);
+    const m = new Engine.Match(mcfg); m.spView = SET.spView || "behind";
     if (recOn) m.recStart(snap);
 
     App.match = m;
@@ -2100,6 +2101,7 @@
       if (a === 'pause') { m.paused = !m.paused; b.textContent = b.classList.contains('ic') ? (m.paused ? '▶' : '❚❚') : (m.paused ? 'Resume' : 'Pause'); }
       if (a === 'menu') { const mm = wrap.querySelector('.mb-menu'); if (mm) mm.hidden = !mm.hidden; }
       if (a === 'subs') subPop(wrap, m, subSt);
+      if (a === 'spv') { const ks = Object.keys(SPV), nx = ks[(ks.indexOf(SET.spView || 'behind') + 1) % ks.length]; SET.spView = nx; saveSet(); m.spView = nx; b.textContent = 'Set pieces: ' + SPV[nx]; }
       if (a === 'tac') { const tp = wrap.querySelector('.tac-pop'); if (tp) { tp.hidden = !tp.hidden; tacPopFill(tp, m, humans[0]); } }
       if (a === 'tq') { const lab = m.tacShift(humans[0], b.dataset.k, false); const tp = wrap.querySelector('.tac-pop'); if (tp) tacPopFill(tp, m, humans[0], lab === false ? 'That is already as far as it goes.' : lab); }
       if (a === 'full') { try { if (document.fullscreenElement) document.exitFullscreen(); else if (wrap.requestFullscreen) wrap.requestFullscreen().catch(() => {}); } catch (e) { /* not supported */ } }
@@ -2174,7 +2176,11 @@
   // One player on a big pitch. Everything is changed live from the panel: player, pitch, dummies, keeper, team-mates.
   const TRAIN_LVL = { amateur: 62, pro: 78, world: 88, legendary: 93 };
   const AI_FOE_SLOTS = [2, 3, 6, 1, 4, 5, 7, 8, 9, 10], AI_MATE_SLOTS = [10, 8, 7, 6, 5, 2, 3, 1, 4];   // which positions the first n opponents / AI team-mates take
-  const TR = { pitch: 'huge', foes: 0, foeMode: 'cone', lvl: 'pro', mates: 0, keeper: false, hero: null, ai: false, aiFoes: 5, aiMates: 4, aiFoeGK: true, aiMyGK: false, aiStyle: 'balanced' };
+  const TR = { pitch: 'huge', foes: 0, foeMode: 'cone', lvl: 'pro', mates: 0, keeper: false, hero: null, ai: false, aiFoes: 5, aiMates: 4, aiFoeGK: true, aiMyGK: false, aiStyle: 'balanced', fkSpot: 'rand', cnSide: 'left' };
+  // v231 (JODIO): more free-kick spots: [distance m, sideways m from the middle]
+  const FK_SPOTS = [['rand', 'Random 20-30 m', null], ['c18', 'Central 18 m', [18, 0]], ['c22', 'Central 22 m', [22, 0]], ['c25', 'Central 25 m', [25, 0]], ['c30', 'Central 30 m', [30, 0]], ['c35', 'Long range 35 m', [35, 0]], ['l20', 'Left 20 m', [20, -9]], ['r20', 'Right 20 m', [20, 9]], ['l25', 'Left 25 m', [25, -13]], ['r25', 'Right 25 m', [25, 13]], ['lw', 'Wide left (cross or shoot)', [22, -24]], ['rw', 'Wide right (cross or shoot)', [22, 24]], ['la', 'Edge of box, left angle', [17, -14]], ['ra', 'Edge of box, right angle', [17, 14]]];
+  const fkSpot = () => (FK_SPOTS.find(f => f[0] === TR.fkSpot) || FK_SPOTS[0])[2];
+  const cornerCards = () => { const r = TRAIN_LVL[TR.lvl]; return { side: TR.cnSide, mates: [0, 1, 2, 3, 4].map(i => trainPick(i % 2 ? ['CB'] : ['ST', 'CM'], 82, i)).filter(Boolean), foes: [0, 1, 2, 3, 4, 5, 6].map(i => trainPick(i < 5 ? ['CB', 'CDM'] : ['CM', 'ST'], r, i)).filter(Boolean), keeper: trainPick(['GK'], r, 0) || null }; };
   function trainPick(positions, rating, n) {
     const pool = DB.all.filter(c => !c.promo && positions.includes(c.position)).sort((a, b) => Math.abs(a.rating - rating) - Math.abs(b.rating - rating));
     return pool[n % Math.max(1, Math.min(6, pool.length))];
@@ -2203,13 +2209,14 @@
       <div class="tr-ai"><label>Opponent AI · a full CPU team that attacks and defends (turns the cones and defenders above off)</label>
         <div class="row"><label style="margin:0"><input type="checkbox" id="tr-ai" ${TR.ai ? 'checked' : ''}> Play against the CPU</label>${sel('tr-ailvl', [['amateur', 'Weak'], ['pro', 'Good'], ['world', 'World class'], ['legendary', 'Legendary']], TR.lvl)}<select id="tr-aistyle">${styleOptions(TR.aiStyle, false)}</select></div>
         <div class="row">${sel('tr-aifoes', Array.from({ length: 11 }, (_, n) => [n, n + ' opponents']), TR.aiFoes)}${sel('tr-aimates', Array.from({ length: 10 }, (_, n) => [n, n + ' AI team-mates']), TR.aiMates)}${sel('tr-aigk', [[1, 'Their keeper'], [0, 'No keeper (their goal is open)']], TR.aiFoeGK ? 1 : 0)}${sel('tr-aimygk', [[0, 'No keeper for me'], [1, 'My keeper in goal']], TR.aiMyGK ? 1 : 0)}</div></div>
+      <label>Free-kick spot · corner side</label><div class="row">${sel('tr-fkspot', FK_SPOTS.map(f => [f[0], f[1]]), TR.fkSpot)}${sel('tr-cnside', [['left', 'Corner from the left'], ['right', 'Corner from the right']], TR.cnSide)}</div>
       <label>Goalkeeper (cones / defenders modes)</label>${sel('tr-gk', [[0, 'No keeper'], [1, 'Keeper in goal']], TR.keeper ? 1 : 0)}
       <label>Team-mates (play it back)</label>${sel('tr-mates', [0, 1, 2, 3].map(n => [n, n]), TR.mates)}
-      <div class="row mt"><button class="btn sm g" data-tr="ball">Ball to feet · B</button><button class="btn sm" data-tr="reset">Reset all · N</button><button class="btn sm c" data-tr="cross">Cross · F</button><button class="btn sm c" data-tr="ground">Ground ball · G</button><button class="btn sm y" data-tr="fk">Free kick · 7</button><button class="btn sm y" data-tr="pen">Penalty · 8</button></div>
+      <div class="row mt"><button class="btn sm g" data-tr="ball">Ball to feet · B</button><button class="btn sm" data-tr="reset">Reset all · N</button><button class="btn sm c" data-tr="cross">Cross · F</button><button class="btn sm c" data-tr="ground">Ground ball · G</button><button class="btn sm y" data-tr="fk">Free kick · 7</button><button class="btn sm y" data-tr="corner">Corner test · 9</button><button class="btn sm y" data-tr="pen">Penalty · 8</button></div>
     </div></div>`;
   }
   function bindTrainPanel(wrap, m) {
-    const panel = wrap.querySelector('.tr-panel');
+    const panel = wrap.querySelector('.tr-panel'); m.fkSpot = fkSpot(); m.cornerCfg = cornerCards;
     const apply = e => {
       const hn = panel.querySelector('#tr-hero').value.trim().toLowerCase();
       const hc = DB.all.filter(c => c.name.toLowerCase() === hn).sort((a, b) => b.rating - a.rating)[0] || (hn.length > 2 ? DB.all.filter(c => c.name.toLowerCase().includes(hn)).sort((a, b) => b.rating - a.rating)[0] : null);
@@ -2219,6 +2226,9 @@
       TR.ai = panel.querySelector('#tr-ai').checked; TR.aiFoes = +panel.querySelector('#tr-aifoes').value; TR.aiMates = +panel.querySelector('#tr-aimates').value;
       TR.aiFoeGK = panel.querySelector('#tr-aigk').value === '1'; TR.aiMyGK = panel.querySelector('#tr-aimygk').value === '1'; TR.aiStyle = panel.querySelector('#tr-aistyle').value;
       if (TR.ai) panel.querySelector('#tr-ailvl').value = TR.lvl; else panel.querySelector('#tr-lvl').value = TR.lvl;
+      const only = e && e.target && (e.target.id === 'tr-fkspot' || e.target.id === 'tr-cnside');
+      TR.fkSpot = panel.querySelector('#tr-fkspot').value; TR.cnSide = panel.querySelector('#tr-cnside').value; m.fkSpot = fkSpot();
+      if (only) { if (e.target.id === 'tr-fkspot') m.trainSet('fk', fkSpot()); else m.trainCorner(cornerCards()); return; }
       m.trainConfig(trainCards());
     };
     panel.addEventListener('change', e => { apply(e); if (e.target.tagName === 'SELECT' || e.target.id === 'tr-hero' || e.target.type === 'checkbox') e.target.blur(); });
@@ -2227,7 +2237,7 @@
       const a = b.dataset.tr;
       if (a === 'toggle') { panel.classList.toggle('shut'); b.textContent = panel.classList.contains('shut') ? 'Setup ▸' : 'Setup ▾'; }
       if (a === 'ball') m.trainBall(); if (a === 'reset') m.trainReset();
-      if (a === 'cross') m.trainFeed('cross'); if (a === 'ground') m.trainFeed('ground'); if (a === 'fk' || a === 'pen') m.trainSet(a);
+      if (a === 'cross') m.trainFeed('cross'); if (a === 'ground') m.trainFeed('ground'); if (a === 'fk') m.trainSet('fk', fkSpot()); if (a === 'pen') m.trainSet('pen'); if (a === 'corner') m.trainCorner(cornerCards());
     });
   }
   function startTraining() {

@@ -455,7 +455,9 @@
       if (view.spCam) spLast = view.spCam;
       if (spBlend > 0.01 && spLast) {
         const s = spLast, bx = s.bx - PW2, bz = s.by - PH2, gx = s.gx - PW2, gz = s.gy - PH2, L = Math.hypot(gx - bx, gz - bz) || 1, dx = (gx - bx) / L, dz = (gz - bz) / L;
-        const back = s.pen ? 11 : s.corner ? 12 : 13, side = s.pen ? 3.2 : s.corner ? 2.5 : 1.6, hgt = s.pen ? 3.6 : s.corner ? 5.5 : 4.6, ahead = Math.min(L, 16);
+        let back = s.pen ? 11 : s.corner ? 12 : 13, side = s.pen ? 3.2 : s.corner ? 2.5 : 1.6, hgt = s.pen ? 3.6 : s.corner ? 5.5 : 4.6; const ahead = Math.min(L, 16);
+        // v231 (JODIO): set-piece camera choice. behind (FC style, default), high (raised behind), side (from the side of the ball's path)
+        if (s.view === 'high') { back *= 1.5; hgt *= 2.8; } else if (s.view === 'side') { back = 3; side = 18; hgt = 6; }
         const px = bx - dx * back - dz * side, pz = bz - dz * back + dx * side, k = spBlend * spBlend * (3 - 2 * spBlend);
         camPos.lerp(new T.Vector3(px, hgt, pz), k); camTarget.lerp(new T.Vector3(bx + dx * ahead, s.pen ? 1.0 : 1.4, bz + dz * ahead), k);
         const fv = c.fov + (48 - c.fov) * k; if (Math.abs(camera.fov - fv) > 0.05) { camera.fov = fv; camera.updateProjectionMatrix(); }
