@@ -766,7 +766,7 @@ window.RUT = window.RUT || {};
     this.events.push(e); this.say(text);
     if (this.cfg.onEvent) this.cfg.onEvent(e);
   };
-  P.minute = function () { const m = Math.floor((this.t / this.halfSeconds) * 45) + 1, cap = this.half * 45; return m > cap ? cap + '+' + (m - cap) : m; };
+  P.minute = function () { const m = Math.floor((this.t / this.halfSeconds) * 45) + 1, cap = this.half <= 2 ? this.half * 45 : 90 + (this.half - 2) * 15; return m > cap ? cap + '+' + (m - cap) : m; };
   /** v158: the logo of a PlayStyle pops up over the head of the player who uses it (replaces the old text pops, rings, lasers and coloured trails). Only if he really has that PlayStyle. */
   /*  v166 (JODIO): only PlayStyle+ shows its logo, and the logo stays over his head for as long as the PlayStyle+ is at work:
    *  'ball' = until the ball he played is controlled by somebody (or play stops), 'own' = while he keeps the ball,
@@ -1459,7 +1459,7 @@ window.RUT = window.RUT || {};
     }
     if (this.phase === 'halftime') {
       this.phaseT -= dt;
-      if (this.phaseT <= 0) { this.half = 2; this.setupKickoff(1); }
+      if (this.phaseT <= 0) { this.half = this.nextHalf || 2; this.nextHalf = null; this.setupKickoff(this.half % 2 ? 0 : 1); }
       return;
     }
     if (this.phase === 'kickoff' || this.phase === 'restart') {
@@ -1483,11 +1483,16 @@ window.RUT = window.RUT || {};
     const bo = this.ball.owner;
     if (bo && bo.isGK && bo.holdT > 6 && !this.training) { bo.holdT = 0; this.event('GK held the ball > 6s', 'foul'); this.freeKick(1 - bo.team, bo.x + this.teams[bo.team].dir * 6, bo.y, true); return; }
     // stoppage time: announced at 45/90, +1..+6 from fouls, cards, goals, VAR
-    const regEnd = this.halfSeconds * this.half;
+    const hs0 = this.halfSeconds, regEnd = this.half <= 2 ? hs0 * this.half : hs0 * 2 + (this.half - 2) * hs0 / 3;   // v229: halves 3-4 = extra time, 15 match minutes each
     if (this.t >= regEnd && this.added == null) { this.added = clamp(Math.round(this.stoppage + this.rng()), 1, 6); this.stoppage = 0; this.event('+' + this.added + ' minutes added', 'board'); }
     const endT = regEnd + (this.added || 0) * this.halfSeconds / 45;
     if (this.half === 1 && this.added != null && this.t >= endT) { this.added = null; this.t = this.halfSeconds; this.phase = 'halftime'; this.phaseT = this.headless ? 0 : 2; this.say('HALF TIME'); this.event('Half time ' + this.score.join('-'), 'whistle'); return; }
-    if (this.half === 2 && this.added != null && this.t >= endT) { this.finish(); return; }
+    if (this.half >= 2 && this.added != null && this.t >= endT) {
+      // v229 (JODIO): extra time when level after 90 (cfg.extraTime), then penalties (cfg.knockout)
+      if (this.half === 2 && this.cfg.extraTime && this.score[0] === this.score[1] && !this.training) { this.added = null; this.t = regEnd; this.nextHalf = 3; this.phase = 'halftime'; this.phaseT = this.headless ? 0 : 2.5; this.say('EXTRA TIME'); this.event('Extra time ' + this.score.join('-'), 'whistle'); return; }
+      if (this.half === 3) { this.added = null; this.t = regEnd; this.nextHalf = 4; this.phase = 'halftime'; this.phaseT = this.headless ? 0 : 1.5; this.say('EXTRA TIME HALF TIME'); this.event('Extra time half time ' + this.score.join('-'), 'whistle'); return; }
+      this.finish(); return;
+    }
 
     const b = this.ball;
     const posTeam = b.owner ? b.owner.team : (b.last ? b.last.team : 0);

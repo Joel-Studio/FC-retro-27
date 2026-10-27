@@ -2027,7 +2027,7 @@
     wrap.className = 'match-wrap';
     const touch = touchOn() && (humans.length > 0);
     const btnCam = `<button class="btn sm" data-mact="cam">Camera: ${camLabel(App.camMode)}</button>`, btnGfx = `<button class="btn sm" data-mact="gfx" title="Graphics quality. Auto lowers it by itself if the game runs slowly">Gfx: ${gfxLabel()}</button>`;
-    const btnSpeed = o.online ? '' : '<button class="btn sm" data-mact="speed">Speed x1</button>', btnPause = o.online ? '' : '<button class="btn sm" data-mact="pause">Pause</button>';
+    const btnSpeed = o.online || o.noSpeed ? '' : '<button class="btn sm" data-mact="speed">Speed x1</button>', btnPause = o.online ? '' : '<button class="btn sm" data-mact="pause">Pause</button>';
     const btnFull = '<button class="btn sm" data-mact="full">Fullscreen</button>', btnQuit = '<button class="btn sm r" data-mact="quit">Quit</button>';
     const ping = o.online ? '<span class="ping" id="m-ping">...</span>' : '';
     const top = touch
@@ -2053,7 +2053,7 @@
     const own = !o.online && !o.training && !o.duel && o.home && o.home.name === D().clubName;
     const recOn = !!(RUT.Rec && hu && humans.length === 1 && !o.online && !o.training && !o.duel);       // v108: your local matches are recorded (set-up + your inputs), so highlights can be replayed exactly
     const mcfg = {
-      home: sm(o.home), away: sm(o.away), tacGain: own ? [CLUB_GAIN, 0] : undefined, coach: own ? [coachK(), null] : undefined, train: own ? [trainBoost(), null] : undefined, autoCoach: false ? [humans[0] === 0, humans[0] === 1] : undefined, plays: (own && !humans.length && !o.online && !o.training && !o.duel && (D().plays || []).some(pl => pl.on)) ? [playsCfg(), null] : undefined, humans, halfSeconds: o.halfSeconds || App.halfSeconds, setPieces: (!o.online && !o.training && !o.duel && humans.length === 1 && humans[0] === 0) ? [spCfg(), null] : undefined, knockout: o.knockout, camera: App.camMode || 'tv', seed: o.seed,
+      home: sm(o.home), away: sm(o.away), tacGain: own ? [CLUB_GAIN, 0] : undefined, coach: own ? [coachK(), null] : undefined, train: own ? [trainBoost(), null] : undefined, autoCoach: false ? [humans[0] === 0, humans[0] === 1] : undefined, plays: (own && !humans.length && !o.online && !o.training && !o.duel && (D().plays || []).some(pl => pl.on)) ? [playsCfg(), null] : undefined, humans, halfSeconds: o.halfSeconds || App.halfSeconds, setPieces: (!o.online && !o.training && !o.duel && humans.length === 1 && humans[0] === 0) ? [spCfg(), null] : undefined, knockout: o.knockout, extraTime: !!o.extraTime, camera: App.camMode || 'tv', seed: o.seed,
       penAsk: (humans.length === 1 && !o.online && !o.training) ? (mm, cb) => askPens(mm, wrap, humans[0], cb) : undefined,
       training: o.training || null, duel: !!o.duel, pitch: o.pitch || App.pitch || 'huge', surface: (o.phys || physCfg()).surface, ballModel: (o.phys || physCfg()).ballModel, assist: (o.phys || physCfg()).assist, styles: o.styles, brain: o.brain || (gfxPref() === 'ultra' ? 'ultra' : 'std'),
       onEnd: res => { if (own) recordPlayerStats(res, o.away); if (recOn) saveRec(m, o); playsLive(m); setTimeout(() => { m.stop(); wrap.remove(); App.match = null; o.onEnd(res); }, 1800); },
@@ -2336,12 +2336,12 @@
     }
     else if (ev.type === 'rematch-ask') { O.rematchAsked = true; const b = $('#rm-note'); if (b) b.textContent = 'Your opponent wants a rematch!'; }
     else if (ev.type === 'paired') onlineSet({ theirClub: ev.club, status: 'Connected. Swapping squads...' });
-    else if (ev.type === 'team') { onlineSet({ theirClub: ev.club, theirRating: ev.rating, status: O.quick ? 'Opponent found. Starting...' : O.role === 'host' ? 'Ready. Pick the options and start.' : 'Squads swapped.' }); quickAutoStart(O); }
+    else if (ev.type === 'team') { if (ev.club && !O.namedOpp) { O.namedOpp = 1; toast('Matched with ' + ev.club, 'good'); } onlineSet({ theirClub: ev.club, theirRating: ev.rating, status: O.quick ? 'Opponent found. Starting...' : O.role === 'host' ? 'Ready. Pick the options and start.' : 'Squads swapped.' }); quickAutoStart(O); }
     else if (ev.type === 'error') { if (App.match && O.abort) O.abort(ev.text); else if (!quickRetry(O, 'Could not connect to that opponent. Searching again...')) onlineSet({ error: ev.text }); }
     else if (ev.type === 'bye') { if (App.match && O.abort) O.abort('The other player left the match.'); else if (!quickRetry(O, 'Your opponent left. Searching again...')) { toast('The other player left.', 'bad'); App.online = null; if (App.view === 'online') render(); } }
     else if (ev.type === 'start') {
       const cfg = ev.cfg; if (O.quick) { O.quick.played = true; clearTimeout(O.quick.timer); } O.me = cfg.me; O.delay = cfg.delay; closeModal(); O.rematchAsked = false;
-      runMatch({ home: cfg.home, away: cfg.away, humans: [0, 1], knockout: false, styles: cfg.styles, seed: cfg.seed, halfSeconds: cfg.half, pitch: cfg.duel ? DUEL_PITCH : (cfg.pitch || 'huge'), duel: !!cfg.duel, brain: cfg.brain, phys: cfg.phys,
+      runMatch({ tag: 'Online · vs ' + (cfg.me === 0 ? cfg.away.name : cfg.home.name), home: cfg.home, away: cfg.away, humans: [0, 1], knockout: true, extraTime: true, noSpeed: true, styles: cfg.styles, seed: cfg.seed, halfSeconds: cfg.half, pitch: cfg.duel ? DUEL_PITCH : (cfg.pitch || 'huge'), duel: !!cfg.duel, brain: cfg.brain, phys: cfg.phys,
         online: O, onEnd: res => onlineResult(res, cfg.home, cfg.away, cfg.me), onQuit: () => { App.online = null; render(); } });
     }
   }
@@ -2367,15 +2367,19 @@
     if (!duelMode() && !onlineSquadReady()) { autoBuildSquad(); if (!onlineSquadReady()) { toast('Your XI needs 11 players. Go to Squad → Auto-build.', 'bad'); return; } }
     if (App.quick && App.quick.q) App.quick.q.close();
     const duel = duelMode(), Q = App.quick = { status: 'Searching for an opponent...', online: 1, skip: skip || [], q: null, t0: Date.now(), kind: kind || null };
-    if (kind) Q.ai = setTimeout(() => { if (App.quick !== Q) return; Q.q.close(); App.quick = null; toast('No player free right now: you face an AI rival.', 'good'); rivalsAI(kind); }, RIV_WAIT * 1000);
-    Q.q = new Net.Quick({ mode: kind || (duel ? 'duel' : 'club'), club: duel ? duelPlayer().name : D().clubName, rating: quickRating(), skip: Q.skip,
+    if (kind) Q.ai = setTimeout(() => { if (App.quick !== Q) return; clearTimeout(Q.wide); Q.q.close(); App.quick = null; toast('No player free right now: you face an AI rival.', 'good'); rivalsAI(kind); }, RIV_WAIT * 1000);
+    // v229 (JODIO): look for someone close by first (same time-zone band, so likely the same country or wifi area: lower ping), then anyone after 12 s
+    const near = 'z' + Math.round(-new Date().getTimezoneOffset() / 180);
+    const mk = region => new Net.Quick({ mode: kind || (duel ? 'duel' : 'club'), region, club: duel ? duelPlayer().name : D().clubName, rating: quickRating(), skip: Q.skip,
       onStatus: (text, n) => { if (App.quick !== Q) return; Q.status = text; Q.online = n; const el = $('#qm-status'); if (el) { el.textContent = text; const c = $('#qm-count'); if (c) c.textContent = n + (n === 1 ? ' player' : ' players') + ' in the queue'; } else if (App.view === 'online' && !App.match) render(); },
-      onMatch: m => { if (App.quick !== Q) return; clearTimeout(Q.ai); App.quick = null; onlineStartSession(m.role, m.code, null, { peer: m.peer, skip: Q.skip, t0: Date.now(), kind: Q.kind }); },
+      onMatch: m => { if (App.quick !== Q) return; clearTimeout(Q.ai); clearTimeout(Q.wide); App.quick = null; onlineStartSession(m.role, m.code, null, { peer: m.peer, skip: Q.skip, t0: Date.now(), kind: Q.kind }); },
       onFail: text => { if (App.quick !== Q) return; App.quick = null; toast(text, 'bad'); if (App.view === 'online' && !App.match) render(); } });
+    Q.q = mk(near); Q.status = 'Searching for a player near you...';
+    Q.wide = setTimeout(() => { if (App.quick !== Q) return; try { Q.q.close(); } catch (e) { /* gone */ } Q.q = mk(''); Q.status = 'Searching everywhere...'; Q.q.start(); }, 12000);
     render();
     Q.q.start();
   }
-  function quickCancel() { if (App.quick) { clearTimeout(App.quick.ai); if (App.quick.q) App.quick.q.close(); } App.quick = null; render(); }
+  function quickCancel() { if (App.quick) { clearTimeout(App.quick.ai); clearTimeout(App.quick.wide); if (App.quick.q) App.quick.q.close(); } App.quick = null; render(); }
   /** If a quick match never comes together (the other player went away), go back to searching without them. */
   function quickRetry(O, why) {
     if (!O.quick || O.quick.played || App.online !== O || App.match) return false;
@@ -2394,7 +2398,7 @@
       if (App.online !== O || !O.session || O.session.closed) return;
       if ((O.session.rttN || 0) < 4 && performance.now() - t0 < 2500) { setTimeout(go, 150); return; }       // a few pings first: the input delay is sized from them
       const gt = O.session.theirTac, opp = gt && validStyle(gt) ? gt : 'balanced';
-      O.session.start({ duel: duelMode(), seed: 1 + Math.floor(Math.random() * 2e9), half: QUICK_HALF, pitch: duelMode() ? 'huge' : 'colossal', brain: gfxPref() === 'ultra' ? 'ultra' : 'std', phys: physCfg(), styles: [myTac(), opp] });   // Quick match: 11v11 on the immense (colossal) pitch, 150 s halves, real time
+      O.session.start({ duel: duelMode(), seed: 1 + Math.floor(Math.random() * 2e9), half: O.quick.kind ? 90 : QUICK_HALF, pitch: duelMode() ? 'huge' : 'colossal', brain: gfxPref() === 'ultra' ? 'ultra' : 'std', phys: physCfg(), styles: [myTac(), opp] });   // Quick match: 11v11 on the immense (colossal) pitch, 150 s halves, real time
       onlineSet({ status: 'Starting the match...' });
     };
     setTimeout(go, 400);
@@ -2460,7 +2464,7 @@
     const NAMES = ['Real Rivals', 'United FC', 'Atletico Pixel', 'Inter 99', 'Dynamo Retro', 'Sporting Arcade', 'Olympique 8-Bit', 'Borussia Block'];
     const away = Engine.buildOpponent({ name: NAMES[seed % NAMES.length], lo, hi: lo + 6, pool: 'all' }, seed); away.name = NAMES[seed % NAMES.length];
     const home = { name: D().clubName, short: 'RFC', cards: State.matchCards() };
-    runMatch({ tag: kind === 'champs' ? 'Champions' : 'Rivals', home, away, humans: [0], knockout: kind === 'champs', styles: [myTac(), pickStyle('auto')],
+    runMatch({ tag: kind === 'champs' ? 'Champions' : 'Rivals', home, away, humans: [0], knockout: true, extraTime: true, noSpeed: true, pitch: 'colossal', halfSeconds: 90, styles: [myTac(), pickStyle('auto')],
       onEnd: res => finishMatch(res, away, { mult: 1, q: { mode: kind }, lossFee: kind === 'champs' ? 0 : null, coins: x => kind === 'champs' ? champPay(x.score[0], x.won ? -1 : 99) : rivCoins(x.score[0], x.score[1]) / EARN,
         after: x => (kind === 'champs' ? champFees(x.won ? 1 : 0, x.score[1]) : '') + rivRecord(kind, x.won ? 1 : 0, x.won ? 0 : x.draw ? 0 : 1) }),
       onQuit: () => quitMatch(kind === 'champs' ? CH_PAY.quit : null) });

@@ -434,7 +434,7 @@
     return true;
   };
   Quick.prototype.loop = async function () {
-    const base = 'rutq1-' + (['duel', 'rivals', 'champs'].includes(this.o.mode) ? this.o.mode : 'club') + '-';   // v207: Rivals and Champions have their own queues on the website too
+    const base = 'rutq1-' + (['duel', 'rivals', 'champs'].includes(this.o.mode) ? this.o.mode : 'club') + (this.o.region ? '-' + this.o.region : '') + '-';   // v207: Rivals and Champions have their own queues on the website too
     while (!this.closed && !this.done) {
       // v209 fix: a slot held by a player who froze or left without closing (a phone put to sleep, a killed tab) stays taken on the broker for a while.
       // Everyone used to keep retrying that dead slot, so two real players who did not start at the same moment never met. Dead slots are now skipped for 30 s.
@@ -514,11 +514,11 @@
     let room = null;
     try { room = window.claude && window.claude.use ? await window.claude.use('room') : null; } catch (e) { room = null; }
     if (!room && relayClient()) {                                                  // v209: websites queue on the relay (works on every network); PeerJS only if it can't be reached
-      try { this.q = await relayRooms.join('rut-q1-' + (['duel', 'rivals', 'champs'].includes(this.o.mode) ? this.o.mode : 'club')); this.relay = true; } catch (e) { this.q = null; }
+      try { this.q = await relayRooms.join('rut-q1-' + (['duel', 'rivals', 'champs'].includes(this.o.mode) ? this.o.mode : 'club') + (this.o.region ? '-' + this.o.region : '')); this.relay = true; } catch (e) { this.q = null; }
       if (this.q) return this.queueOn();
     }
     if (!room) { if (havePeer()) return this.startPeer(); this.o.onFail('Quick match could not start: the connection library did not load. Reload the page, or use a Direct connection below, which needs no account.'); return false; }
-    try { this.q = await room.join('rut-q1-' + (['duel', 'rivals', 'champs'].includes(this.o.mode) ? this.o.mode : 'club')); } catch (e) { this.o.onFail('Could not join the matchmaking room (' + ((e && e.code) || 'error') + '). Make sure the artifact is shared with you at Contributor level or higher.'); return false; }
+    try { this.q = await room.join('rut-q1-' + (['duel', 'rivals', 'champs'].includes(this.o.mode) ? this.o.mode : 'club') + (this.o.region ? '-' + this.o.region : '')); } catch (e) { this.o.onFail('Could not join the matchmaking room (' + ((e && e.code) || 'error') + '). Make sure the artifact is shared with you at Contributor level or higher.'); return false; }
     return this.queueOn();
   };
   Q.queueOn = function () {
