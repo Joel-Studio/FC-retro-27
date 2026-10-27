@@ -2937,8 +2937,8 @@ window.RUT = window.RUT || {};
           if (sh.fk) react *= 0.4;                                                       // v207: set on his line for a free kick, he is ready for it
           const hard = (sh.pw || 0) >= 0.92;   // v188 (JODIO): a 92%+ power strike is read, not guessed: no dive, he steps straight into its path
           const gs = (sh.pen || sh.fk) && p._guess != null && (!hard || (sh.pen && this.ctls[p.team])) ? p._guess : null; p._guess = null;   // v207: your own keeper's penalty pick holds even against a power strike
-          if (hard && gs == null) { const ty = clamp(cy, PH2 - GOAL_HALF - 0.5, PH2 + GOAL_HALF + 0.5); p.dive = { y: ty, t: 0, react: react * 0.5, hi: zt > 1.1, far: false }; return; }
-          const hi = zt > 1.1, dy0 = gs != null ? PH2 + gs * (GOAL_HALF - 0.9) : curly && !sh.fool ? endY : cy, far = gs != null ? gs !== 0 : Math.abs(dy0 - p.y) > 0.8;   // v187: a guessed side
+          if (hard && gs == null) { const ty = clamp(cy, PH2 - GOAL_HALF - 0.5, PH2 + GOAL_HALF + 0.5); p.dive = { y: ty, t: 0, react: react * 0.5, hi: zt > 1.1, far: false }; if (zt > 1.1 || Math.abs(ty - p.y) > 0.3) { p.dvT = 0; p.dvHi = zt > 1.1; p.dvZ = zt; p.dvSide = ty >= p.y ? 1 : -1; } return; }   // v221 (JODIO): he still reads it, but throws himself at it instead of stepping across
+          const hi = zt > 1.1, dy0 = gs != null ? PH2 + gs * (GOAL_HALF - 0.9) : curly && !sh.fool ? endY : cy, far = gs != null ? gs !== 0 : Math.abs(dy0 - p.y) > 0.3;   // v221 (JODIO): dives for anything not straight at him (was 0.8 m)   // v187: a guessed side
           p.dive = { y: clamp(dy0, PH2 - GOAL_HALF - 0.5, PH2 + GOAL_HALF + 0.5), t: 0, react, hi, far };
           if (far || hi) { p.dvT = 0; p.dvHi = hi; p.dvZ = zt; p.dvSide = dy0 >= p.y ? 1 : -1; }   // v220: dvZ = how high the ball crosses him, the 3D dive rises to meet it          // the visible dive (a shuffle for shots at the body)
           return;
