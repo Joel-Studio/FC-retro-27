@@ -390,7 +390,7 @@ window.RUT = window.RUT || {};
        calmer finishing. eliteT 0..1 per side: Top 5 / Champions League (smart >= 4) 1, an AI opponent of a human 0.65, the human's own
        AI team-mates 0.35, AI vs AI 0.5. cfg.home/away.elite overrides. */
     { const hs = cfg.humans || (cfg.humanTeam === 0 || cfg.humanTeam === 1 ? [cfg.humanTeam] : []);
-      this.eliteT = [cfg.home, cfg.away].map((t, ti) => t && t.elite != null ? t.elite : hs.includes(ti) ? 0.35 : t && t.smart >= 4 ? 1 : hs.length ? 0.65 : 0.5);
+      this.humSides = hs; this.eliteT = [cfg.home, cfg.away].map((t, ti) => t && t.elite != null ? t.elite : hs.includes(ti) ? 0.35 : t && t.smart >= 4 ? 1 : hs.length ? 0.65 : 0.5);
       this.thinkK = this.thinkK.map((k, ti) => k * (1 - 0.3 * this.eliteT[ti])); }
     // v118 training: cfg.train[team] = { att, mid, def, gk } (fractions, 0.10 = 10% better AI) lifts the football brain of that area's players
     [0, 1].forEach(t => { const tr = cfg.train && cfg.train[t]; if (!tr) return; this.players.forEach(p => { if (p.team !== t) return; const ps = p.fpos || p.card.position, k = p.isGK ? 'gk' : /^(CB|LB|RB|LWB|RWB)$/.test(ps) ? 'def' : /^(ST|CF|LW|RW)$/.test(ps) ? 'att' : 'mid'; if (tr[k]) { p.iq = Math.min(1.25, p.iq + 2.5 * tr[k]); p.tf = tr[k]; } }); });   // p.tf = trained fraction: sharper positioning (v128)
@@ -2103,7 +2103,10 @@ window.RUT = window.RUT || {};
           return;
         }
         const off = 3.8 - 1.8 * tight - (p.slot <= F.nDef ? DEF_UP * (1 - tight) : 0);                      // v91: defenders mark from higher up, level with a far-off attacker instead of two or three metres behind him
-        const mx = mk.x + ux / ul * off + (b.x - mk.x) * 0.1, my = mk.y + uy / ul * off + (b.y - mk.y) * 0.1;
+        let mx = mk.x + ux / ul * off + (b.x - mk.x) * 0.1, my = mk.y + uy / ul * off + (b.y - mk.y) * 0.1;
+        if (this.humSides && this.humSides.includes(p.team) && p.slot <= F.nDef) {   // v224 (JODIO): your AI defenders sit goal side of their striker and don't follow him up the pitch
+          const hx = mk.x + ux / ul * 2.2, hy = mk.y + uy / ul * 2.2, cap = PITCH_W * 0.34; mx = hx; my = hy;
+          if ((mx - own) * dir > cap) { mx = own + dir * cap; my = mk.y + (PH2 - mk.y) * 0.25; } }
         this.seek(p, mx, my, dist(p, { x: mx, y: my }) > 3);
         return;
       }
@@ -2287,6 +2290,20 @@ window.RUT = window.RUT || {};
     }
     // defenders hold a line
     if (isDef) { const gap = weHave ? (p.tr.has('ovl') || p.tr.has('wb') || p.tr.has('hyb') ? Math.max(2, TC.restGap - 10) : p.tr.has('hld') ? TC.restGap + 4 : TC.restGap) : 4; tx = dir > 0 ? Math.min(tx, b.x - gap) : Math.max(tx, b.x + gap); }
+    // v224 (JODIO): an AI side playing a human pushes its back line up behind the ball; the human's own AI defenders stay back and pick up the strikers in their half
+    { const hs = this.humSides;
+      if (hs && hs.length && isDef && !this.ctlOf(p)) {
+        if (!hs.includes(p.team)) { if (weHave) { const push = Math.min(12, 6 + 0.06 * Math.max(0, (b.x - own) * dir)); tx += dir * push; if ((tx - (b.x - dir * 5)) * dir > 0) tx = b.x - dir * 5; } }
+        else if (!weHave) {
+          tx -= dir * 5; const dcap = PITCH_W * 0.34; if ((tx - own) * dir > dcap) tx = own + dir * dcap;
+          let mk = null, md = 18;
+          for (const o of this.players) { if (o.team === p.team || o.isGK || o === b.owner || (o.x - own) * dir > PITCH_W * 0.42) continue;
+            const d0 = len(o.x - tx, o.y - ty); if (d0 >= md) continue;
+            if (this.players.some(q => q !== p && q.team === p.team && !q.isGK && len(q.x - o.x, q.y - o.y) < 3.5 && len(q.x - o.x, q.y - o.y) < len(p.x - o.x, p.y - o.y))) continue;   // a team-mate already has him
+            mk = o; md = d0; }
+          if (mk) { tx = mk.x - dir * 1.8; ty = mk.y + (PH2 - mk.y) * 0.15; }      // goal side of the striker, a step inside
+        } else tx -= dir * 6;                                                        // in possession they hold back for the counter
+      } }
     if ((tx - own) * dir < 7) tx = own + dir * 7;                                                    // never inside the keeper's six-yard box
     tx = clamp(tx, 2, PITCH_W - 2); ty = clamp(ty, 2, PITCH_H - 2);
     p.plan = { x: tx, y: ty, sprint: len(tx - p.x, ty - p.y) > (!weHave && p.tr.has('rec') ? 5 : 9) };
