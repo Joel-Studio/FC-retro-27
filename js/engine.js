@@ -1191,6 +1191,10 @@ window.RUT = window.RUT || {};
     if (volley) vz = 0.3 + this.rng() * 1.2 * (1 - fin) + lift * 0.6 + Math.max(0, b.z - 0.5) * -0.8;       // taken on the half-turn: keeps down if it is hit cleanly
     if (head) vz = -(0.6 + 2.6 * nrm(s.headingAccuracy) * jt) + (1 - jt) * 3.2 + this.gauss() * 0.5 * (1 - fin);   // nodded down; a mistimed jump sends it up
     if (scuff) vz *= 0.5;
+    if (finesse && curlComp && !chip && !isPen && Math.abs(p.y - PH2) > 2 && Math.abs(gx - p.x) > 4) {   // v223 (JODIO): a finesse shot to the far post finishes at the far post: aim error may push it wide, not back into the middle
+      const dx = gx - p.x, ay = p.y + Math.tan(ang) * dx, fs = Math.sign(PH2 - p.y);
+      if (Math.sign(ay - PH2) === fs || Math.abs(ay - PH2) < 1) { const minOff = GOAL_HALF - 1.2 - 1.0 * (1 - fin); if ((ay - PH2) * fs < minOff) ang = Math.atan2(PH2 + fs * minOff - p.y, dx); }
+    }
     const curlAimY = curlComp && !chip ? p.y + Math.tan(ang) * (gx - p.x) : null;                               // v149: where the curler is meant to cross the line (the keeper reads the swerve from this)
     if (curlComp && !chip) ang -= curlComp;                                          // v148: the bend is added to the launch angle last, after the aim, the error and the keep-on-frame pull-back, so an assisted curler still starts wide and bends back in
     if (chip) {
@@ -1217,6 +1221,10 @@ window.RUT = window.RUT || {};
     // v182 (JODIO: "very long full-power shots: 0% chance of a goal"): from 30 m or more at full power it always flies over the bar
     if (!isPen && !chip && !head && d >= 30 && power >= 0.95) { const T = d / Math.max(8, speed); vz = Math.max(vz, (6 + 4.905 * T * T) / T); }
     if (bar != null) { p.cool.plant = 0.5; p.vx *= 0.3; p.vy *= 0.3; }                               // plants the feet: no running on through the strike
+    if (curlComp && !chip && Math.abs(gx - p.x) > 4) {   // v223 (JODIO): the launch angle is solved on the real flight (spin fading, drag, bounces), so a curler aimed at the far post bends in and finishes at the far post instead of drifting back to the middle
+      const dx = gx - p.x, tgt = p.y + Math.tan(ang + curlComp) * dx;
+      for (let it = 0; it < 3; it++) { const yc = this.curlCross(p.x, p.y, Math.cos(ang) * speed, Math.sin(ang) * speed, vz, spin, tspin, gx); if (yc == null || Math.abs(tgt - yc) < 0.05) break; ang += dir * Math.atan2(tgt - yc, Math.abs(dx)); }
+    }
     this.kick(p, Math.cos(ang) * speed, Math.sin(ang) * speed, vz, spin, powerPS ? 'power' : (finesse ? 'finesse' : 'shot'), tspin);
     p.kickType = 'shot';
     const q = clamp(1 - err / 0.32, 0, 1);
@@ -3244,6 +3252,25 @@ window.RUT = window.RUT || {};
    * through a 12 cm post.
    * --------------------------------------------------------------------- */
   const BALL_R = 0.11, POST_R = 0.06, NET_DEPTH = 3.2, NET_TOP_BACK = 2.9;
+  /** v223: where a struck ball crosses the goal line x = gx (no players, no randomness): the same spin, drag, dip, bounce and roll as updateBall / integrateBall3D. */
+  P.curlCross = function (x, y, vx, vy, vz, spin, tspin, gx) {
+    const mg = this.ballM.magnus, dg = this.ballM.drag, S = this.surf, h = 1 / 120, sgn = Math.sign(gx - x); let z = 0;
+    for (let i = 0; i < 600; i++) {
+      if (spin) { const a = spin * mg * (z > 0.05 || vz > 0 ? 1 : 0.3) * h, c = Math.cos(a), sn = Math.sin(a), nx = vx * c - vy * sn; vy = vx * sn + vy * c; vx = nx; spin *= 1 - 0.5 * h; }
+      if (tspin) tspin *= 1 - 0.35 * h;
+      if (z > 0 || vz > 0) {
+        const v = Math.sqrt(vx * vx + vy * vy + vz * vz), k = 0.0125 * dg * v; vx -= k * vx * h; vy -= k * vy * h; vz -= (9.81 + k * vz) * h;
+        if (tspin) vz -= 0.12 * mg * tspin * Math.sqrt(vx * vx + vy * vy) * h;
+        z += vz * h;
+        if (z <= 0) { z = 0; if (vz < -0.9) { const g = S.grip, hk = 1 - 0.07 * g + (S.slick ? 0.035 : 0) + 0.06 * (tspin || 0) * g, hs = Math.sqrt(vx * vx + vy * vy); vz = -vz * 0.7 * S.bounce * this.ballM.bounce;
+          if (hs > 0.01) { const nx = -vy / hs, ny = vx / hs, sd = spin * 0.7 * g; vx = vx * hk + nx * sd; vy = vy * hk + ny * sd; } spin *= 0.7; tspin *= 0.4; } else vz = 0; }
+      } else { const rf = S.roll, sp = Math.sqrt(vx * vx + vy * vy), ns = Math.max(0, sp * (1 - 0.6 * rf * h) - 0.8 * rf * h); if (ns < 0.15) return null; vx *= ns / sp; vy *= ns / sp; }
+      const px = x; x += vx * h; y += vy * h;
+      if ((x - gx) * sgn >= 0) { const f = (gx - px) / ((x - px) || 1e-9); return y - vy * h * (1 - f); }
+    }
+    return null;
+  };
+
   P.integrateBall3D = function (dt) {
     const b = this.ball;
     const sp3 = Math.sqrt(b.vx * b.vx + b.vy * b.vy + b.vz * b.vz);
