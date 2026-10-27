@@ -2940,7 +2940,7 @@ window.RUT = window.RUT || {};
           if (hard && gs == null) { const ty = clamp(cy, PH2 - GOAL_HALF - 0.5, PH2 + GOAL_HALF + 0.5); p.dive = { y: ty, t: 0, react: react * 0.5, hi: zt > 1.1, far: false }; return; }
           const hi = zt > 1.1, dy0 = gs != null ? PH2 + gs * (GOAL_HALF - 0.9) : curly && !sh.fool ? endY : cy, far = gs != null ? gs !== 0 : Math.abs(dy0 - p.y) > 0.8;   // v187: a guessed side
           p.dive = { y: clamp(dy0, PH2 - GOAL_HALF - 0.5, PH2 + GOAL_HALF + 0.5), t: 0, react, hi, far };
-          if (far || hi) { p.dvT = 0; p.dvHi = hi; p.dvSide = dy0 >= p.y ? 1 : -1; }          // the visible dive (a shuffle for shots at the body)
+          if (far || hi) { p.dvT = 0; p.dvHi = hi; p.dvZ = zt; p.dvSide = dy0 >= p.y ? 1 : -1; }   // v220: dvZ = how high the ball crosses him, the 3D dive rises to meet it          // the visible dive (a shuffle for shots at the body)
           return;
         }
       }
@@ -3447,7 +3447,7 @@ window.RUT = window.RUT || {};
     if (!gk) return;                                                       // testing ground without a keeper
     const s = gk.card.sub;
     const diving = gk.dive && gk.dive.t > gk.dive.react, weak = this.gkWeak(gk);
-    const reach = -0.4 * weak + (gk.tr.has('stk') ? 0.25 : 0) + 1.5 + 1.5 * nrm(s.gkDiving) + 0.55 * (gk.pf['Far Reach'] || 0) + (diving ? 1.0 + 0.8 * nrm(s.gkDiving) : 0) + (b.shot && b.shot.fk ? 1.8 : 0);   // v207: a free kick, set on his line: a fuller stretch. a full-stretch dive adds a body length
+    const reach = -0.4 * weak + (gk.tr.has('stk') ? 0.25 : 0) + 1.5 + 1.5 * nrm(s.gkDiving) + 0.55 * (gk.pf['Far Reach'] || 0) + (diving ? 1.0 + 0.8 * nrm(s.gkDiving) : 0) + (b.shot && b.shot.fk ? 1.8 : 0) + (diving && b.z > 1.6 ? 0.6 : 0);   // v220 (JODIO): a high dive stretches further up into the top corners. v207: a free kick, set on his line: a fuller stretch. a full-stretch dive adds a body length
     if (dist(gk, b) > reach || b.z > GOAL_H + 0.4) return;
     b.shot.saveChecked = true;
     const sp = len(b.vx, b.vy);

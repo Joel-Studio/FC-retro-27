@@ -393,7 +393,7 @@
         case 'trap': rh = -0.75; rk = 0.8; lk = 0.3; lean = -0.12; lsw = -0.5; rsw = 0.3; aSpread = 0.5; break;
         case 'dive_hi': case 'dive_lo': {
           const air = clamp(t / 0.35, 0, 1), hi = anim === 'dive_hi', toRight = -Math.sin(r.yaw) * (p.dvSide >= 0 ? 1 : -1) >= 0 ? 1 : -1;   // which of his own sides the dive goes to
-          roll = -toRight * 1.3 * air; py = 0.5 + (hi ? 0.65 : 0.25) * Math.sin(Math.PI * clamp(t / 0.55, 0, 1)) + 0.15 * (1 - air); if (t > 0.5) py = 0.22;
+          roll = -toRight * 1.3 * air; py = 0.5 + (hi ? clamp((p.dvZ || 1.75) - 1.1, 0.65, 2.0) : 0.25) *   /* v220 (JODIO): a high dive rises to the ball's height, up to the top corner */ Math.sin(Math.PI * clamp(t / 0.55, 0, 1)) + 0.15 * (1 - air); if (t > 0.5) py = 0.22;
           lsw = rsw = -2.9; aSpread = 0.1; lh = 0.4; rh = 0.2; lk = 0.5; rk = 0.3; break; }
         case 'up': case 'cross': case 'celeb_up': case 'celeb_wide': case 'celeb_sky': {
           const b = Math.abs(Math.sin(m.t * 6 + r.ph)); py += 0.22 * b; lsw = rsw = -2.7; aSpread = 0.6 + 0.2 * Math.sin(m.t * 9); lel = rel = 0.4; lk = rk = 0.4 * b; lean = -0.08; break; }
