@@ -1113,6 +1113,7 @@ window.RUT = window.RUT || {};
     const sho = SUB_MAP.sho || []; if (sho.length) c.face.sho = Math.max(c.face.sho, Math.round(sho.reduce((a, k) => a + (c.sub[k] || 0), 0) / sho.length));
     c.value = valuation(c.rating, c.face, c.playStyles, c.position, c.rare);
   });
+  all.forEach(capFace);
   // v157 (JODIO): the value of every normal (non-special) card under 89 is 30% lower (promo cards are made after this and are untouched)
   all.forEach(c => { if (!c.promo && c.rating < 89) c.value = roundToIncrement(c.value * 0.7); });
 
@@ -1261,13 +1262,17 @@ window.RUT = window.RUT || {};
     return psExclusive(l.concat(silver), first);
   }
   /** v157 (JODIO): special (promo) cards are worth 30% more, on the market and when sold. */
+  /** v226 (JODIO): face stat cap by OVR, 92 -> 95, 96 -> 98 (round(95 + (OVR-92)*0.75)). */
+  function faceCap(r) { return clamp(Math.round(95 + (r - 92) * 0.75), 30, 99); }
+  function capFace(c) { if (!c || !c.face) return c; const m = faceCap(c.rating); Object.keys(c.face).forEach(k => { if (c.face[k] > m) c.face[k] = m; }); return c; }
   function registerPromo(baseId, promo, boost, newId) {
     const card = registerPromoRaw(baseId, promo, boost, newId);
+    if (card) capFace(card);
     if (card && !card.v157) { card.v157 = true; card.value = roundToIncrement(card.value * 1.3); }
     return card;
   }
   RUT.DB = {
-    psGate, evoPs, buildCard, synthCard,
+    faceCap, capFace, psGate, evoPs, buildCard, synthCard,
     PS_GUIDE, LEAGUES, CLUBS, FLAGS, DEFAULT_FLAG, PLAYSTYLES, ALT_POS, CHEM_STYLES, SIGNATURES, applyChemStyle,
     signatureFor: c => (c ? SIGNATURES[c.name] || null : null),
     players,          // headline players (original 150 + JODIO's 150)

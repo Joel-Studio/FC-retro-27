@@ -4270,9 +4270,14 @@ void main(){
     if (RUT.PSIcon && this.phase !== 'replay') for (const p of this.players) {
       const o = p.psOn; if (!o) continue;
       const age = this.t - o.t0, fade = o.off != null ? Math.max(0, 1 - (this.t - o.off) / 0.3) : 1, pop = Math.min(1, age * 8);
-      const s = proj(p.x, p.y, 3.0 + Math.sin(age * 5) * 0.06), sz = Math.max(12, Math.round(s.k * 1.7 / ZOOM * (0.7 + 0.3 * pop)));
+      const s = proj(p.x, p.y, 3.0 + Math.sin(age * 5) * 0.06), sz = Math.max(13, Math.round(s.k * 1.87 / ZOOM * (0.7 + 0.3 * pop)));   // v226 (JODIO): 10% bigger
       if (!p._psTint) { const c = p.card || {}; p._psTint = c.rarity === 'evo' ? 'evo' : c.promo || (c.cl ? 'clpromo' : c.rarity) || 'gold'; }
-      ctx.globalAlpha = fade; ctx.drawImage(RUT.PSIcon.canvas(o.name, true, p._psTint), Math.round(s.x - sz / 2), Math.round(s.y - sz), sz, sz); ctx.globalAlpha = 1;
+      ctx.globalAlpha = fade; ctx.drawImage(RUT.PSIcon.canvas(o.name, true, p._psTint), Math.round(s.x - sz / 2), Math.round(s.y - sz), sz, sz);
+      { const fs = Math.max(8, Math.round(sz * 0.3)), label = String(o.name).replace(/\+$/, '').toUpperCase() + '+';   // v226 (JODIO): the PlayStyle's name on top of its logo
+        ctx.font = `800 ${fs}px Barlow, 'Arial Narrow', sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.lineJoin = 'round';
+        ctx.lineWidth = Math.max(2, fs * 0.28); ctx.strokeStyle = 'rgba(0,0,0,.85)'; ctx.strokeText(label, Math.round(s.x), Math.round(s.y - sz - 1));
+        ctx.fillStyle = '#ffe08a'; ctx.fillText(label, Math.round(s.x), Math.round(s.y - sz - 1)); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; }
+      ctx.globalAlpha = 1;
     }
     // ---- floating effects: dust, text, cards
     this.effects.forEach(e => {
@@ -5446,14 +5451,14 @@ void main(){
   function buildOpponent(level, seed) {
     const d = typeof level === 'object' && level ? level : DIFFICULTY[level] || DIFFICULTY.pro;
     const r = RUT.DB.rng(seed != null ? seed : (Math.random() * 1e9) | 0);
-    const pool = RUT.DB[d.pool].filter(c => !c.promo && c.rating >= d.lo && c.rating <= d.hi);
-    const used = new Set();
+    const pool = d.specials ? RUT.DB.all.filter(c => c.rating >= d.lo && c.rating <= d.hi && !c.bdorUntradeable) : RUT.DB[d.pool].filter(c => !c.promo && c.rating >= d.lo && c.rating <= d.hi);   // v226: specials = promo cards too (Champions)
+    const used = new Set(), usedName = new Set();
     const cards = RUT.State.BASE_FORMATION.map(pos => {
-      let opts = pool.filter(c => c.altPositions.includes(pos) && !used.has(c.id) && (!d.gkLo || pos !== 'GK' || c.rating >= d.gkLo));
+      let opts = pool.filter(c => c.altPositions.includes(pos) && !used.has(c.id) && !usedName.has(c.name) && (!d.gkLo || pos !== 'GK' || c.rating >= d.gkLo));
       if (!opts.length) opts = RUT.DB.all.filter(c => !c.promo && c.altPositions.includes(pos) && c.rating >= (d.floor || d.lo - 6) && c.rating <= d.hi && !used.has(c.id));
       if (!opts.length) opts = pool.filter(c => !used.has(c.id));
       const c = opts[Math.floor(r() * opts.length)];
-      used.add(c.id); return c;
+      used.add(c.id); usedName.add(c.name); return c;
     });
     return { name: d.name, short: d.name.split(' ')[0], cards };
   }

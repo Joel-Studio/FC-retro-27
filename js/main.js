@@ -1931,6 +1931,44 @@
     })();
   }
 
+  /* v226 (JODIO: "make the pregame animation like the XI reveal and everything FC27 does"): FC-style pre-match show before kick-off.
+     Match-up card with both crests, then each Starting XI revealed card by card on a pitch (team rating, formation), the players to watch,
+     and a KICK OFF flash. About 11 s; any key, tap or the Skip button jumps straight to the match. Not used online or in training. */
+  function preMatch(o, wrap, go) {
+    const xi = t => (t && t.cards || []).filter(Boolean).slice(0, 11), H = xi(o.home), A = xi(o.away);
+    if (H.length < 11 || A.length < 11) { go(); return; }
+    const ovr = cs => Math.round(cs.reduce((a, c) => a + (c.rating || 0), 0) / cs.length);
+    const crest = (t, side) => { const nm = String(t.name || '?'), ini = nm.split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 3).toUpperCase(); return `<div class="pm-crest ${side}"><b>${esc(ini)}</b></div>`; };
+    const row = c => { const p = c.position || ''; return p === 'GK' ? 0 : /^(CB|LB|RB|LWB|RWB)$/.test(p) ? 1 : /^(CDM|CM|LM|RM|CAM)$/.test(p) ? 2 : 3; };
+    const lr = c => { const p = c.position || ''; return /^L/.test(p) ? -1 : /^R/.test(p) ? 1 : 0; };
+    const pitch = (cs, team, tag) => {
+      const rows = [[], [], [], []]; cs.forEach(c => rows[row(c)].push(c)); rows.forEach(r => r.sort((a, b) => lr(a) - lr(b)));
+      const used = rows.filter(r => r.length), shape = used.slice(1).map(r => r.length).join('-');
+      let k = 0;
+      const lines = used.slice().reverse().map(r => `<div class="pm-line">${r.map(c => `<div class="pm-slot" style="animation-delay:${0.25 + 0.13 * (k++)}s">${cardHTML(c, { mini: true })}</div>`).join('')}</div>`).join('');
+      return `<div class="pm-xi"><div class="pm-xi-head"><span class="pm-tag">${tag}</span><h2>${esc(team.name)}</h2><div class="pm-meta"><span>OVR <b>${ovr(cs)}</b></span><span>${esc(shape)}</span></div></div><div class="pm-pitch">${lines}</div></div>`;
+    };
+    const best = cs => cs.slice().sort((a, b) => b.rating - a.rating)[0];
+    const tag = esc(o.tag || (o.knockout ? 'Cup tie' : 'Match day'));
+    const scenes = [
+      [1900, `<div class="pm-vs"><p class="pm-comp">${tag}</p><div class="pm-teams">${crest(o.home, 'h')}<div class="pm-name">${esc(o.home.name)}<small>OVR ${ovr(H)}</small></div><span class="pm-v">VS</span><div class="pm-name">${esc(o.away.name)}<small>OVR ${ovr(A)}</small></div>${crest(o.away, 'a')}</div></div>`],
+      [3300, pitch(A, o.away, 'Starting XI · Away')],
+      [3300, pitch(H, o.home, 'Starting XI · Home')],
+      [2100, `<div class="pm-watch"><p class="pm-comp">Players to watch</p><div class="pm-pair"><div>${cardHTML(best(H))}<span>${esc(o.home.name)}</span></div><div>${cardHTML(best(A))}<span>${esc(o.away.name)}</span></div></div></div>`],
+      [1000, `<div class="pm-ko">KICK OFF</div>`],
+    ];
+    const ov = document.createElement('div'); ov.className = 'pm-ov'; ov.innerHTML = `<div class="pm-stage"></div><button class="btn sm pm-skip">Skip ▸</button><div class="pm-bar"><i></i></div>`;
+    wrap.appendChild(ov);
+    const stage = ov.querySelector('.pm-stage'), barI = ov.querySelector('.pm-bar i'), total = scenes.reduce((a, s) => a + s[0], 0);
+    let i = -1, done = false, tm = 0;
+    const end = () => { if (done) return; done = true; clearTimeout(tm); window.removeEventListener('keydown', key, true); ov.classList.add('out'); setTimeout(() => ov.remove(), 350); go(); };
+    const key = e => { e.preventDefault(); e.stopPropagation(); end(); };
+    const next = () => { if (done) return; i++; if (i >= scenes.length) { end(); return; } stage.innerHTML = `<div class="pm-scene">${bigTxt(scenes[i][1])}</div>`;
+      const sofar = scenes.slice(0, i + 1).reduce((a, s) => a + s[0], 0); barI.style.transition = `width ${scenes[i][0]}ms linear`; barI.style.width = (sofar / total * 100) + '%'; tm = setTimeout(next, scenes[i][0]); };
+    ov.addEventListener('click', end); window.addEventListener('keydown', key, true);
+    next();
+  }
+
   function runMatch(o) {
     const humans = o.humans || [], two = humans.length > 1 && !o.online;
     const canTac = humans.length === 1 && !o.online && !o.training && !o.duel;      // v113: tactic changes during the match (by button / keys 1-9) and the auto coach
@@ -2001,7 +2039,8 @@
       const watch = setInterval(() => { if (!App.match || App.match !== m) { clearInterval(watch); return; } if (performance.now() - m.net.lastRx > 15000) gone('The other player stopped responding. Match ended.'); }, 1000);
       m.cfg.onEnd0 = m.cfg.onEnd; m.cfg.onEnd = res => { clearInterval(watch); m.cfg.onEnd0(res); };   // the session stays open for a rematch
     }
-    m.start(wrap.querySelector('canvas'));
+    const kick = () => { if (wrap.isConnected) m.start(wrap.querySelector('canvas')); };
+    if (!o.online && !o.training && !o.duel && !o.noIntro && !(SET.intro === false)) preMatch(o, wrap, kick); else kick();   // v226: FC-style pre-match show first
     { const cv = wrap.querySelector('canvas');   // left mouse button = hold SHOOT and aim with the pointer
       const mp = (t, e) => { if (e.pointerType !== 'mouse' || (t !== 'move' && e.button !== 0)) return; m.mouse(t, e.clientX, e.clientY); };
       cv.addEventListener('pointerdown', e => mp('down', e)); cv.addEventListener('pointermove', e => mp('move', e));
