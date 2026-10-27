@@ -453,31 +453,24 @@ window.RUT = window.RUT || {};
   function uclBegin() { const U = ucl(); if (!uclCanPlay()) return false; U.day.n++; RUT.State.save(); return true; }
   function uclOpponent(i) {
     const U = ucl(), c = U.clubs[i], wc = world().clubs[c.name], cards = wc ? wc.xi.map(ref => refCard(ref, c.name)) : opponentFallback(c);
-    return { name: c.name, short: c.name, cards: uclElite(cards, c.name, c.ovr), kit: [c.c1, c.c2], learn: { prior: root().scout || null, every: T5.learnEvery }, smart: UCL.smart, teamIQ: UCL.teamIQ, hot: T5.hot, gb: T5.gb };
+    return { name: c.name, short: c.name, cards: uclElite(cards, c.name), kit: [c.c1, c.c2], learn: { prior: root().scout || null, every: T5.learnEvery }, smart: UCL.smart, teamIQ: UCL.teamIQ, hot: T5.hot, gb: T5.gb };
   }
   /* v226 (JODIO): Champions League opponents field 88-96 players and can use special cards. Each player takes his best version rated 88-96
      (a promo card when he has one); a player with none is replaced by an 88-96 card for that position, from his own club first. */
-  /* v232 (JODIO): CL clubs use special cards of their OWN players, and the big clubs are strongest. Each club gets a rating band from its
-     strength (weakest 88-91, giants like Real Madrid / Bayern 92-96). An XI player takes his best version in the band (a promo when he has one);
-     failing that, a special of another player of the same club for that position, then anyone in the band. */
-  const UCL_GIANTS = /real madrid|bayern|barcelona|paris|psg|manchester city|man city|liverpool|arsenal|inter\b|internazionale/i;
-  function uclElite(cards, club, ovr) {
-    const ovs = ucl().clubs.map(x => x.ovr || 80), mn = Math.min(...ovs), mx = Math.max(...ovs);
-    let t = mx > mn ? ((ovr || mn) - mn) / (mx - mn) : 0.5; if (UCL_GIANTS.test(club)) t = Math.max(t, 0.95);
-    const lo = 88 + Math.round(t * 4), hi = 91 + Math.round(t * 5);
-    const all = RUT.DB.all.filter(x => x.rating >= 80 && x.rating <= hi && !x.bdorUntradeable), r = RUT.DB.rng(club.length * 104729 + 17), used = new Set();
-    const best = list => list.sort((a, b) => (b.promo ? 1 : 0) - (a.promo ? 1 : 0) || b.rating - a.rating)[0];
-    return RUT.State.BASE_FORMATION.map((pos, k) => {
-      const c = cards[k];
-      const own = c ? best(all.filter(x => x.name === c.name && x.rating >= lo - 4 && !used.has(x.name))) : null;
-      if (own) { used.add(own.name); return own.club === club ? own : Object.assign({}, own, { club }); }
-      let opts = all.filter(x => x.altPositions.includes(pos) && !used.has(x.name) && x.club === club && x.rating >= lo - 4);
-      if (!opts.length) opts = all.filter(x => !used.has(x.name) && x.club === club && x.rating >= lo - 4 && (pos === 'GK') === (x.position === 'GK'));   // same club, any outfield spot
-      if (!opts.length) opts = all.filter(x => x.altPositions.includes(pos) && !used.has(x.name) && x.rating >= lo);
-      if (!opts.length) return c;
-      const sp = opts.filter(x => x.promo), pool = sp.length ? sp : opts;
-      const pick = pool[Math.floor(r() * pool.length)]; used.add(pick.name); return pick.club === club ? pick : Object.assign({}, pick, { club });
-    });
+  /* v233 (JODIO): a Champions League club fields its REAL current squad (the players whose card is at that club, 2026-27 moves included),
+     best XI for the 4-3-3. A player uses his best special card only when he has one; nobody is borrowed from another club. A slot the
+     club has no card for keeps the club's own generated player. */
+  function uclElite(cards, club) {
+    const base = RUT.DB.all.filter(x => !x.promo && x.club === club), used = new Set(), r = RUT.DB.rng(club.length * 104729 + 17);
+    const spec = n => RUT.DB.all.filter(x => x.promo && x.name === n && x.rating <= 96 && !x.bdorUntradeable).sort((a, b) => b.rating - a.rating)[0];
+    const xi = RUT.State.BASE_FORMATION.map(() => null), F = RUT.State.BASE_FORMATION;
+    const pick = (k, ok) => { const c = base.filter(x => !used.has(x.name) && ok(x)).sort((a, b) => b.rating - a.rating)[0]; if (c) { used.add(c.name); xi[k] = c; } };
+    F.forEach((pos, k) => pick(k, x => x.position === pos));
+    F.forEach((pos, k) => { if (!xi[k]) pick(k, x => x.altPositions.includes(pos)); });
+    F.forEach((pos, k) => { if (!xi[k] && pos !== 'GK') pick(k, x => x.position !== 'GK'); });
+    return xi.map((c, k) => { if (!c) { const o = cards[k]; return o && !o.promo && !RUT.DB.all.some(x => x.name === o.name && x.club !== club && !x.promo) ? o : opponentFallback({ name: club, ovr: 84 })[k]; }
+      const sp = (c.rating >= 87 || r() < 0.3) && spec(c.name); return sp ?   // specials for the stars, and now and then for the others
+       (sp.club === club ? sp : Object.assign({}, sp, { club })) : c; });
   }
   function opponentFallback(c) { const r = RUT.DB.rng(c.name.length * 7919); return RUT.State.BASE_FORMATION.map((pos, k) => RUT.DB.synthCard('ucl' + k + c.name, c.name, 'England', pos, Math.round(c.ovr), r)); }
   /** Your result (gf, ga, pens winner for a knockout draw: 0 = you). Returns what happened. */
