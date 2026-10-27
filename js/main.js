@@ -1279,12 +1279,61 @@
   const fcTac = () => { const d = D(); if (!d.fctac || !FCP()[d.fctac.preset]) d.fctac = fcFromPreset('s'); const t = d.fctac; t.roles = t.roles || {}; if (!FCP()[t.base]) t.base = t.preset === 'x' ? 's' : t.preset; return t; };
   const fcSpec = () => { const t = fcTac(); return Engine.tacSpec({ fc: { bu: t.bu, da: t.da, ln: t.ln, pr: t.base }, form: State.formationKey() || '' }); };
   const famTag = f => f === 2 ? '<em class="fam f2">++</em>' : f === 1 ? '<em class="fam f1">+</em>' : '';
+  /* v215 (JODIO: tiles overlapped): every depth line of the formation gets its own evenly spaced row, and players in a row keep a minimum gap */
+  function fcSpots(pts) {
+    const ix = pts.map((p, i) => i).sort((a, b) => pts[a][0] - pts[b][0]), rows = [];
+    ix.forEach(i => { const r = rows[rows.length - 1]; if (r && Math.abs(pts[i][0] - pts[r[0]][0]) < 5) r.push(i); else rows.push([i]); });
+    const out = [], n = rows.length;
+    rows.forEach((r, k) => {
+      const y = n > 1 ? 91 - k * 82 / (n - 1) : 50;
+      r.sort((a, b) => pts[a][1] - pts[b][1]);
+      let xs = r.map(i => Math.max(10, Math.min(90, 4 + pts[i][1] / 68 * 92)));
+      const gap = 19; if (xs.some((x, j) => j && x - xs[j - 1] < gap)) { const w = Math.min(81, (r.length - 1) * 24), mid = xs.reduce((a, b) => a + b, 0) / xs.length, c = Math.max(10 + w / 2, Math.min(90 - w / 2, mid)); xs = r.map((_, j) => r.length > 1 ? c - w / 2 + j * w / (r.length - 1) : c); }
+      r.forEach((i, j) => { out[i] = [y, xs[j]]; });
+    });
+    return out;
+  }
+  /* v216 (JODIO, FC 27 role zones): the pitch is cut into a 6 x 8 grid of squares and each square is shaded by how often the player, in his
+     role and focus, goes there: dark = a lot, light = rarely, empty = never. It reads the same tags the match AI uses (RUT.effectiveTags),
+     so the picture matches how he really moves. In possession and out of possession are separate maps. */
+  const ZC = 6, ZR = 8;
+  function fcZones(i, key) {
+    const pts = (Engine.FORMATIONS[State.formationKey() || '433'] || Engine.FORMATIONS['433']).pts, p = pts[i], c = State.squadCards()[i], pos = State.FORMATION[i];
+    if (!p) return null;
+    const tg = c ? RUT.effectiveTags(c, pos, key || State.slotRole(i)) : new Set(), h = t => tg.has(t), foc = String(key || State.slotRole(i) || '').split(':')[1] || 'b';
+    const X = p[1] / 68 * 100, Y = Math.min(100, p[0] / 64 * 100), side = X < 40 ? -1 : X > 60 ? 1 : 0, gk = pos === 'GK';
+    const map = att => {
+      let cy = Y + (att ? 10 : -12), cx = X, sx = 13, sy = 12; const blobs = [];
+      if (gk) { cy = att ? 6 : 4; sx = att ? 14 : 10; sy = att ? (h('swp') ? 9 : 5) : 4; }
+      else {
+        if (att) { if (foc === 'a') cy += 9; if (foc === 'd') cy -= 8; if (foc === 'u') cy -= 5; if (foc === 'r') { sx *= 1.5; sy *= 1.4; }
+          if (h('run') || h('late') || h('box')) blobs.push([cx + (h('box') ? -side * 12 : 0), Math.min(96, cy + 20), 0.75]);
+          if (h('wb') || h('ovl')) { blobs.push([side ? (side < 0 ? 6 : 94) : cx, Math.min(92, cy + 22), 0.85]); sy += 6; }
+          if (h('wid') || h('crs')) cx = side < 0 ? Math.min(cx, 10) : side > 0 ? Math.max(cx, 90) : cx;
+          if (h('inv') || h('ifb') || h('hyb')) blobs.push([50 + side * 14, cy + (h('ifb') || h('hyb') ? 4 : 10), 0.8]);
+          if (h('drp') || h('vis')) blobs.push([cx * 0.6 + 20, cy - 16, 0.65]);
+          if (h('hld') || h('anc') || h('lib')) { cy -= 5; sy *= 0.75; }
+          if (h('dri')) sx += 3; if (h('wrk')) sy += 4; if (h('tgt')) sx *= 0.8;
+        } else { if (foc === 'd') cy -= 6; if (foc === 'a') cy += 6;
+          if (h('lzy')) cy += 14; if (h('wrk') || h('stp')) { sy += 5; sx += 3; } if (h('anc') || h('hld')) sx *= 0.85; if (h('lib')) cy -= 6;
+          if (h('wb') || h('ovl')) sy += 5; }
+      }
+      cy = Math.max(3, Math.min(97, cy)); cx = Math.max(4, Math.min(96, cx)); blobs.unshift([cx, cy, 1]);
+      const g = []; let mx = 0;
+      for (let r = 0; r < ZR; r++) for (let q = 0; q < ZC; q++) { const zx = (q + 0.5) / ZC * 100, zy = (ZR - r - 0.5) / ZR * 100; let v = 0;
+        blobs.forEach(([bx, by, w]) => { v = Math.max(v, w * Math.exp(-((zx - bx) ** 2) / (2 * sx * sx) - ((zy - by) ** 2) / (2 * sy * sy))); }); g.push(v); mx = Math.max(mx, v); }
+      return g.map(v => mx ? v / mx : 0);
+    };
+    return { att: map(true), def: map(false) };
+  }
+  const zoneCells = (g, mini) => g.map(v => { const l = v < 0.14 ? 0 : v < 0.35 ? 1 : v < 0.6 ? 2 : v < 0.82 ? 3 : 4; return `<i class="z${l}"></i>`; }).join('');
+  const zoneGrid = (g, label, mini) => `<div class="fcz ${mini ? 'mini' : ''}"><div class="fcz-grid">${zoneCells(g)}</div>${label ? `<small>${label}</small>` : ''}</div>`;
   function fcPitchHTML() {
-    const key = State.formationKey() || '433', pts = (Engine.FORMATIONS[key] || Engine.FORMATIONS['433']).pts, cards = State.squadCards(), cl = (v, a, b) => Math.max(a, Math.min(b, v));
-    // v214 (JODIO's FC 27 screenshot): dark player tiles on a teal pitch: surname, role with ++/+, focus, position, and a rating dot
-    return `<div class="fc-pitch fc27-pitch"><div class="fc27-lines"><i class="m"></i><i class="c"></i><i class="b"></i><i class="b t"></i><i class="g"></i><i class="g t"></i></div>${pts.map((p, i) => {
+    const key = State.formationKey() || '433', pts = (Engine.FORMATIONS[key] || Engine.FORMATIONS['433']).pts, cards = State.squadCards(), sp = fcSpots(pts);
+    // v214 (JODIO's FC 27 screenshot): dark player tiles on the pitch: surname, role with ++/+, focus, position, and a rating dot
+    return `<div class="fc-pitch fc27-pitch"><div class="fc27-lines"><i class="m"></i><i class="c"></i><i class="b"></i><i class="b t"></i><i class="g"></i><i class="g t"></i></div><div class="fc27-zones" id="fc-zones">${'<i></i>'.repeat(ZC * ZR)}</div><div class="fc27-zl" id="fc-zl">Hover or tap a player to see his zones</div>${pts.map((p, i) => {
       const c = cards[i], pos = State.FORMATION[i], r = RUT.ROLE_BY[State.slotRole(i)] || (c ? RUT.roleOf(c, pos) : null), fam = c && r && r.fc ? RUT.roleFam(c, r.key, pos) : 0;
-      return `<button class="fc-mk fc27-mk" data-act="fc-role" data-i="${i}" style="top:${cl(92 - p[0] / 70 * 82, 7, 92).toFixed(1)}%;left:${cl(4 + p[1] / 68 * 92, 9, 91).toFixed(1)}%">${c ? `<u>${c.rating}</u>` : ''}<b>${esc(c ? c.name.split(' ').slice(-1)[0] : 'Empty')}</b><span>${esc(r ? r.name : 'Auto')}${famTag(fam)}</span><i>${esc(r && r.focusName ? r.focusName : '')}</i><small>${esc(pos)}</small></button>`;
+      return `<button class="fc-mk fc27-mk" data-act="fc-role" data-i="${i}" data-z="${(fcZones(i) || { att: [] }).att.map(v => v.toFixed(2)).join(',')}" title="${esc((c ? c.name : 'Empty') + (r ? ' · ' + r.name : ''))}" style="top:${sp[i][0].toFixed(1)}%;left:${sp[i][1].toFixed(1)}%">${c ? `<u>${c.rating}</u>` : ''}<b>${esc(c ? c.name.split(' ').slice(-1)[0] : 'Empty')}</b><span>${esc(r ? r.name : 'Auto')}${famTag(fam)}</span><i>${esc(r && r.focusName ? r.focusName : '')}</i><small>${esc(pos)}</small></button>`;
     }).join('')}</div>`;
   }
   /** Team Tactical Analysis: six 0..100 scores from the built tactic and the roles on the pitch, with strengths and warnings. */
@@ -1333,10 +1382,18 @@
   function fcRoleModal(i) {
     const c = State.squadCards()[i], pos = State.FORMATION[i], cur = State.slotRole(i), cb = cur && RUT.ROLE_BY[cur] ? RUT.ROLE_BY[cur].base : '';
     if (!c) { toast('Put a player in this position first.', 'bad'); return; }
-    modal(`<h1>${esc(pos)} · ${esc(c.name)}</h1><p class="dim" style="font-size:8px;line-height:1.8">Pick a role, then its focus. ++ = his best role here, + = a good fit.</p>${RUT.fcRolesIn(pos).map(r => `<div class="req ${cb === r.key ? 'ok' : ''}" style="display:block;margin-bottom:6px"><b>${esc(r.name)} ${famTag(RUT.roleFam(c, r.key, pos))}</b><p class="dim" style="font-size:8px;line-height:1.7">${esc(r.desc)}</p><div class="row">${r.foc.map(f => `<button class="btn sm ${cur === r.key + ':' + f ? 'y' : ''}" data-act="fc-set" data-i="${i}" data-k="${r.key}:${f}">${esc(RUT.FOCUS[f].name)}</button>`).join('')}</div></div>`).join('')}
-      <div class="row mt"><button class="btn" data-act="fc-set" data-i="${i}" data-k="">Use the preset's role</button><button class="btn" data-act="close">Close</button></div>`);
+    const cr = RUT.ROLE_BY[cur] || RUT.roleOf(c, pos), z = fcZones(i);
+    modal(`<h1>${esc(pos)} · ${esc(c.name)}</h1>
+      <div class="fcz-head"><div><b class="gold">${esc(cr ? cr.name : 'Auto')}${cr && cr.focusName ? ' · ' + esc(cr.focusName) : ''}</b><p class="dim">Where he goes in this role. Dark squares = he goes there a lot, light = rarely, empty = never.</p></div>
+        ${z ? zoneGrid(z.att, 'In possession') + zoneGrid(z.def, 'Out of possession') : ''}</div>
+      <p class="dim" style="font-size:8px;line-height:1.8">Pick a role, then its focus. ++ = his best role here, + = a good fit. The small map shows that role's zones.</p>${RUT.fcRolesIn(pos).map(r => { const fk = cb === r.key ? cur : r.key + ':' + (r.foc.includes('b') ? 'b' : r.foc[0]), mz = fcZones(i, fk); return `<div class="req fcz-role ${cb === r.key ? 'ok' : ''}">${mz ? zoneGrid(mz.att, '', true) : ''}<div><b>${esc(r.name)} ${famTag(RUT.roleFam(c, r.key, pos))}</b><p class="dim" style="font-size:8px;line-height:1.7">${esc(r.desc)}</p><div class="row">${r.foc.map(f => `<button class="btn sm ${cur === r.key + ':' + f ? 'y' : ''}" data-act="fc-set" data-i="${i}" data-k="${r.key}:${f}">${esc(RUT.FOCUS[f].name)}</button>`).join('')}</div></div></div>`; }).join('')}
+      <div class="row mt"><button class="btn" data-act="fc-set" data-i="${i}" data-k="">Use the preset's role</button><button class="btn" data-act="close">Close</button></div>`, 'wide');
   }
   function fcBind() {
+    const zg = $('#fc-zones'), zl = $('#fc-zl');
+    if (zg) { const cells = zg.children, show = el => { const v = el ? el.dataset.z.split(',').map(Number) : []; for (let k = 0; k < cells.length; k++) { const x = v[k] || 0; cells[k].className = el ? 'z' + (x < 0.14 ? 0 : x < 0.35 ? 1 : x < 0.6 ? 2 : x < 0.82 ? 3 : 4) : ''; } if (zl) zl.textContent = el ? el.title + ' · in possession' : 'Hover or tap a player to see his zones'; document.querySelectorAll('.fc27-mk.zon').forEach(e => e.classList.remove('zon')); if (el) el.classList.add('zon'); };
+      document.querySelectorAll('.fc27-mk').forEach(el => { el.addEventListener('mouseenter', () => show(el)); el.addEventListener('focus', () => show(el)); });
+      zg.parentElement.addEventListener('mouseleave', () => show(null)); }
     const t = fcTac(), save = msg => { D().tacMode = 'fc'; State.save(); if (msg) toast(msg, 'good'); render(); };
     const on = (id, fn) => { const e = $(id); if (e) e.addEventListener('change', () => fn(e)); };
     on('#fc-pre', e => { const k = e.value, P = FCP()[k]; if (k === 'x') { t.preset = 'x'; return save(); } Object.assign(t, fcFromPreset(k)); if (P.form && State.FORMS[P.form] && P.form !== State.formationKey()) State.setFormation(P.form); save('Preset: ' + P.name); });

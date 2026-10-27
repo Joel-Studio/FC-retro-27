@@ -1413,3 +1413,84 @@ table.list tr:hover td { background: rgba(255,255,255,.04); }
   .site-foot { display: none; }
 }
 .site-bar .logo { white-space: nowrap; }
+
+/* v215: proportions. Tactics tiles: taller pitch, tiles that fit in their row and show the full role; phone card grid without overflow; one type scale */
+.fc27-pitch { height: 560px; }
+.fc27-mk { width: 112px; padding: 4px 5px 5px; gap: 0; border-radius: 6px 6px 12px 12px; }
+.fc27-mk b { font-size: 13px; line-height: 1.2; }
+.fc27-mk span { font-size: 11px; line-height: 1.25; white-space: normal; overflow: visible; }
+.fc27-mk i { font-size: 10px; line-height: 1.2; min-height: 0; }
+.fc27-mk small { font-size: 11px; line-height: 1.2; }
+.fc27-mk u { top: -8px; right: -8px; width: 22px; height: 22px; line-height: 22px; font-size: 10px; box-shadow: 0 2px 6px rgba(0,0,0,.5); }
+h1 { font-size: 30px; } h2 { font-size: 19px; } h3 { font-size: 15px; }
+@media (max-width: 760px) {
+  .fc27-pitch { height: 520px; }
+  .fc27-mk { width: 76px; padding: 3px 3px 4px; border-radius: 5px 5px 9px 9px; }
+  .fc27-mk b { font-size: 10.5px; } .fc27-mk span { font-size: 9px; } .fc27-mk i { display: none; } .fc27-mk small { font-size: 9.5px; }
+  .fc27-mk u { width: 18px; height: 18px; line-height: 18px; font-size: 8.5px; top: -7px; right: -7px; }
+}
+@media (max-width: 800px) {
+  .cards { grid-template-columns: repeat(auto-fill, minmax(136px, 1fr)) !important; justify-items: center; gap: 10px; }
+  h1 { font-size: 24px; } h2 { font-size: 17px; }
+  .px select, .px input:not([type=checkbox]):not([type=radio]):not([type=range]) { max-width: 100%; }
+  .row { flex-wrap: wrap; }
+  .hero-h { font-size: 28px; }
+}
+.fc27-mk { width: 104px; } .fc27-mk b { line-height: 1.3; } .fc27-mk span, .fc27-mk i, .fc27-mk small { line-height: 1.32; }
+@media (max-width: 760px) { .fc27-mk { width: 76px; } }
+
+/* =============================================================================
+ * v216 — back to the Ballon d'Or colours (black velvet, gold leaf, cream text) under the FC 27 layout,
+ * plus the FC 27 role-zone grid. The pixel-size scaling in main.js replaces font-size-adjust.
+ * ========================================================================== */
+html, body, button, input, select, textarea { font-size-adjust: none; }
+body { background: radial-gradient(ellipse at 50% -10%, #4a3506 0%, #1a1205 35%, #0b0803 70%) fixed; }
+body::before { background: linear-gradient(115deg, transparent 30%, rgba(255,215,120,.05) 38%, transparent 46%), linear-gradient(115deg, transparent 52%, rgba(244,197,66,.05) 56%, transparent 62%); }
+header.top { background: linear-gradient(180deg, rgba(18,13,4,.97), rgba(7,5,2,.92)); border-bottom: 2px solid #b8861b; box-shadow: 0 6px 18px rgba(244,197,66,.15); }
+.site-bar .logo { color: #f4c542; border-left-color: #f4c542; text-shadow: 0 0 12px rgba(255,190,50,.45); }
+.site-bar .logo small { color: #c9b27a; }
+.site-nav button { color: #d8c08a; } .site-nav button:hover, .site-nav button.on { color: #ffe9a0; } .site-nav button::after { background: #f4c542; }
+.site-nav button.cta { color: #ffe08a; border-color: #d9a21c; }
+.dd-menu, .site-nav.open { background: rgba(14,10,4,.98); }
+.dd-menu { border-color: rgba(244,197,66,.35); } .dd-menu button:hover { background: #3a2c10; color: #ffe9a0; }
+.coins { color: #ffe08a; background: rgba(244,197,66,.08); border-color: rgba(244,197,66,.35); }
+.px { background: linear-gradient(155deg, rgba(255,230,160,.08), rgba(255,255,255,.015) 55%), linear-gradient(180deg, #241b0c, #17110a); border: 1px solid rgba(244,197,66,.3); box-shadow: 0 16px 36px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,235,180,.12); }
+.px:hover { border-color: rgba(244,197,66,.5); }
+.modal.px, .overlay .modal { background: linear-gradient(155deg, rgba(255,230,160,.08), transparent 50%), linear-gradient(180deg, #241b0c, #120d04); }
+.overlay { background: rgba(8,5,1,.75); }
+.hero { background: radial-gradient(ellipse at 80% 50%, rgba(255,210,90,.32), transparent 55%), linear-gradient(115deg, rgba(255,240,200,.07), transparent 40%), linear-gradient(120deg, #2a1e08, #5a4006 55%, #120d04); border-color: rgba(244,197,66,.4); }
+.hero .eyebrow { color: #ffd98a; }
+.btn { background: linear-gradient(180deg, #4a3916, #2c210c); border-color: rgba(244,197,66,.3); color: #fff4d6; }
+.btn:hover:not(:disabled) { background: linear-gradient(180deg, #5a4520, #3a2c10); }
+.btn.y { background: linear-gradient(180deg, #ffe7a0, #f4c542 45%, #c8930f); color: #2a1c00; }
+input, select, textarea { background: #0e0a04; border-color: rgba(244,197,66,.35); color: #fff4d6; }
+h1, h2 { color: #fff4d6; } h2 { color: #f4c542; } .dim { color: #c9b27a; }
+.site-foot { background: #070502; border-top-color: #b8861b; }
+.mnav { background: rgba(14,10,4,.96) !important; border-color: rgba(244,197,66,.4) !important; }
+.mnav button { color: #d8c08a !important; } .mnav button.on { color: #2a1c00 !important; background: linear-gradient(180deg, #ffe7a0, #f4c542 45%, #c8930f) !important; }
+.site-nav.open .dd-menu button { background: rgba(244,197,66,.07); border-color: rgba(244,197,66,.3); }
+/* tactics screen in black and gold */
+.fc27 { background: radial-gradient(120% 90% at 70% 0%, #4a3506 0%, #1e170b 45%, #0b0803 100%); border-color: rgba(244,197,66,.4); color: #fff4d6; }
+.fc27-pre.on { background: linear-gradient(135deg, rgba(255,215,120,.25), rgba(255,215,120,.06)); border-color: rgba(244,197,66,.6); }
+.fc27-pre s { background: #f4c542; color: #2a1c00; }
+.fc27-side { border-right-color: rgba(244,197,66,.3); }
+.fc27-edit select { background: #0e0a04; border-color: rgba(244,197,66,.35); }
+.fc27-lines { background: linear-gradient(180deg, #1b1609, #100c05); border-color: rgba(244,197,66,.55); }
+.fc27-lines i { border-color: rgba(244,197,66,.32) !important; }
+.fc27-mk { background: linear-gradient(180deg, #1d1810, #0e0b06); border-color: rgba(244,197,66,.35); }
+.fc27-mk:hover, .fc27-mk.zon { border-color: #f4c542; box-shadow: 0 0 0 2px rgba(244,197,66,.5), 0 4px 12px rgba(0,0,0,.5); }
+.fc27-mk u { background: linear-gradient(180deg, #ffe7a0, #d9a21c); }
+.fc27-an { border-top-color: rgba(244,197,66,.25); }
+/* FC 27 zone grid: dark blue = a lot, light blue = rarely */
+.fc27-zones { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(8, 1fr); clip-path: polygon(4% 0, 96% 0, 100% 100%, 0 100%); pointer-events: none; }
+.fc27-zones i, .fcz-grid i { border: 1px solid rgba(244,197,66,.13); transition: background .2s; }
+.z1 { background: rgba(140,195,255,.28); } .z2 { background: rgba(80,150,245,.45); } .z3 { background: rgba(35,100,225,.62); } .z4 { background: rgba(15,55,185,.82); }
+.fc27-zl { position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%); font-size: 11px; color: #ffe9a0; background: rgba(0,0,0,.55); padding: 2px 10px; border-radius: 999px; white-space: nowrap; pointer-events: none; z-index: 2; }
+.fcz { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; }
+.fcz-grid { display: grid; grid-template-columns: repeat(6, 22px); grid-template-rows: repeat(8, 18px); background: linear-gradient(180deg, #1b1609, #100c05); border: 2px solid rgba(244,197,66,.55); border-radius: 4px; }
+.fcz.mini .fcz-grid { grid-template-columns: repeat(6, 9px); grid-template-rows: repeat(8, 8px); border-width: 1px; }
+.fcz small { font-size: 11px; color: #c9b27a; }
+.fcz-head { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 10px; } .fcz-head > div:first-child { flex: 1 1 200px; } .fcz-head p { font-size: 12px; margin: 4px 0 0; }
+.fcz-role { display: flex !important; gap: 10px; align-items: flex-start; margin-bottom: 6px; } .fcz-role > div:last-child { flex: 1; }
+@media (max-width: 760px) { .fcz-grid { grid-template-columns: repeat(6, 17px); grid-template-rows: repeat(8, 14px); } }
+.req { background: linear-gradient(180deg, rgba(255,230,160,.07), rgba(0,0,0,.15)) !important; border: 1px solid rgba(244,197,66,.25) !important; border-radius: 10px; padding: 10px; } .req.ok { border-color: #f4c542 !important; box-shadow: inset 3px 0 0 #f4c542; }
