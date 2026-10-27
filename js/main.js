@@ -233,7 +233,7 @@
     { k: 'claude', name: 'Claude', url: 'https://claude.ai/artifact/LK8vknaqmxJ72nuxVibgsN', here: () => !!window.claude || /claude/i.test(location.hostname) },
     { k: 'lovable', name: 'Lovable', url: 'https://retro-charm-site.lovable.app/', here: () => /lovable\.app$/.test(location.hostname) },
     { k: 'github', name: 'GitHub', url: 'https://joel-studio.github.io/FC-retro-27/', here: () => /github\.io$/.test(location.hostname) },     // v211: GitHub Pages from Joel-Studio/FC-retro-27
-    { k: 'replit', name: 'Replit', url: '', here: () => /replit\.(app|dev)$|repl\.co$/.test(location.hostname) },      // the Replit app mirrors the same repo: its address goes here once it is live
+    { k: 'replit', name: 'Replit', url: 'https://oily-spatial-networks--CJO00.replit.app/', here: () => /replit\.(app|dev)$|repl\.co$/.test(location.hostname) },      // v212: the Replit app serves the same repo (a small server that fetches each file from GitHub, so every push shows up there within a minute)
   ];
   const sitesHTML = () => `<div class="px mt"><b>Play this club on another site</b><p class="dim" style="font-size:7px;line-height:1.9">Your players, coins and progress go with you. Websites open already logged in; on Claude press <b>Paste my club</b> on the login screen.</p><div class="row">${SITES.filter(x => !x.here()).map(x => x.url ? `<button class="btn y" data-act="acc-site" data-k="${x.k}">Go to ${esc(x.name)}</button>` : `<button class="btn" disabled>${esc(x.name)}: coming soon</button>`).join('')}</div></div>`;
   VIEWS.home = function () {

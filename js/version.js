@@ -1,5 +1,5 @@
 /* The game's build number. Bump it on every publish: open copies compare it with the published one and reload themselves when it is newer (js/updater.js). */
-window.RUT_VERSION = 211;
+window.RUT_VERSION = 212;
 /* v200 Lite mode: phones, tablets and weak computers (4 cores or 4 GB or less) get a lighter game: 2D Low graphics instead of WebGL 3D, drawing at 30 fps,
    no 3D pack scenes, fewer blur effects. Settings > Performance can force it on ('lite') or off ('full'). */
 window.RUT_LITE = (function () {
