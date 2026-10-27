@@ -210,10 +210,10 @@
   };
   /** Input delay in 60 Hz ticks, from the measured round trip: half of it plus twice the jitter and a small margin (6 ticks = 100 ms is the floor). */
   S.inputDelay = function () {
-    const r = this.rtt || 100, j = this.rttVar || 0, d = Math.ceil((r / 2 + 2 * j) / 16.7) + 3;
+    const r = this.rtt || 100, j = Math.min(this.rttVar || 0, r * 0.35), d = Math.ceil((r / 2 + 1.5 * j) / 16.7) + 3;   // v219: jitter counts 1.5x and is capped, so slow links get a smaller, snappier buffer
     let q = 'auto'; try { q = (JSON.parse(localStorage.getItem('rut_settings') || '{}') || {}).netq || 'auto'; } catch (e) { /* default */ }
     // v203 Settings > Online: Smooth = a bigger buffer so slow or far links never stutter; Fast = the smallest buffer for players on the same Wi-Fi
-    return q === 'smooth' ? Math.max(9, Math.min(30, d + 4)) : q === 'fast' ? Math.max(4, Math.min(20, d - 2)) : Math.max(6, Math.min(24, d));
+    return q === 'smooth' ? Math.max(9, Math.min(30, d + 4)) : q === 'fast' ? Math.max(4, Math.min(20, d - 2)) : Math.max(6, Math.min(20, d));
   };
   /** After a match: ask for a rematch. When both want one the host starts it with a fresh seed. */
   S.wantRematch = function () {

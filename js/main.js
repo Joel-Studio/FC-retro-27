@@ -1288,7 +1288,7 @@
       const y = n > 1 ? 91 - k * 82 / (n - 1) : 50;
       r.sort((a, b) => pts[a][1] - pts[b][1]);
       let xs = r.map(i => Math.max(10, Math.min(90, 4 + pts[i][1] / 68 * 92)));
-      const gap = 19; if (xs.some((x, j) => j && x - xs[j - 1] < gap)) { const w = Math.min(81, (r.length - 1) * 24), mid = xs.reduce((a, b) => a + b, 0) / xs.length, c = Math.max(10 + w / 2, Math.min(90 - w / 2, mid)); xs = r.map((_, j) => r.length > 1 ? c - w / 2 + j * w / (r.length - 1) : c); }
+      const gap = 21; if (xs.some((x, j) => j && x - xs[j - 1] < gap)) { const w = Math.min(82, (r.length - 1) * 26), mid = xs.reduce((a, b) => a + b, 0) / xs.length, c = Math.max(10 + w / 2, Math.min(90 - w / 2, mid)); xs = r.map((_, j) => r.length > 1 ? c - w / 2 + j * w / (r.length - 1) : c); }
       r.forEach((i, j) => { out[i] = [y, xs[j]]; });
     });
     return out;

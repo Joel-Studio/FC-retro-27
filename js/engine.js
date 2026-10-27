@@ -44,7 +44,7 @@ window.RUT = window.RUT || {};
   const TRX = (typeof window !== 'undefined' && window.__TRX != null) ? window.__TRX : 2, tx2 = m => Math.max(0.05, 1 + (m - 1) * TRX);                // v128: traits and roles act 2x as strongly for AI-driven players (multiplier m becomes 1 + (m-1)*2)
   const PACE = 0.8;                                                      // every player's top speed is scaled by this (JODIO: 20% slower)
   const PITCH_SIZES = { standard: [105, 80], large: [130, 96], huge: [160, 116], colossal: [200, 145] };   // taller than the real 68 m so there is room for the wide goals
-  const PITCH_GROW = 1.4;              // v218 (JODIO): every pitch is 40% bigger (length and width), in every mode
+  const PITCH_GROW = 1;                // v218 grew pitches 40%; v219 (JODIO: "the tactics board, not the field") back to 1
   function setPitch(w, h) {
     w = clamp(Math.round(w * PITCH_GROW), 70, 280); h = clamp(Math.round(h * PITCH_GROW), 50, 203);
     if (w === PITCH_W && h === PITCH_H) return;
@@ -384,6 +384,14 @@ window.RUT = window.RUT || {};
     if (this.brain) this.players.forEach(p => { p.iq = Math.min(1.15, p.iq + 0.1); });
     // v120: past smart 2 the side also thinks faster (smart 4 = decisions twice as quick) and its passes find their man more truly
     this.smartT = [cfg.home, cfg.away].map(t => (t && t.smart) || 1); this.teamIQ = [cfg.home, cfg.away].map(t => (t && t.teamIQ) || 1); /* v201: Champions League sides play 1.5x more as a team */ this.thinkK = this.smartT.map(v => v > 2 ? 2 / v : 1);
+    /* v219 (JODIO: "FC 27's hardest AI, for every AI, most for the opponent"). From FC 27's Legendary/Ultimate: faster reactions, less time
+       to recover after losing the ball (longer counter-press), a compact block that shifts to the ball side, a back line that drops off when
+       the carrier has time (defends the through ball), switching play when the other side crowds one flank, attacking the central zone, and
+       calmer finishing. eliteT 0..1 per side: Top 5 / Champions League (smart >= 4) 1, an AI opponent of a human 0.65, the human's own
+       AI team-mates 0.35, AI vs AI 0.5. cfg.home/away.elite overrides. */
+    { const hs = cfg.humans || (cfg.humanTeam === 0 || cfg.humanTeam === 1 ? [cfg.humanTeam] : []);
+      this.eliteT = [cfg.home, cfg.away].map((t, ti) => t && t.elite != null ? t.elite : hs.includes(ti) ? 0.35 : t && t.smart >= 4 ? 1 : hs.length ? 0.65 : 0.5);
+      this.thinkK = this.thinkK.map((k, ti) => k * (1 - 0.3 * this.eliteT[ti])); }
     // v118 training: cfg.train[team] = { att, mid, def, gk } (fractions, 0.10 = 10% better AI) lifts the football brain of that area's players
     [0, 1].forEach(t => { const tr = cfg.train && cfg.train[t]; if (!tr) return; this.players.forEach(p => { if (p.team !== t) return; const ps = p.fpos || p.card.position, k = p.isGK ? 'gk' : /^(CB|LB|RB|LWB|RWB)$/.test(ps) ? 'def' : /^(ST|CF|LW|RW)$/.test(ps) ? 'att' : 'mid'; if (tr[k]) { p.iq = Math.min(1.25, p.iq + 2.5 * tr[k]); p.tf = tr[k]; } }); });   // p.tf = trained fraction: sharper positioning (v128)
     [0, 1].forEach(t => { const n = this.players.filter(p => p.team === t && p.tr.has('ldr')).length; if (n) this.players.forEach(p => { if (p.team === t && !p.tr.has('ldr')) p.iq = Math.min(1.15, p.iq + 0.03 * Math.min(2, n)); }); });   // leaders organise the others
@@ -1075,6 +1083,7 @@ window.RUT = window.RUT || {};
     if (volley || head) err *= p.tr.has('wka') && head ? 1.5 : p.tr.has('air') && head ? 0.8 : 1;
     if (this.bigMoment(p)) err *= 0.85;
     if (p.tr.has('sub') && (parseInt(this.minute(), 10) >= 70)) err *= 0.85;
+    if (!this.ctlOf(p)) err *= 1 - 0.18 * this.eliteT[p.team];                     // v219: elite AI finishes more calmly
     if (powerPS) err *= 1.18;                                                       // wind-up strikes trade accuracy for pace
     // v148 PlayStyles per the guide: Low Driven = accuracy (its speed is the attributes' own), Precision Header = header accuracy + power, Acrobatic = volleys, Chip = chips, Gamechanger = fancy / awkward strikes under pressure
     if (low) err *= 1 - 0.3 * (p.pf['Low Driven Shot'] || 0);
@@ -1947,7 +1956,7 @@ window.RUT = window.RUT || {};
     const chaser = this.chaserFor(p.team);
     const TC = this.tac[p.team], F = FORMATIONS[TC.formation], own = dir > 0 ? 0 : PITCH_W;
     // pressing: after a turnover the whole team presses everywhere (counter-press); otherwise only in the styles' own press zone, below it they drop and contain
-    const cpress = this.t - this.lostAt[p.team] < TC.counterPress;
+    const cpress = this.t - this.lostAt[p.team] < TC.counterPress + 2.5 * this.eliteT[p.team];   // v219: elite sides counter-press longer
     const zoneOK = cpress || Math.abs(b.x - own) / PITCH_W <= TC.pressZone;
     if (cpress && chaser === p && theyHave && this.t - this.lostAt[p.team] < 0.6) this.shout(p, 'PRESS!', '#ffb070');
     const kclaim = this.t - this.gkClaim[p.team] < 0.7;                                            // the keeper shouted: leave it to him
@@ -2176,6 +2185,14 @@ window.RUT = window.RUT || {};
         if (!isDef && !isFwd) { const maxD = 0.42 * PITCH_W, dx = (tx - ln) * dir; if (dx > maxD) tx -= dir * (dx - maxD) * (0.4 + 0.3 * iq); }
       }
     }
+    // v219 elite block: shift to the ball side, close the gaps, and the back line drops off a carrier with time to pick a pass
+    { const EL = this.eliteT[p.team];
+      if (EL && !weHave && !p.isGK) {
+        if (!isFwd) ty += (b.y - ty) * 0.16 * EL;
+        if (theyHave && isDef && b.owner && !b.owner.isGK) { const car = b.owner, fwdFace = car.fx * this.teams[car.team].dir > 0.3, free = this.pressure(car) > 5, nearUs = Math.abs(car.x - own) < PITCH_W * 0.62;
+          if (fwdFace && free && nearUs) tx -= dir * 4.5 * EL; }
+        if (!isDef && !isFwd) { const ln = this.backLine(p.team); if (ln != null) { const maxD = (0.42 - 0.1 * EL) * PITCH_W, dx = (tx - ln) * dir; if (dx > maxD) tx -= dir * (dx - maxD) * 0.6; } }
+      } }
     if (weHave) {
       // runs in behind: a chosen runner times a diagonal run along the offside line into the gap between their centre-backs
       const run = this.runFor(p);
@@ -2658,6 +2675,8 @@ window.RUT = window.RUT || {};
       }
       // pass? weak players misjudge options (noise) and ignore defenders in the lane; smart ones spot runners in behind
       let best = null, bs = -1e9, braw = -1e9, through = false;
+      const EL = this.eliteT[p.team]; let sideLoad = 0;                     // v219: how crowded the carrier's flank is (share of their outfield men within 22 m across)
+      if (EL) { let n = 0, m = 0; this.players.forEach(q => { if (q.team !== p.team && !q.isGK) { m++; if (Math.abs(q.y - p.y) < 22) n++; } }); sideLoad = m ? n / m : 0; }
       const laneW = 9 * (0.5 + 0.5 * iq), noise = (1 + 7 * (1 - iq)) * (TK.atk ? 0.5 : 1), range = (32 + 12 * nrm(s.vision)) * TK.range * (tr.has('vis') ? 1.15 : 1) * (tr.has('swi') ? 1.3 : 1) * (tr.has('bpl') && p.slot <= FC.nDef ? 1.2 : 1);
       this.players.forEach(o => {
         if (o.team !== p.team || o === p) return;
@@ -2670,6 +2689,7 @@ window.RUT = window.RUT || {};
           + (o.tr.has('tgt') && Math.abs(gx - o.x) < 40 ? 3 : 0) + (o.tr.has('run') && prog > 5 ? 1.5 : 0)
           + (this.smartT[p.team] > 2 ? (d > 24 && Math.abs(o.y - p.y) > 20 && open > 8 && prog > -3 ? 2 : 0) + (open > 7 && prog > 6 ? 3 : 0) : 0)
           + (this.smartT[p.team] >= 4.5 ? (p._g1 && p._g1.from === o && this.t - p._g1.t < 3 && prog > 1 && open > 3 ? 6 : 0) + (d < 18 && open > 4 ? 2.5 : 0) - (d > 30 && !(open > 12 && prog > 10) ? 5 : 0) : 0)   // v201 tiki-taka: the one-two back to the runner, short passes to a free man, no hopeful long balls   // v192 FC27 Legendary: switch play to the free side, play into space, never into a marked man
+          + (EL ? EL * ((sideLoad > 0.55 && Math.abs(o.y - p.y) > 24 && open > 6 ? 4 : 0) + (Math.abs(o.y - PH2) < 0.16 * PITCH_H && (o.x - ownG) * dir > PITCH_W * 0.6 && open > 4 ? 2.5 : 0)) : 0)   // v219: switch play off a crowded flank; find the man free in the central attacking zone
           + (TK.cross >= 0.3 && Math.abs(o.y - PH2) > 0.22 * PITCH_H && (o.x - ownG) * dir > PITCH_W * 0.45 ? 7 * TK.cross : 0)                                   // v94: a crossing side finds its wide men in the attacking half
           + (LA && (o.card.position === 'ST' || o.card.position === 'CF') && prog > 0 && !p.isGK ? (p.slot <= FC.nDef + 3 ? 5 : 2) : 0)                      // League A: get it to the striker quickly
           - (TK.shortW < 1.5 && !p.isGK ? (d < 12 ? 2.5 : 0) + (prog < -2 ? 3 : 0) : 0)                                 // only short-passing tactics (tiki-taka, positional) keep recycling it

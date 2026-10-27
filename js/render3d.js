@@ -286,7 +286,12 @@
     /* ---- ball ---- */
     const BR = 0.456;   // v176: ball 2x
     const ball = new T.Mesh(new T.SphereGeometry(BR, 28, 20), new T.MeshStandardMaterial({ map: ballTexture(), roughness: 0.42, metalness: 0.02 }));
-    ball.castShadow = true; scene.add(ball);
+    // v219 (JODIO: smoother without lowering settings): the ball's shadow is a soft blob that follows it, so the shadow map only holds the
+    // stadium's still objects (boards, posts, flags) and is drawn once instead of every frame. Same picture, far less GPU work per frame.
+    ball.castShadow = false; scene.add(ball);
+    const blob = new T.Mesh(new T.CircleGeometry(BR * 1.15, 24), new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.38, depthWrite: false }));
+    blob.rotation.x = -Math.PI / 2; blob.position.y = 0.025; blob.renderOrder = 1; scene.add(blob);
+    renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = true;
     const ring = new T.Mesh(new T.RingGeometry(0.42, 0.52, 32), new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, depthWrite: false }));
     ring.rotation.x = -Math.PI / 2; ring.position.y = 0.03; ring.visible = false; scene.add(ring);   // v167 (JODIO): no ring round the ball
     const ballQ = new T.Quaternion(), tmpV = new T.Vector3(), tmpQ = new T.Quaternion(), tmpAxis = new T.Vector3();
@@ -457,7 +462,8 @@
       }
       if (view.shake) camPos.add(new T.Vector3((Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.6));
       camera.position.copy(camPos); camera.lookAt(camTarget); camera.updateMatrixWorld(true);
-      sun.position.set(tx + SUN_OFF.x, SUN_OFF.y, tz + SUN_OFF.z); sun.target.position.set(tx, 0, tz);
+      { const sx = Math.round(tx / 8) * 8, sz = Math.round(tz / 8) * 8;   // v219: the sun (and its shadow box) moves in 8 m steps, and the static shadow map is redrawn only when it steps
+        if (sx !== sun.position.x - SUN_OFF.x || sz !== sun.position.z - SUN_OFF.z) { sun.position.set(sx + SUN_OFF.x, SUN_OFF.y, sz + SUN_OFF.z); sun.target.position.set(sx, 0, sz); sun.target.updateMatrixWorld(); renderer.shadowMap.needsUpdate = true; } }
       crowdU.uTime.value += view.dt || 1 / 60; crowdU.uCheer.value += ((view.crowd ? 1 : 0) - crowdU.uCheer.value) * Math.min(1, (view.dt || 1 / 60) * 4);   // v170: 3D fans sway, and jump on a cheer
       updateCloth(m);
       // ball
@@ -466,6 +472,7 @@
       const rv = b.owner ? b.owner : b; let vx = rv.vx || 0, vz = rv.vy || 0; const sp = Math.hypot(vx, vz);
       if (sp > 0.05) { tmpAxis.set(vz, 0, -vx).normalize(); tmpQ.setFromAxisAngle(tmpAxis, sp * view.dt / BR); ballQ.premultiply(tmpQ); }
       ball.quaternion.copy(ballQ); ball.position.set(bx, by, bz);
+      { const hk = Math.max(0, Math.min(1, (by - BR) / 6)); blob.position.x = bx + hk * 0.8; blob.position.z = bz + hk * 0.5; blob.scale.setScalar(1 + hk * 0.6); blob.material.opacity = 0.38 * (1 - 0.7 * hk); }
       ring.position.set(bx, 0.03, bz); ring.scale.setScalar(1 + Math.max(0, b.z) * 0.15); ring.material.opacity = b.owner ? 0.25 : 0.6;
       // players
       m.players.forEach(p => {
