@@ -111,7 +111,8 @@
     if (this.o.transport) { this.room = this.o.transport; room = true; }          // direct link (WebRTC): no room, no account
     else {
     try { room = window.claude && window.claude.use ? await window.claude.use('room') : null; } catch (e) { room = null; }
-    if (!room && relayClient()) { try { this.room = await relayRooms.join('rut-' + this.code.toLowerCase()); this.viaRelay = true; room = true; } catch (e) { this.room = null; } }   // v209: the website relay first
+    if (!room && dbRooms.ok()) { try { this.room = await dbRooms.join('rut-' + this.code.toLowerCase()); this.room.fast(true); this.viaRelay = true; room = true; } catch (e) { this.room = null; } }   // v234: the database relay first
+    if (!room && !this.room && relayClient()) { try { this.room = await relayRooms.join('rut-' + this.code.toLowerCase()); this.viaRelay = true; room = true; } catch (e) { this.room = null; } }   // v209: the website relay first
     if (!room) {
       if (!havePeer()) { this.fail('Online play could not start: the connection library did not load. Reload the page, or use a Direct connection, which needs no account.'); return false; }
       this.viaPeer = true;       // v126: no Claude room (no account): meet through the free PeerJS broker, still a direct browser-to-browser link
@@ -213,7 +214,7 @@
     const r = this.rtt || 100, j = Math.min(this.rttVar || 0, r * 0.35), d = Math.ceil((r / 2 + 1.5 * j) / 16.7) + 3;   // v219: jitter counts 1.5x and is capped, so slow links get a smaller, snappier buffer
     let q = 'auto'; try { q = (JSON.parse(localStorage.getItem('rut_settings') || '{}') || {}).netq || 'auto'; } catch (e) { /* default */ }
     // v203 Settings > Online: Smooth = a bigger buffer so slow or far links never stutter; Fast = the smallest buffer for players on the same Wi-Fi
-    return q === 'smooth' ? Math.max(9, Math.min(30, d + 4)) : q === 'fast' ? Math.max(4, Math.min(20, d - 2)) : Math.max(6, Math.min(20, d));
+    return q === 'smooth' ? Math.max(9, Math.min(30, d + 4)) : q === 'fast' ? Math.max(4, Math.min(20, d - 2)) : Math.max(6, Math.min(this.room && this.room.db ? 36 : 20, d));   // v234: the database relay is slower, so it may use a bigger buffer
   };
   /** After a match: ask for a rematch. When both want one the host starts it with a fresh seed. */
   S.wantRematch = function () {
@@ -426,6 +427,62 @@
     },
   };
 
+  /* ---------------------------------------------------------------------------------------------------------------
+   * v234 (JODIO: "online doesn't work on Netlify"): dbRooms, the same room API over plain HTTPS requests to the site's database
+   * (one RPC, rut_sync, that stores presence + messages; see retro-ut-tools/relay_db.sql). No websocket and no browser-to-browser
+   * link, so nothing a router, firewall or Realtime setting does can block it. Each browser polls about 20 times a second in a
+   * match (one request in flight at a time, messages batched), 3 times a second while queueing. Tried first on websites.
+   * RUT.Net.dbCfg {url, key} overrides the address (tests).
+   * ------------------------------------------------------------------------------------------------------------- */
+  let dbDown = 0;
+  const dbRooms = {
+    ok() { return typeof fetch === 'function' && Date.now() >= dbDown && !(RUT.Net && RUT.Net.dbOff); },
+    join(name) {
+      const cfg = Object.assign({}, RELAY, (RUT.Net && RUT.Net.dbCfg) || {}), url = cfg.url.replace(/\/$/, '') + '/rest/v1/rpc/rut_sync';
+      const room = String(name).replace(/[^a-z0-9_-]/gi, '').toLowerCase().slice(0, 80);
+      const me = 'd' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-5);
+      const hs = {}, ph = [], er = []; let mine = {}, presDirty = true, out = [], after = -1, peers = [], peerKey = '', closed = false, busy = false, fails = 0, fastUntil = 0, tm = 0, kick = null;
+      const list = () => [{ peer: me, presence: mine, sameTab: true, isMe: true, kind: 'viewer' }].concat(peers.filter(p => p.p !== me).map(p => ({ peer: p.p, presence: p.pr || {}, sameTab: false, isMe: false, kind: 'viewer' })));
+      const call = body => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: cfg.key }, body: JSON.stringify(body), cache: 'no-store' })
+        .then(r => { if (!r.ok) throw { code: 'http_' + r.status }; return r.json(); });
+      const take = res => {
+        if (closed || !res) return;
+        if (typeof res.last === 'number' && after < 0) after = res.last;
+        (res.msgs || []).forEach(m => { if (m.i <= after) return; after = m.i; const d = m.d; if (!d || typeof d.t !== 'string') return;
+          (hs[d.t] || []).slice().forEach(f => { try { f({ isMe: false, sameTab: false, peer: m.f, data: d.d }); } catch (e) { /* handler */ } }); });
+        if (res.peers) { peers = res.peers; const k = JSON.stringify(peers);
+          if (k !== peerKey) { peerKey = k; const pl = list(); ph.slice().forEach(f => { try { f({ peers: pl }); } catch (e) { /* handler */ } }); } }
+      };
+      const poll = () => {
+        if (closed || busy) return Promise.resolve(); busy = true; clearTimeout(tm);
+        const batch = out.splice(0, 64), pres = presDirty ? mine : null; presDirty = false;
+        return call({ p_room: room, p_me: me, p_pres: pres, p_after: after, p_out: batch.length ? batch : null, p_leave: false }).then(res => {
+          busy = false; fails = 0; if (closed || !res) return; take(res); sched();
+        }, e => {
+          busy = false; out = batch.concat(out); if (pres) presDirty = true; if (closed) return;
+          if (++fails >= 25) er.slice().forEach(f => { try { f({ code: 'relay' }); } catch (x) { /* handler */ } });
+          sched(Math.min(1500, 150 * fails)); throw e;
+        });
+      };
+      // a second request may go out while a read is in flight, so inputs never wait behind a slow read (messages are de-duplicated by id)
+      let sending = false;
+      const send = () => { if (sending || closed || !out.length) return; sending = true; const batch = out.splice(0, 64);
+        call({ p_room: room, p_me: me, p_pres: null, p_after: after < 0 ? -1 : after, p_out: batch, p_leave: false }).then(res => { sending = false; take(res); if (out.length) send(); }, () => { sending = false; out = batch.concat(out); setTimeout(send, 100); }); };
+      const sched = d => { if (closed) return; clearTimeout(tm); tm = setTimeout(() => poll().catch(() => {}), d != null ? d : out.length ? 0 : Date.now() < fastUntil ? 45 : 300); };
+      const R = {
+        relay: true, db: true,
+        emit: (t, d) => { if (closed) return Promise.resolve(); out.push({ t, d }); fastUntil = Date.now() + 4000; if (!busy) sched(0); else send(); return Promise.resolve(); },
+        on: (t, fn, onErr) => { (hs[t] = hs[t] || []).push(fn); if (onErr) er.push(onErr); return () => { hs[t] = (hs[t] || []).filter(f => f !== fn); }; },
+        peers: list,
+        onPeers: (fn, onErr) => { ph.push(fn); if (onErr) er.push(onErr); return () => { const i = ph.indexOf(fn); if (i >= 0) ph.splice(i, 1); }; },
+        presence: patch => { mine = Object.assign({}, mine, patch || {}); presDirty = true; if (!busy && !closed) sched(0); return Promise.resolve(); },
+        fast: on => { fastUntil = on ? Date.now() + 1e9 : 0; },
+        leave: () => { if (closed) return Promise.resolve(); closed = true; clearTimeout(tm); return call({ p_room: room, p_me: me, p_pres: null, p_after: 0, p_out: null, p_leave: true }).catch(() => {}); },
+      };
+      return poll().then(() => R, e => { closed = true; clearTimeout(tm); dbDown = Date.now() + 30000; throw { code: (e && e.code) || 'no_db' }; });
+    },
+  };
+
   const QSLOTS = 6;
   Quick.prototype.startPeer = async function () {
     this.o.onStatus('Searching for an opponent...', 1);
@@ -513,6 +570,10 @@
   Q.start = async function () {
     let room = null;
     try { room = window.claude && window.claude.use ? await window.claude.use('room') : null; } catch (e) { room = null; }
+    if (!room && dbRooms.ok()) {                                                   // v234: the database relay first (plain HTTPS, can't be blocked)
+      try { this.q = await dbRooms.join('rut-q1-' + (['duel', 'rivals', 'champs'].includes(this.o.mode) ? this.o.mode : 'club') + (this.o.region ? '-' + this.o.region : '')); this.relay = true; } catch (e) { this.q = null; }
+      if (this.q) return this.queueOn();
+    }
     if (!room && relayClient()) {                                                  // v209: websites queue on the relay (works on every network); PeerJS only if it can't be reached
       try { this.q = await relayRooms.join('rut-q1-' + (['duel', 'rivals', 'champs'].includes(this.o.mode) ? this.o.mode : 'club') + (this.o.region ? '-' + this.o.region : '')); this.relay = true; } catch (e) { this.q = null; }
       if (this.q) return this.queueOn();

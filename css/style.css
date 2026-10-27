@@ -1578,3 +1578,38 @@ h1, h2 { color: #fff4d6; } h2 { color: #f4c542; } .dim { color: #c9b27a; }
 .sub-pop .sp-row:disabled { opacity: .45; cursor: default; }
 .sub-pop .sp-n { font-size: 11px; margin: 6px 0 0; }
 @media (max-width: 800px) { .bench-slot { width: 52px; height: 74px; } .bench-slot .card.mini { transform: scale(.55); } }
+/* v234 matchmaking */
+.mm { position: relative; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px; padding: 26px 10px 18px; margin: 6px auto 10px; max-width: 560px; overflow: hidden; border: 1px solid rgba(245,197,66,.35); border-radius: 10px; background: radial-gradient(circle at 50% 50%, #1b1608 0%, #070707 70%); }
+.mm-bg { position: absolute; inset: 0; pointer-events: none; }
+.mm-bg i { position: absolute; left: 50%; top: 50%; width: 120px; height: 120px; margin: -60px 0 0 -60px; border: 2px solid rgba(245,197,66,.55); border-radius: 50%; opacity: 0; animation: mmRing 2.7s ease-out infinite; }
+.mm-bg i:nth-child(2) { animation-delay: .9s; } .mm-bg i:nth-child(3) { animation-delay: 1.8s; }
+.mm-sweep { position: absolute; left: 50%; top: 50%; width: 360px; height: 360px; margin: -180px 0 0 -180px; border-radius: 50%; background: conic-gradient(from 0deg, rgba(245,197,66,.28), rgba(245,197,66,0) 22%); animation: mmSpin 2.2s linear infinite; }
+.mm-side { position: relative; text-align: center; z-index: 1; }
+.mm-crest { width: 78px; height: 90px; margin: 0 auto 6px; display: flex; align-items: center; justify-content: center; clip-path: polygon(50% 0, 100% 14%, 100% 62%, 50% 100%, 0 62%, 0 14%); background: linear-gradient(160deg, #f6e3a0, #c99a2e 55%, #6b4c10); overflow: hidden; }
+.mm-crest span { font: 900 22px Barlow, sans-serif; color: #120d02; letter-spacing: .04em; }
+.mm-crest.q { background: linear-gradient(160deg, #3a3221, #15120a); }
+.mm-crest.q span { color: #f5c542; height: 90px; line-height: 90px; display: block; }
+.mm-roll { animation: mmRoll 2.4s steps(10) infinite; }
+.mm-name { font: 800 14px Barlow, sans-serif; color: #fff; text-transform: uppercase; letter-spacing: .05em; }
+.mm-ovr { font-size: 11px; color: #bbb; } .mm-ovr b { color: #f5c542; font-size: 15px; }
+.mm-vs { position: relative; z-index: 1; font: 900 34px Barlow, sans-serif; color: #f5c542; text-shadow: 0 0 18px rgba(245,197,66,.5); text-align: center; animation: mmPulse 1.2s ease-in-out infinite alternate; }
+.mm-vs small { display: block; font: 700 12px Barlow, sans-serif; color: #ddd; letter-spacing: .1em; }
+.mm-dots i { animation: mmDot 1.2s infinite; font-style: normal; } .mm-dots i:nth-child(2) { animation-delay: .2s; } .mm-dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes mmRing { 0% { transform: scale(.4); opacity: .9; } 100% { transform: scale(3.2); opacity: 0; } }
+@keyframes mmSpin { to { transform: rotate(360deg); } }
+@keyframes mmRoll { from { transform: translateY(0); } to { transform: translateY(-900px); } }
+@keyframes mmRollS { from { transform: translateY(0); } to { transform: translateY(-680px); } }
+@keyframes mmPulse { to { transform: scale(1.1); } }
+@keyframes mmDot { 0%, 100% { opacity: .2; } 50% { opacity: 1; } }
+.mm-found { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, rgba(40,30,6,.96), rgba(0,0,0,.97)); transition: opacity .45s; }
+.mm-found.out { opacity: 0; }
+.mm-found p { font: 900 26px Barlow, sans-serif; color: #f5c542; letter-spacing: .2em; margin: 0 0 18px; animation: mmSlam .5s cubic-bezier(.2,1.4,.4,1) both; }
+.mm-flash { position: absolute; inset: 0; background: #fff3c4; animation: mmFlash .5s ease-out forwards; pointer-events: none; }
+.mm-pair { display: flex; align-items: center; gap: 28px; }
+.mm-pair .l { animation: mmInL .55s .15s cubic-bezier(.2,1.3,.4,1) both; } .mm-pair .r { animation: mmInR .55s .15s cubic-bezier(.2,1.3,.4,1) both; }
+.mm-vs.big { font-size: 56px; animation: mmSlam .5s .4s cubic-bezier(.2,1.4,.4,1) both; }
+@keyframes mmFlash { from { opacity: .85; } to { opacity: 0; } }
+@keyframes mmSlam { from { opacity: 0; transform: scale(2.2); } to { opacity: 1; transform: none; } }
+@keyframes mmInL { from { opacity: 0; transform: translateX(-160px); } to { opacity: 1; transform: none; } }
+@keyframes mmInR { from { opacity: 0; transform: translateX(160px); } to { opacity: 1; transform: none; } }
+@media (max-width: 600px) { .mm-crest { width: 58px; height: 68px; } .mm-crest.q span { height: 68px; line-height: 68px; } .mm-roll { animation-name: mmRollS; } .mm-vs { font-size: 26px; } .mm-pair { gap: 12px; } .mm-vs.big { font-size: 40px; } }

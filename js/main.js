@@ -2303,7 +2303,7 @@
     let lastCode = ''; try { lastCode = localStorage.getItem('rut_last_code') || ''; } catch (e) { /* ignore */ }
     if (!O && App.quick) {
       const Q = App.quick;
-      body = `<div class="qm-search">${Q.kind ? `<p class="gold">${Q.kind === 'champs' ? 'CHAMPIONS' : 'DIVISION RIVALS · ' + rivDivName(RV().div).toUpperCase()}</p><p class="dim" style="font-size:8px">No free player after ${RIV_WAIT} s? You play an AI rival instead.</p>` : ''}<div class="qm-radar"><i></i><i></i><i></i></div><h3 id="qm-status">${esc(Q.status)}</h3><p class="dim" id="qm-count" style="font-size:8px">${Q.online} ${Q.online === 1 ? 'player' : 'players'} in the queue</p>
+      body = `<div class="qm-search">${Q.kind ? `<p class="gold">${Q.kind === 'champs' ? 'CHAMPIONS' : 'DIVISION RIVALS · ' + rivDivName(RV().div).toUpperCase()}</p><p class="dim" style="font-size:8px">No free player after ${RIV_WAIT} s? You play an AI rival instead.</p>` : ''}${mmSearchHTML(Q)}<h3 id="qm-status">${esc(Q.status)}</h3><p class="dim" id="qm-count" style="font-size:8px">${Q.online} ${Q.online === 1 ? 'player' : 'players'} in the queue</p>
         <p class="dim" style="font-size:8px;line-height:1.9">Keep this page open. You will be matched with the next player who taps Quick match, and the game starts by itself. Tell a friend to tap it too.</p>
         <div class="row" style="justify-content:center"><button class="btn r" data-act="qm-cancel">Cancel</button></div></div>`;
     } else if (!O) {
@@ -2318,7 +2318,7 @@
       body += directHTML();
     } else {
       const host = O.role === 'host';
-      body = `${steps(O)}
+      body = `${O.quick && !O.error ? mmLinkHTML(O) : steps(O)}
         ${O.quick ? '' : host ? `<label>Game code</label><div class="gold code-box" data-act="on-copy" title="Tap to copy">${esc(O.code)}</div>
           <div class="row"><button class="btn sm c" data-act="on-copy">Copy code</button><button class="btn sm" data-act="on-share">Share invite</button></div>
           <p class="dim" style="font-size:8px">Tell your friend this code. It works while this screen is open.</p>` : `<label>Game code</label><div class="gold" style="font-size:20px;letter-spacing:4px">${esc(O.code)}</div>`}
@@ -2346,7 +2346,7 @@
     }
     else if (ev.type === 'rematch-ask') { O.rematchAsked = true; const b = $('#rm-note'); if (b) b.textContent = 'Your opponent wants a rematch!'; }
     else if (ev.type === 'paired') onlineSet({ theirClub: ev.club, status: 'Connected. Swapping squads...' });
-    else if (ev.type === 'team') { if (ev.club && !O.namedOpp) { O.namedOpp = 1; toast('Matched with ' + ev.club, 'good'); } onlineSet({ theirClub: ev.club, theirRating: ev.rating, status: O.quick ? 'Opponent found. Starting...' : O.role === 'host' ? 'Ready. Pick the options and start.' : 'Squads swapped.' }); quickAutoStart(O); }
+    else if (ev.type === 'team') { if (ev.club && !O.namedOpp) { O.namedOpp = 1; mmFound(O.quick ? D().clubName : (O.club || D().clubName), ev.club, ev.rating); } onlineSet({ theirClub: ev.club, theirRating: ev.rating, status: O.quick ? 'Opponent found. Starting...' : O.role === 'host' ? 'Ready. Pick the options and start.' : 'Squads swapped.' }); quickAutoStart(O); }
     else if (ev.type === 'error') { if (App.match && O.abort) O.abort(ev.text); else if (!quickRetry(O, 'Could not connect to that opponent. Searching again...')) onlineSet({ error: ev.text }); }
     else if (ev.type === 'bye') { if (App.match && O.abort) O.abort('The other player left the match.'); else if (!quickRetry(O, 'Your opponent left. Searching again...')) { toast('The other player left.', 'bad'); App.online = null; if (App.view === 'online') render(); } }
     else if (ev.type === 'start') {
@@ -2369,6 +2369,30 @@
   }
 
   /* ---- Quick match: one tap, automatic pairing (Net.Quick), then the host starts the game by itself ---- */
+  /* v234 (JODIO: new matchmaking animation): your crest and squad rating on the left, a spinning wheel of rival crests on the right,
+     radar sweep and pulse rings behind, live search clock. When the opponent is found a full-screen VS slam shows both clubs. */
+  const MM_NAMES = ['Real Rivals', 'United FC', 'Atletico Pixel', 'Inter 99', 'Dynamo Retro', 'Sporting Arcade', 'Olympique 8-Bit', 'Borussia Block', 'Celtic Cart', 'Ajax Bitmap'];
+  const mmIni = n => String(n || '?').split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 3).toUpperCase();
+  function mmSearchHTML(Q) {
+    const me = D().clubName || 'You', r = quickRating(), t = Math.max(0, Math.floor((Date.now() - Q.t0) / 1000));
+    return `<div class="mm"><div class="mm-bg"><i></i><i></i><i></i><b class="mm-sweep"></b></div>
+      <div class="mm-side mm-me"><div class="mm-crest"><span>${esc(mmIni(me))}</span></div><div class="mm-name">${esc(me)}</div><div class="mm-ovr">OVR <b>${r}</b></div></div>
+      <div class="mm-vs">VS<small id="mm-clock">${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}</small></div>
+      <div class="mm-side mm-opp"><div class="mm-crest q"><div class="mm-roll">${MM_NAMES.concat(MM_NAMES.slice(0, 1)).map(n => `<span>${esc(mmIni(n))}</span>`).join('')}</div></div><div class="mm-name">Searching<span class="mm-dots"><i>.</i><i>.</i><i>.</i></span></div><div class="mm-ovr">OVR <b>??</b></div></div></div>`;
+  }
+  setInterval(() => { const c = document.getElementById('mm-clock'), Q = App.quick; if (c && Q) { const t = Math.floor((Date.now() - Q.t0) / 1000); c.textContent = Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); } }, 500);
+  function mmLinkHTML(O) {   // quick match: opponent picked, connecting and swapping squads
+    const me = D().clubName || 'You', th = O.theirClub || '';
+    return `<div class="mm"><div class="mm-bg"><i></i><i></i><i></i><b class="mm-sweep"></b></div>
+      <div class="mm-side mm-me"><div class="mm-crest"><span>${esc(mmIni(me))}</span></div><div class="mm-name">${esc(me)}</div><div class="mm-ovr">OVR <b>${quickRating()}</b></div></div>
+      <div class="mm-vs">VS<small>${th ? 'READY' : 'LINKING'}</small></div>
+      <div class="mm-side mm-opp"><div class="mm-crest${th ? '' : ' q'}">${th ? `<span>${esc(mmIni(th))}</span>` : `<div class="mm-roll">${MM_NAMES.concat(MM_NAMES.slice(0, 1)).map(n => `<span>${esc(mmIni(n))}</span>`).join('')}</div>`}</div><div class="mm-name">${th ? esc(th) : 'Opponent found'}</div><div class="mm-ovr">OVR <b>${O.theirRating || '??'}</b></div></div></div>`;
+  }
+  function mmFound(mine, theirs, rating) {
+    const ov = document.createElement('div'); ov.className = 'mm-found';
+    ov.innerHTML = `<div class="mm-flash"></div><p>OPPONENT FOUND</p><div class="mm-pair"><div class="mm-side l"><div class="mm-crest"><span>${esc(mmIni(mine))}</span></div><div class="mm-name">${esc(mine)}</div></div><div class="mm-vs big">VS</div><div class="mm-side r"><div class="mm-crest"><span>${esc(mmIni(theirs))}</span></div><div class="mm-name">${esc(theirs)}</div>${rating ? `<div class="mm-ovr">OVR <b>${rating}</b></div>` : ''}</div></div>`;
+    document.body.appendChild(ov); setTimeout(() => ov.classList.add('out'), 2300); setTimeout(() => ov.remove(), 2800);
+  }
   function quickRating() { try { return duelMode() ? (duelPlayer().rating || 70) : Net.avgRating(State.matchCards()); } catch (e) { return 70; } }
   function quickSearch(skip, kind) {
     if (!Net || !Net.Quick) { toast('Online play is not available in this build.', 'bad'); return; }
