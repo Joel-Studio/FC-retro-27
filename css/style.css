@@ -1539,7 +1539,7 @@ h1, h2 { color: #fff4d6; } h2 { color: #f4c542; } .dim { color: #c9b27a; }
 .pm-pitch { position: relative; padding: 10px 6px; border: 1px solid rgba(245,197,66,.35); border-radius: 6px;
   background: repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0 60px, transparent 60px 120px), linear-gradient(180deg, #13160f, #0a0c08); display: flex; flex-direction: column; gap: 6px; }
 .pm-line { display: flex; justify-content: space-evenly; }
-.pm-slot { opacity: 0; transform: translateY(16px) scale(.8); animation: pm-card .42s cubic-bezier(.2,1.3,.4,1) forwards; }
+.pm-slot { animation: pm-card .42s cubic-bezier(.2,1.3,.4,1) backwards; }
 .pm-slot .card.mini { margin: 0; }
 .pm-watch .pm-pair { display: flex; justify-content: center; gap: 70px; }
 .pm-watch .pm-pair > div { display: flex; flex-direction: column; align-items: center; gap: 10px; animation: pm-slam .6s cubic-bezier(.2,1.4,.4,1) both; }
@@ -1551,7 +1551,7 @@ h1, h2 { color: #fff4d6; } h2 { color: #f4c542; } .dim { color: #c9b27a; }
 @keyframes pm-sweep { to { transform: rotate(360deg); } }
 @keyframes pm-pulse { to { transform: scale(1.08); } }
 @keyframes pm-slam { from { opacity: 0; transform: scale(1.6); } to { opacity: 1; transform: none; } }
-@keyframes pm-card { to { opacity: 1; transform: none; } }
+@keyframes pm-card { from { opacity: 0; transform: translateY(16px) scale(.8); } to { opacity: 1; transform: none; } }
 @keyframes pm-ko { 0% { opacity: 0; transform: scale(2.2); } 30% { opacity: 1; transform: scale(1); } 100% { opacity: 1; transform: scale(1.06); } }
 @media (max-width: 800px) {
   .pm-xi { grid-template-columns: 1fr; gap: 8px; } .pm-xi-head { text-align: center; } .pm-xi-head h2 { font-size: 22px; margin: 4px 0 6px; } .pm-meta { justify-content: center; }
