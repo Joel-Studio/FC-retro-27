@@ -39,7 +39,7 @@ window.RUT = window.RUT || {};
       version: VERSION, clubName: 'Retro FC', coins: 150000,
       items: {}, club: [], unassigned: [], transferList: [],
       tactics: { a: 2, m: 2, d: 2, trait: '' },
-      squad: { formation: '4-3-3', slots: new Array(11).fill(null), bench: new Array(7).fill(null) },
+      squad: { formation: '4-3-3', slots: new Array(11).fill(null), bench: new Array(10).fill(null) },
       sbcStorage: [],          // SBC Duplicate Storage (max 100)
       dnf: 0,                  // matches quit early (reduce coin earnings)
       market: null,            // filled by RUT.Market.init()
@@ -70,7 +70,8 @@ window.RUT = window.RUT || {};
       }
       // forward-compatible defaults for saves made before v2 rules
       const d = this.data;
-      if (!d.squad.bench) d.squad.bench = new Array(7).fill(null);
+      if (!d.squad.bench) d.squad.bench = new Array(10).fill(null);
+      while (d.squad.bench.length < 10) d.squad.bench.push(null);   // v229 (JODIO): 10 sub spots
       if (!d.sbcStorage) d.sbcStorage = [];
       if (d.dnf == null) d.dnf = 0;
       // one-off: PlayStyles are capped at 2 on gold cards and evolutions; every owned item that had more is trimmed and pays 15,000 coins

@@ -1562,3 +1562,19 @@ h1, h2 { color: #fff4d6; } h2 { color: #f4c542; } .dim { color: #c9b27a; }
 .pm-slot .card.mini { transform: scale(.78); transform-origin: center; flex: none; }
 .pm-pitch { gap: 2px; padding: 6px; }
 @media (max-width: 800px) { .pm-slot { width: 52px; height: 74px; } .pm-slot .card.mini { transform: scale(.55); margin: 0; } }
+/* v229 subs */
+.bench-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; justify-items: center; }
+.bench-slot { width: 74px; height: 104px; display: flex; align-items: center; justify-content: center; }
+.bench-slot .card.mini { transform: scale(.78); flex: none; }
+.sub-pop { position: absolute; z-index: 40; left: 50%; top: 50%; transform: translate(-50%,-50%); width: min(620px, 94%); max-height: 86%; overflow: auto; background: #0b0b0b; border: 1px solid #c9a227; border-radius: 8px; padding: 10px 12px; color: #fff; }
+.sub-pop .sp-h { display: flex; align-items: center; gap: 10px; font: 800 15px Barlow, sans-serif; color: #f5c542; letter-spacing: .06em; }
+.sub-pop .sp-h small { color: #bbb; font-weight: 600; flex: 1; }
+.sub-pop .sp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
+.sub-pop h4 { margin: 4px 0; font-size: 11px; color: #c9a227; text-transform: uppercase; }
+.sub-pop .sp-row { display: grid; grid-template-columns: 28px 1fr 36px; align-items: center; width: 100%; gap: 6px; padding: 4px 6px; margin: 2px 0; background: #161410; border: 1px solid #2a2418; border-radius: 4px; color: #fff; font-size: 12px; text-align: left; cursor: pointer; position: relative; }
+.sub-pop .sp-row b { color: #f5c542; } .sub-pop .sp-row i { color: #aaa; font-style: normal; font-size: 10px; }
+.sub-pop .sp-row em { position: absolute; left: 0; bottom: 0; height: 2px; width: var(--s); background: #4cff7a; }
+.sub-pop .sp-row.on { border-color: #f5c542; background: #2a2208; }
+.sub-pop .sp-row:disabled { opacity: .45; cursor: default; }
+.sub-pop .sp-n { font-size: 11px; margin: 6px 0 0; }
+@media (max-width: 800px) { .bench-slot { width: 52px; height: 74px; } .bench-slot .card.mini { transform: scale(.55); } }

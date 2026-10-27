@@ -314,6 +314,18 @@ window.RUT = window.RUT || {};
   }
 
   /* ------------------------------- Match --------------------------------- */
+  /** v229 (JODIO): in-match substitution. The player in this team's slot takes the new card's body, brain and look; position and match state stay. */
+  function subPlayer(team, slot, card) {
+    const old = this.players.find(p => p.team === team && p.slot === slot && !p.dummy); if (!old || !card) return false;
+    const fk = this.tac[team].formKey, fresh = makePlayer(card, team, slot, this.rng, this.tac[team].roles, fk && RUT.State.FORMS[fk] ? RUT.State.FORMS[fk].pos : null);
+    const out = old.card;
+    ['defK', 'card', 'isGK', 'ps', 'pf', 'fpos', 'name', 'iq', 'sprintMax', 'jogMax', 'accel', 'turnAcc', 'agil', 'mass', 'tr', 'role', 'order'].forEach(k => { old[k] = fresh[k]; });
+    old.stamina = 100; old.mood = 1; old._look = null; old.dive = null;
+    this.subs = this.subs || [0, 0]; this.subs[team]++;
+    this.log && this.log.push && this.log.push({ t: this.t, type: 'sub', team, out: out.name, in: card.name });
+    if (this.cfg.onEvent) try { this.cfg.onEvent({ type: 'sub', team, out: out.name, in: card.name }); } catch (e) { /* ignore */ }
+    return true;
+  }
   /**
    * @param cfg {
    *   home:{name, cards[11], kit?}, away:{name, cards[11], kit?},
@@ -431,6 +443,7 @@ window.RUT = window.RUT || {};
   function fallbackCard(i) { return RUT.DB.reserves.find(c => c.position === RUT.State.BASE_FORMATION[i]) || RUT.DB.reserves[0]; }
 
   const P = Match.prototype;
+  P.substitute = subPlayer;
   const tl = t => (RUT.i18n && RUT.i18n.lang === 'fr' ? RUT.i18n.t(t) : t);   // French mode: ticker, events, floating texts and scoreboard words
   // older code and tests read these on the match: they map to the first human controller
   ['controlled', 'input', 'queued', 'hold', 'charge', 'power', 'pendingReceiver', 'manualSwitchT'].forEach(k => Object.defineProperty(P, k, {

@@ -624,7 +624,7 @@
     const rating = SBC.squadRating(cards.map(c => (c ? c.rating : 0))), chem = SBC.chemistry(cards);
     const avg = k => Math.round(cards.filter(c => c && c.position !== 'GK').reduce((a, c) => a + c.face[k], 0) / Math.max(1, cards.filter(c => c && c.position !== 'GK').length));
     const pss = {}; cards.forEach(c => c && c.playStyles.forEach(p => { pss[p] = (pss[p] || 0) + 1; }));
-    return `<div class="grid cols-2"><div class="px">${pitchHTML(slots, 'squad-slot')}</div>
+    return `<div class="grid cols-2"><div class="px">${pitchHTML(slots, 'squad-slot')}${benchHTML()}</div>
       <div class="px"><h2>Squad · ${esc(State.FORMS[State.formationKey() || '433'].name)}</h2>
         <div class="row mb"><label class="dim" for="sq-form" style="font-size:8px">Formation</label> <select id="sq-form">${Engine.FORM_KEYS.map(k => `<option value="${k}" ${(State.formationKey() || '433') === k ? 'selected' : ''}>${esc(State.FORMS[k].name)}</option>`).join('')}</select></div>
         <div class="row between"><span class="dim">Rating</span><span class="gold" style="font-size:20px">${rating}</span></div>
@@ -635,6 +635,25 @@
         <p class="dim" style="font-size:8px">Chem: club 2/5/8 · nation 2/5/8 · league 3/5/8 in-position players = 1/2/3 pts (max 3 each). Out-of-position players get 0.</p>
       </div></div>`;
   };
+
+  /** v229 (JODIO): 10 sub spots under the pitch; they can come on during a match (Subs button). */
+  function benchHTML() {
+    const b = D().squad.bench || [];
+    return `<h3 class="mt">Subs <span class="dim" style="font-size:9px">${b.filter(Boolean).length}/10 · bring them on in a match with the Subs button</span></h3><div class="bench-row">${b.map((id, i) => `<div class="bench-slot">${cardHTML(id ? State.card(id) : null, { mini: true, attrs: `data-act="bench-slot" data-slot="${i}"`, emptyLabel: '+ SUB' })}</div>`).join('')}</div>`;
+  }
+  function benchPicker(i) {
+    const st = D(), b = st.squad.bench, taken = new Set(st.squad.slots.concat(b).filter(Boolean));
+    const rows = st.club.filter(id => !taken.has(id)).map(id => ({ id, c: State.card(id) })).filter(x => x.c).sort((x, y) => y.c.rating - x.c.rating);
+    modal(`<h2>Pick sub ${i + 1}</h2><div class="row mb"><button class="btn sm r" data-act="bench-remove" data-slot="${i}">Empty spot</button></div>
+      <table class="list"><tr><th>OVR</th><th>Name</th><th>Pos</th><th>Club</th><th></th></tr>${rows.slice(0, 200).map(x => `<tr><td>${miniOvr(x.c)}</td><td>${esc(x.c.name)}</td><td>${x.c.position}</td><td>${esc(x.c.club)}</td><td><button class="btn sm g" data-act="bench-pick" data-slot="${i}" data-item="${x.id}">Select</button></td></tr>`).join('')}</table>${rows.length ? '' : '<p class="dim">No free players in your club.</p>'}`);
+  }
+  function autoBench() {
+    const st = D(), used = new Set(st.squad.slots.filter(Boolean)), names = new Set(st.squad.slots.filter(Boolean).map(id => (State.card(id) || {}).name));
+    const pool = st.club.filter(id => !used.has(id)).map(id => ({ id, c: State.card(id) })).filter(x => x.c && !names.has(x.c.name)).sort((a, b) => b.c.rating - a.c.rating);
+    const out = [], gk = pool.find(x => x.c.position === 'GK'); if (gk) { out.push(gk.id); names.add(gk.c.name); }
+    pool.forEach(x => { if (out.length < 10 && !out.includes(x.id) && !names.has(x.c.name)) { out.push(x.id); names.add(x.c.name); } });
+    while (out.length < 10) out.push(null); st.squad.bench = out;
+  }
 
   function statBar(label, v) {
     const col = v >= 80 ? '#4cff7a' : v >= 70 ? '#ffe14a' : v >= 50 ? '#ff9a2a' : '#ff4d6d';
@@ -1969,10 +1988,37 @@
     next();
   }
 
+  /** v229 (JODIO): substitution panel. Pick the player going off, then the sub coming on. The match pauses while it is open. */
+  function subPop(wrap, m, S) {
+    let pop = wrap.querySelector('.sub-pop'); if (pop) { pop.remove(); m.paused = S.wasPaused; return; }
+    S.wasPaused = !!m.paused; m.paused = true; let outSlot = null;
+    pop = document.createElement('div'); pop.className = 'sub-pop'; wrap.appendChild(pop);
+    const draw = () => {
+      const xi = m.players.filter(p => p.team === 0 && !p.dummy).sort((a, b) => a.slot - b.slot), left = S.max - S.used;
+      pop.innerHTML = `<div class="sp-h">SUBSTITUTIONS <small>${left} of ${S.max} left</small><button class="btn sm" data-sp="close">Done ▸</button></div>
+        <div class="sp-cols"><div><h4>On the pitch</h4>${xi.map(p => `<button class="sp-row${outSlot === p.slot ? ' on' : ''}" data-sp="out" data-k="${p.slot}" ${left ? '' : 'disabled'}><b>${p.card.rating}</b><span>${esc(p.card.name)}</span><i>${p.fpos || p.card.position}</i><em style="--s:${Math.round(p.stamina)}%"></em></button>`).join('')}</div>
+        <div><h4>Subs</h4>${S.pool.map((c, i) => `<button class="sp-row" data-sp="in" data-k="${i}" ${outSlot == null || !left ? 'disabled' : ''}><b>${c.rating}</b><span>${esc(c.name)}</span><i>${c.position}</i></button>`).join('') || '<p class="dim">No subs left.</p>'}</div></div>
+        <p class="dim sp-n">${outSlot == null ? 'Pick the player going off.' : 'Now pick who comes on.'}</p>`;
+    };
+    pop.addEventListener('click', e => {
+      e.stopPropagation(); const b = e.target.closest('[data-sp]'); if (!b) return; const k = +b.dataset.k;
+      if (b.dataset.sp === 'close') { pop.remove(); m.paused = S.wasPaused; return; }
+      if (b.dataset.sp === 'out') outSlot = outSlot === k ? null : k;
+      if (b.dataset.sp === 'in' && outSlot != null) { const c = S.pool[k]; if (m.substitute(0, outSlot, c)) { S.pool.splice(k, 1); S.used++; toast(c.name + ' comes on', 'good'); } outSlot = null; }
+      draw();
+    });
+    draw();
+  }
+
   function runMatch(o) {
     const humans = o.humans || [], two = humans.length > 1 && !o.online;
     const canTac = humans.length === 1 && !o.online && !o.training && !o.duel;      // v113: tactic changes during the match (by button / keys 1-9) and the auto coach
     const btnTac = canTac ? '<button class="btn sm y" data-mact="tac">Tactics</button>' : '';
+    // v229 (JODIO): substitutions from the 10 sub spots, when this is the user's own club (max 5 changes, like FC)
+    const myXI = (State.squadCards() || []).filter(Boolean).map(c => c.name), homeNames = ((o.home && o.home.cards) || []).map(c => c && c.name);
+    const benchPool = canTac && humans[0] === 0 && myXI.length === 11 && homeNames.filter(n => myXI.includes(n)).length >= 9 ? State.benchCards().filter(c => !homeNames.includes(c.name)) : [];
+    const subSt = { pool: benchPool.slice(), used: 0, max: 5, off: new Set() };
+    const btnSub = benchPool.length ? '<button class="btn sm y" data-mact="subs">Subs</button>' : '';
     const hint = o.training ? '<span class="kbd">Z</span>pass <span class="kbd">X</span>shoot <span class="kbd">C</span>thru <span class="kbd">V</span>lob · <span class="kbd">Q</span><span class="kbd">E</span><span class="kbd">R</span><span class="kbd">SPACE</span>skills · <span class="kbd">B</span>ball <span class="kbd">N</span>reset <span class="kbd">F</span>cross <span class="kbd">G</span>ground ball'
       : !humans.length ? 'AI vs AI' : two
       ? '<span class="kbd">P1</span>WASD F G H T <span class="kbd">P2</span>arrows J K L I · hold = power'
@@ -1985,10 +2031,10 @@
     const btnFull = '<button class="btn sm" data-mact="full">Fullscreen</button>', btnQuit = '<button class="btn sm r" data-mact="quit">Quit</button>';
     const ping = o.online ? '<span class="ping" id="m-ping">...</span>' : '';
     const top = touch
-      ? `<div class="match-bar mb-top"><span></span><span></span><span class="mb-right">${ping}${o.online ? '' : '<button class="btn sm ic" data-mact="pause" aria-label="Pause">❚❚</button>'}<button class="btn sm ic" data-mact="menu" aria-label="Menu">☰</button></span><div class="mb-menu" hidden>${btnTac}${btnCam}${btnGfx}${btnSpeed}${btnFull}${btnQuit}</div></div>`
+      ? `<div class="match-bar mb-top"><span></span><span></span><span class="mb-right">${ping}${o.online ? '' : '<button class="btn sm ic" data-mact="pause" aria-label="Pause">❚❚</button>'}<button class="btn sm ic" data-mact="menu" aria-label="Menu">☰</button></span><div class="mb-menu" hidden>${btnTac}${btnSub}${btnCam}${btnGfx}${btnSpeed}${btnFull}${btnQuit}</div></div>`
       : `<div class="match-bar mb-top"><span>${esc(o.home.name)} vs ${esc(o.away.name)}</span>
         <span>${o.live ? "" : hint}</span>
-        <span>${ping}${btnTac}${btnCam}${btnGfx}${btnSpeed}${btnPause}${btnFull}${btnQuit}</span></div>`;
+        <span>${ping}${btnTac}${btnSub}${btnCam}${btnGfx}${btnSpeed}${btnPause}${btnFull}${btnQuit}</span></div>`;
     const tcHTML = `<div class="tc"><div class="tc-zone"></div><div class="tc-stick"><i></i></div>
         <div class="tc-act">
           <button class="tb tb-thru p" data-pad="through"><b>THRU</b><small>switch</small></button><button class="tb tb-lob y" data-pad="lob"><b>LOB</b><small>call</small></button>
@@ -2053,6 +2099,7 @@
       if (a === 'speed') { m.speed = m.speed === 1 ? 4.5 : 1; b.textContent = 'Speed x' + m.speed; }
       if (a === 'pause') { m.paused = !m.paused; b.textContent = b.classList.contains('ic') ? (m.paused ? '▶' : '❚❚') : (m.paused ? 'Resume' : 'Pause'); }
       if (a === 'menu') { const mm = wrap.querySelector('.mb-menu'); if (mm) mm.hidden = !mm.hidden; }
+      if (a === 'subs') subPop(wrap, m, subSt);
       if (a === 'tac') { const tp = wrap.querySelector('.tac-pop'); if (tp) { tp.hidden = !tp.hidden; tacPopFill(tp, m, humans[0]); } }
       if (a === 'tq') { const lab = m.tacShift(humans[0], b.dataset.k, false); const tp = wrap.querySelector('.tac-pop'); if (tp) tacPopFill(tp, m, humans[0], lab === false ? 'That is already as far as it goes.' : lab); }
       if (a === 'full') { try { if (document.fullscreenElement) document.exitFullscreen(); else if (wrap.requestFullscreen) wrap.requestFullscreen().catch(() => {}); } catch (e) { /* not supported */ } }
@@ -3193,7 +3240,10 @@
       sl[i] = id; closeModal(); render();
     },
     'squad-remove': el => { D().squad.slots[+el.dataset.slot] = null; closeModal(); render(); },
-    'squad-auto': () => { autoBuildSquad(); render(); toast('Best XI selected', 'good'); },
+    'squad-auto': () => { autoBuildSquad(); autoBench(); render(); toast('Best XI and subs selected', 'good'); },
+    'bench-slot': el => benchPicker(+el.dataset.slot),
+    'bench-pick': el => { const b = D().squad.bench, i = +el.dataset.slot, j = b.indexOf(el.dataset.item); if (j >= 0) b[j] = b[i]; b[i] = el.dataset.item; closeModal(); render(); },
+    'bench-remove': el => { D().squad.bench[+el.dataset.slot] = null; closeModal(); render(); },
     'squad-clear': () => { D().squad.slots = new Array(11).fill(null); render(); },
 
     // settings
