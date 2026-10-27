@@ -231,6 +231,7 @@
      cannot read a link, so the code is copied as well and one paste on its login screen ("Paste my club") brings the club in. */
   const SITES = [
     { k: 'claude', name: 'Claude', url: 'https://claude.ai/artifact/LK8vknaqmxJ72nuxVibgsN', here: () => !!window.claude || /claude/i.test(location.hostname) },
+    { k: 'netlify', name: 'Netlify', url: 'https://fc-retro-27.netlify.app/', here: () => /netlify\.app$/.test(location.hostname) },     // v213: Netlify builds from Joel-Studio/FC-retro-27 on every push
     { k: 'lovable', name: 'Lovable', url: 'https://retro-charm-site.lovable.app/', here: () => /lovable\.app$/.test(location.hostname) },
     { k: 'github', name: 'GitHub', url: 'https://joel-studio.github.io/FC-retro-27/', here: () => /github\.io$/.test(location.hostname) },     // v211: GitHub Pages from Joel-Studio/FC-retro-27
     { k: 'replit', name: 'Replit', url: 'https://oily-spatial-networks--CJO00.replit.app/', here: () => /replit\.(app|dev)$|repl\.co$/.test(location.hostname) },      // v212: the Replit app serves the same repo (a small server that fetches each file from GitHub, so every push shows up there within a minute)
