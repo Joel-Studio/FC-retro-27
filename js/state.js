@@ -172,11 +172,11 @@ window.RUT = window.RUT || {};
       const base = RUT.DB.get(it.cardId);
       if (!base || !it.evo) return base;
       const b = it.evo.boosts, clamp = RUT.DB.clamp;
-      const face = {}; Object.keys(base.face).forEach(k => { face[k] = clamp(base.face[k] + (b.face[k] || 0), 1, RUT.DB.faceCap ? RUT.DB.faceCap(base.rating + (b.rating || 0)) : 99); });
+      const face = {}; Object.keys(base.face).forEach(k => { face[k] = clamp(base.face[k] + (b.face[k] || 0), 1, RUT.DB.faceCap ? RUT.DB.faceCap(Math.min(base.rating + (b.rating || 0), Math.max(94, base.rating))) : 99); });
       const sub = {}; Object.keys(base.sub).forEach(k => { sub[k] = clamp(base.sub[k] + (b.sub[k] || 0), 1, 99); });
       return Object.assign({}, base, {
-        rating: clamp(base.rating + b.rating, 1, 99), face, sub, rarity: 'evo', evoLevel: it.evo.applied.length,
-        playStyles: (() => { const e = RUT.DB.evoPs(base.playStyles, b.ps); return RUT.DB.psGate(clamp(base.rating + b.rating, 1, 99), sub, base.playStyles.concat(e.ps), e.ps, e.cap); })(),
+        rating: clamp(base.rating + b.rating, 1, Math.max(94, base.rating)), face, sub, rarity: 'evo', evoLevel: it.evo.applied.length,
+        playStyles: (() => { const e = RUT.DB.evoPs(base.playStyles, b.ps); return RUT.DB.psGate(clamp(base.rating + b.rating, 1, Math.max(94, base.rating)), sub, base.playStyles.concat(e.ps), e.ps, e.cap); })(),
       });
     },
 

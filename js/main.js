@@ -2833,7 +2833,7 @@
     const b = evo.boosts, cl = RUT.DB.clamp, face = {}, subS = {};
     Object.keys(c.face).forEach(k => { face[k] = cl(c.face[k] + (b.face[k] || 0), 1, 99); });
     Object.keys(c.sub).forEach(k => { subS[k] = cl(c.sub[k] + (b.sub[k] || 0), 1, 99); });
-    const rating = cl(c.rating + b.rating, 1, 99);
+    const rating = cl(c.rating + b.rating, 1, Math.max(94, c.rating));
     return Object.assign({}, c, { rating, face, sub: subS, rarity: 'evo', playStyles: (() => { const e = RUT.DB.evoPs(c.playStyles, b.ps); return RUT.DB.psGate(rating, subS, c.playStyles.concat(e.ps), e.ps, e.cap); })() });
   }
   /** Before / after picture of what an evolution does to a player: both cards, every FACE stat as a bar with its gain, PlayStyles gained or refused. */
