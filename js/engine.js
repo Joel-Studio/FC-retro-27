@@ -44,8 +44,9 @@ window.RUT = window.RUT || {};
   const TRX = (typeof window !== 'undefined' && window.__TRX != null) ? window.__TRX : 2, tx2 = m => Math.max(0.05, 1 + (m - 1) * TRX);                // v128: traits and roles act 2x as strongly for AI-driven players (multiplier m becomes 1 + (m-1)*2)
   const PACE = 0.8;                                                      // every player's top speed is scaled by this (JODIO: 20% slower)
   const PITCH_SIZES = { standard: [105, 80], large: [130, 96], huge: [160, 116], colossal: [200, 145] };   // taller than the real 68 m so there is room for the wide goals
+  const PITCH_GROW = 1.4;              // v218 (JODIO): every pitch is 40% bigger (length and width), in every mode
   function setPitch(w, h) {
-    w = clamp(Math.round(w), 70, 200); h = clamp(Math.round(h), 50, 130);
+    w = clamp(Math.round(w * PITCH_GROW), 70, 280); h = clamp(Math.round(h * PITCH_GROW), 50, 203);
     if (w === PITCH_W && h === PITCH_H) return;
     PITCH_W = w; PITCH_H = h; PW2 = w / 2; PH2 = h / 2; PSC = Math.sqrt(w * h / 8400);
     if (typeof GFX !== 'undefined' && GFX) GFX.ground = null;           // ground and stands are rebuilt for the new size on the next frame
