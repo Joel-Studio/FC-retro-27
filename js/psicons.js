@@ -65,6 +65,48 @@ window.RUT = window.RUT || {};
   G['Deflector'] = c => { c.lineWidth = 6; line(c, [[30, 8], [30, 56]]); c.lineWidth = 4; line(c, [[6, 20], [28, 32]]); line(c, [[34, 32], [54, 12]]); arrowHead(c, 56, 10, -0.8, 10); };
   G['Far Throw'] = c => { c.beginPath(); c.moveTo(8, 46); c.bezierCurveTo(16, 12, 44, 12, 54, 30); c.stroke(); arrowHead(c, 56, 32, 1.1, 10); line(c, [[8, 54], [22, 54]]); dot(c, 8, 46, 5); line(c, [[40, 44], [56, 44]]); arrowHead(c, 60, 44, 0, 8); };
 
+  /* v225 (JODIO: "redesign the PlayStyle logos using Figma to look more like FC27"): new pictogram glyphs, drawn in Figma
+     (file "FC Retro 27 PlayStyle logos") from this same path data and used here through Path2D. The old canvas glyphs above stay as a fallback. */
+  // v225 FC 27-style PlayStyle glyphs: SVG path data in a 64 box. 's' = stroke 5, 's3' = stroke 3, 'f' = fill. Shared by the game (Path2D) and the Figma sheet.
+  const C = (x, y, r) => `M${x - r} ${y}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0z`;
+  const PS_SPEC = {
+    'Finesse Shot': [['s', 'M14 50C14 28 28 16 48 16'], ['f', 'M46 6L60 16L46 26Z'], ['f', C(14, 50, 6)]],
+    'Power Shot': [['f', 'M37 4L15 36H29L24 60L49 26H35L41 4Z']],
+    'Low Driven Shot': [['s', 'M8 38H44'], ['f', 'M42 28L58 38L42 48Z'], ['s3', 'M8 26H24'], ['s3', 'M6 54H58']],
+    'Chip Shot': [['s', 'M10 52Q30 0 50 44'], ['f', 'M42 42L54 56L58 38Z'], ['f', C(10, 52, 5)], ['s3', 'M24 58H40']],
+    'Dead Ball': [['s', C(32, 38, 13)], ['f', 'M32 31L38 35.5L35.7 42.5H28.3L26 35.5Z'], ['s3', 'M16 18Q32 2 48 18'], ['f', 'M44 10L52 20L41 22Z']],
+    'Precision Header': [['s', C(26, 42, 12)], ['f', C(46, 14, 7)], ['s3', 'M34 32L40 22']],
+    'Acrobatic': [['s', 'M16 46A17 17 0 1 1 46 48'], ['f', 'M38 44L52 52L50 36Z'], ['f', C(32, 34, 5)]],
+    'Gamechanger': [['f', 'M32 4L38 26L60 32L38 38L32 60L26 38L4 32L26 26Z']],
+    'Incisive Pass': [['s', 'M22 10V54'], ['s', 'M42 10V54'], ['s', 'M6 32H46'], ['f', 'M44 22L60 32L44 42Z']],
+    'Pinged Pass': [['s', 'M6 32H42'], ['f', 'M40 20L60 32L40 44Z'], ['s3', 'M6 18H28'], ['s3', 'M6 46H28']],
+    'Long Ball Pass': [['s', 'M8 52C14 8 44 6 52 40'], ['f', 'M44 38L54 54L60 36Z'], ['f', C(8, 52, 5)]],
+    'Whipped Pass': [['s', 'M8 52C8 26 30 40 34 24C36 16 42 12 48 12'], ['f', 'M46 2L60 12L46 22Z'], ['f', C(8, 52, 5)]],
+    'Tiki Taka': [['s3', 'M32 12L12 50H52Z'], ['f', C(32, 12, 7)], ['f', C(12, 50, 7)], ['f', C(52, 50, 7)]],
+    'Inventive': [['s', 'M32 8A15 15 0 0 1 41 35V42H23V35A15 15 0 0 1 32 8Z'], ['s3', 'M25 50H39'], ['s3', 'M28 57H36']],
+    'Technical': [['s', C(32, 32, 11)], ['s3', 'M8 38C14 54 50 54 56 38'], ['s3', 'M56 26C50 10 14 10 8 26'], ['f', 'M52 20L60 28L50 30Z']],
+    'Trickster': [['f', 'M32 6L39 24L58 25L43 37L48 56L32 45L16 56L21 37L6 25L25 24Z']],
+    'First Touch': [['s', 'M32 4V22'], ['f', 'M22 20L32 32L42 20Z'], ['s', C(32, 46, 10)], ['s3', 'M14 60H50']],
+    'Press Proven': [['s', 'M32 6L54 14L52 36Q48 52 32 58Q16 52 12 36L10 14Z'], ['f', C(32, 32, 9)]],
+    'Rapid': [['f', 'M6 12L20 32L6 52H14L28 32L14 12Z'], ['f', 'M24 12L38 32L24 52H32L46 32L32 12Z'], ['f', 'M42 12L56 32L42 52H50L64 32L50 12Z']],
+    'Quick Step': [['s', 'M18 30L32 12L46 30'], ['s', 'M18 52L32 34L46 52']],
+    'Intercept': [['s', 'M6 44L36 26'], ['f', 'M30 18L46 22L38 36Z'], ['s', 'M48 8V56']],
+    'Anticipate': [['s', 'M4 32Q32 2 60 32Q32 62 4 32Z'], ['f', C(32, 32, 9)]],
+    'Jockey': [['s', 'M10 22H50'], ['f', 'M48 12L60 22L48 32Z'], ['s', 'M54 44H14'], ['f', 'M16 34L4 44L16 54Z']],
+    'Slide Tackle': [['s3', 'M4 56H60'], ['s', 'M10 20L42 42'], ['f', 'M38 32L56 48L34 50Z']],
+    'Block': [['f', 'M32 4L56 13L54 36Q50 54 32 60Q14 54 10 36L8 13Z']],
+    'Bruiser': [['s', 'M4 32H22'], ['f', 'M20 22L32 32L20 42Z'], ['s', 'M60 32H42'], ['f', 'M44 22L32 32L44 42Z'], ['s3', 'M32 6V16'], ['s3', 'M32 48V58']],
+    'Enforcer': [['f', 'M40 8H48V56H40Z'], ['s', 'M6 32H30'], ['f', 'M28 20L40 32L28 44Z']],
+    'Relentless': [['s3', 'M6 20H50V44H6Z'], ['f', 'M50 27H58V37H50Z'], ['f', 'M11 25H19V39H11Z'], ['f', 'M23 25H31V39H23Z'], ['f', 'M35 25H43V39H35Z']],
+    'Aerial Fortress': [['f', 'M12 28H52V58H12Z'], ['f', 'M12 18H20V28H12Z'], ['f', 'M28 18H36V28H28Z'], ['f', 'M44 18H52V28H44Z'], ['s3', 'M32 4V14']],
+    'Long Throw': [['s', 'M10 54C14 10 44 6 54 30'], ['f', 'M46 30L56 44L60 26Z'], ['f', C(10, 54, 6)]],
+    'Far Reach': [['s', 'M8 32H56'], ['f', 'M50 22L62 32L50 42Z'], ['f', 'M14 22L2 32L14 42Z'], ['s3', C(32, 32, 12)]],
+    'Footwork': [['f', 'M31 6L15 34H27L22 58L44 26H32L37 6Z'], ['s3', 'M4 58H18'], ['s3', 'M46 58H60']],
+    '1v1 Close Down': [['s3', C(36, 36, 22)], ['s3', C(36, 36, 11)], ['f', C(36, 36, 4)], ['s', 'M4 4L22 22'], ['f', 'M14 26L28 28L26 14Z']],
+    'Cross Claimer': [['f', C(32, 12, 8)], ['s', 'M14 58V34Q14 26 20 28V40'], ['s', 'M20 30V22Q20 18 25 20V38'], ['s', 'M25 22V20Q25 16 31 18V38'], ['s', 'M31 20Q31 16 37 18V40Q44 30 48 36Q42 50 36 58']],
+    'Deflector': [['s', 'M30 6V58'], ['s', 'M6 18L26 32'], ['s', 'M34 32L52 16'], ['f', 'M46 8L60 10L54 22Z']],
+    'Far Throw': [['s', 'M8 48C16 14 42 10 54 28'], ['f', 'M46 28L56 42L60 24Z'], ['f', C(8, 48, 6)], ['s3', 'M4 58H22']],
+  };
   const cache = {}, shortOf = n => String(n).replace(/\+$/, '');
   // v166 (JODIO): a PlayStyle+ badge in the colours of the card it belongs to: [inner, outer, rim, glyph]
   const TINT = {
@@ -99,14 +141,15 @@ window.RUT = window.RUT || {};
       c.beginPath(); c.moveTo(4, 7); c.lineTo(40, 7); c.lineTo(22, 33); c.lineTo(4, 33); c.closePath(); c.fill(); c.restore();
     } else {
       // plain PlayStyle: dark gem, silver outline, white glyph
-      c.save(); c.shadowColor = 'rgba(0,0,0,.5)'; c.shadowBlur = 3; c.shadowOffsetY = 1.5; gemPath(c, 0.04); c.fillStyle = T ? T[1] : '#1c2230'; c.fill(); c.restore();
-      c.lineWidth = 3; c.strokeStyle = T ? T[2] : '#c7cfdb'; gemPath(c, 0.1); c.stroke();
+      c.save(); c.shadowColor = 'rgba(0,0,0,.5)'; c.shadowBlur = 3; c.shadowOffsetY = 1.5; gemPath(c, 0.04); c.fillStyle = T ? T[1] : '#0d0d0d'; c.fill(); c.restore();
+      c.lineWidth = 3; c.strokeStyle = T ? T[2] : '#c9a227'; gemPath(c, 0.1); c.stroke();   // v225: black gem, gold edge (the game's Ballon d'Or colours)
       glyph = T ? T[2] : '#ffffff';
     }
     // glyph, scaled into the wide upper part of the gem
-    c.save(); c.translate(32, 27.5); c.scale(0.5, 0.5); c.translate(-32, -32);
+    c.save(); c.translate(32, 27.5); c.scale(0.56, 0.56); c.translate(-32, -32);
     c.fillStyle = glyph; c.strokeStyle = glyph; c.lineWidth = 5.5; c.lineCap = 'round'; c.lineJoin = 'round';
-    try { (G[base] || G['Trickster'])(c); } catch (e) { /* glyph failed: the plain gem stays */ }
+    const sp = typeof Path2D !== 'undefined' && PS_SPEC[base];
+    try { if (sp) sp.forEach(([t, d]) => { const pa = new Path2D(d); if (t === 'f') c.fill(pa); else { c.lineWidth = t === 's3' ? 3.4 : 5.5; c.stroke(pa); } }); else (G[base] || G['Trickster'])(c); } catch (e) { /* glyph failed: the plain gem stays */ }
     c.restore();
     return cv;
   }
