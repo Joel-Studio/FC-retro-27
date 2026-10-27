@@ -140,7 +140,7 @@
   /* =============================== modal ================================= */
   function modal(html, cls) {
     $('#modal-root').innerHTML = `<div class="overlay" data-act="overlay-bg"><div class="modal px ${cls || ''}">
-      <button class="btn sm r close" data-act="close">X</button>${html}</div></div>`;
+      <button class="btn sm r close" data-act="close">X</button>${bigTxt(html)}</div></div>`;
   }
   function closeModal() { $('#modal-root').innerHTML = ''; }
   /** v202: an in-game yes/no box. The browser's confirm() is silently blocked inside the Claude artifact (it always answered "no"). */
@@ -193,6 +193,8 @@
     const names = { home: 'Home', club: 'Club', squad: 'Squad & Chemistry', play: 'Kick Off', casual: 'Casual Match', online: 'Online Match', rules: 'Match Rules', playstyles: 'PlayStyles Guide', market: 'Transfer Market', bdorgal: 'Ballon d\'Or', sbc: 'Squad Building Challenges', 'sbc-build': 'SBC Builder', evo: 'Evolutions', store: 'Store', promoshop: 'Promo Shop', pstats: 'Player Stats', unassigned: 'Unassigned', settings: 'Settings', tactics: 'Tactics', staff: 'Staff & Training', league: 'League', top5: 'Top 5 Leagues', quests: 'Quests' };
     const parent = { top5: 'League', squad: 'Club', staff: 'Club', evo: 'Club', unassigned: 'Club', rules: 'Play', playstyles: 'Club', casual: 'Play', online: 'Play', 'sbc-build': 'SBCs', promoshop: 'Market', bdorgal: 'Market', pstats: 'Club' }[App.view];
     $('#crumbs').innerHTML = `<a href="#" data-act="nav" data-v="home">Home</a>${parent ? ' › ' + parent : ''} › <b>${esc(names[App.view] || '')}</b>`;
+    const mv = { club: 'squad', tactics: 'squad', evo: 'squad', staff: 'squad', casual: 'play', online: 'play', rivals: 'play', league: 'play', top5: 'play', promoshop: 'market', sbc: 'store', 'sbc-build': 'store' }[App.view] || App.view;
+    document.querySelectorAll('#mnav [data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === mv));   // v214: phone tab bar
     document.querySelectorAll('#tabs .dd > button').forEach(b => {
       b.classList.toggle('on', b.dataset.view === App.view || (App.view === 'top5' && b.dataset.view === 'league') || (App.view === 'unassigned' && b.dataset.view === 'home') || (App.view === 'sbc-build' && b.dataset.view === 'sbc') || ((App.view === 'casual' || App.view === 'online') && b.dataset.view === 'play'));
       if (b.dataset.view === 'quests') { const n = RUT.Quests ? RUT.Quests.readyCount() : 0; b.innerHTML = 'Quests' + (n ? `<span class="badge">${n}</span>` : ''); }
@@ -200,10 +202,24 @@
     });
   }
 
+  /* v214 (JODIO: FC 27 UT menu look, same colours): the menus use a clean sans font, so the tiny pixel-font sizes (7-9px) are scaled up,
+     both in the stylesheet (once) and in the inline styles of each page. Cards keep their own fonts and sizes. */
+  const bigPx = n => +n < 12 ? Math.round(n * 1.45 * 10) / 10 : +n;
+  const bigTxt = h => h.replace(/font-size:\s*(\d+(?:\.\d+)?)px/g, (m, n) => 'font-size:' + bigPx(n) + 'px');
+  let typeDone = false;
+  function fc27Type() {
+    if (typeDone) return; typeDone = true;
+    const skip = /card|c3d|\.c-|pk|mb-|hud|fcr-|pxc|\.ps\b|match|canvas|intro|fc27|mnav|logo/i;
+    for (const sh of document.styleSheets) { let rs; try { rs = sh.cssRules; } catch (e) { continue; }
+      const walk = list => { for (const r of list) { if (r.cssRules && !r.selectorText) { walk(r.cssRules); continue; } if (!r.style || !r.selectorText || skip.test(r.selectorText)) continue;
+        const f = r.style.fontSize, m = /^(\d+(?:\.\d+)?)px$/.exec(f || ''); if (m) r.style.fontSize = bigPx(m[1]) + 'px'; } };
+      walk(rs); }
+  }
   function render() {
+    fc27Type();
     updateHeader();
     const fn = VIEWS[App.view] || VIEWS.home;
-    const v = $('#view'); v.innerHTML = fn();
+    const v = $('#view'); v.innerHTML = bigTxt(fn());
     v.classList.remove('enter'); void v.offsetWidth; v.classList.add('enter'); // page transition
     animateCoins(); fitPitches();
     if (App.view === 'market' && App.marketTab === 'search') bindMarketForm();
@@ -230,13 +246,9 @@
   /* v210 (JODIO): "play this club on another site" with the club carried over. A website opens already logged in (#rut= link); the Claude page
      cannot read a link, so the code is copied as well and one paste on its login screen ("Paste my club") brings the club in. */
   const SITES = [
-    { k: 'claude', name: 'Claude', url: 'https://claude.ai/artifact/LK8vknaqmxJ72nuxVibgsN', here: () => !!window.claude || /claude/i.test(location.hostname) },
-    { k: 'netlify', name: 'Netlify', url: 'https://fc-retro-27.netlify.app/', here: () => /netlify\.app$/.test(location.hostname) },     // v213: Netlify builds from Joel-Studio/FC-retro-27 on every push
-    { k: 'lovable', name: 'Lovable', url: 'https://retro-charm-site.lovable.app/', here: () => /lovable\.app$/.test(location.hostname) },
-    { k: 'github', name: 'GitHub', url: 'https://joel-studio.github.io/FC-retro-27/', here: () => /github\.io$/.test(location.hostname) },     // v211: GitHub Pages from Joel-Studio/FC-retro-27
-    { k: 'replit', name: 'Replit', url: 'https://oily-spatial-networks--CJO00.replit.app/', here: () => /replit\.(app|dev)$|repl\.co$/.test(location.hostname) },      // v212: the Replit app serves the same repo (a small server that fetches each file from GitHub, so every push shows up there within a minute)
+    { k: 'netlify', name: 'Netlify', url: 'https://fc-retro-27.netlify.app/', here: () => /netlify\.app$/.test(location.hostname) },     // v214 (JODIO): Netlify is the only other site
   ];
-  const sitesHTML = () => `<div class="px mt"><b>Play this club on another site</b><p class="dim" style="font-size:7px;line-height:1.9">Your players, coins and progress go with you. Websites open already logged in; on Claude press <b>Paste my club</b> on the login screen.</p><div class="row">${SITES.filter(x => !x.here()).map(x => x.url ? `<button class="btn y" data-act="acc-site" data-k="${x.k}">Go to ${esc(x.name)}</button>` : `<button class="btn" disabled>${esc(x.name)}: coming soon</button>`).join('')}</div></div>`;
+  const sitesHTML = () => !SITES.some(x => !x.here()) ? '' : `<div class="px mt"><b>Play this club on another site</b><p class="dim" style="font-size:7px;line-height:1.9">Your players, coins and progress go with you. Websites open already logged in; on Claude press <b>Paste my club</b> on the login screen.</p><div class="row">${SITES.filter(x => !x.here()).map(x => x.url ? `<button class="btn y" data-act="acc-site" data-k="${x.k}">Go to ${esc(x.name)}</button>` : `<button class="btn" disabled>${esc(x.name)}: coming soon</button>`).join('')}</div></div>`;
   VIEWS.home = function () {
     const st = D(), cards = State.squadCards();
     const rating = SBC.squadRating(cards.map(c => (c ? c.rating : 0))), chem = SBC.chemistry(cards).total;
@@ -250,7 +262,7 @@
         <div class="row"><button class="btn y" data-act="nav" data-v="play">▶ Kick Off</button><button class="btn c" data-act="nav" data-v="store">Open Packs</button><button class="btn" data-act="nav" data-v="rules">Match Rules</button></div></div>
       <div class="hero-card">${cardHTML(feat, { attrs: `data-act="price" data-card="${feat.id}"` })}<div class="dim" style="font-size:7px;text-align:center">Signature star: ${esc(DB.signatureFor(feat).celebration)}</div></div>
     </section>
-    ${mbBanner()}${digestBanner()}<div class="row mb" style="font-size:8px"><span class="dim">Play this club on another site:</span>${SITES.filter(x => !x.here()).map(x => x.url ? `<button class="btn sm" data-act="acc-site" data-k="${x.k}">${esc(x.name)}</button>` : `<button class="btn sm" disabled>${esc(x.name)} (soon)</button>`).join('')}</div>
+    ${mbBanner()}${digestBanner()}${SITES.some(x => !x.here()) ? `<div class="row mb" style="font-size:8px"><span class="dim">Play this club on another site:</span>${SITES.filter(x => !x.here()).map(x => x.url ? `<button class="btn sm" data-act="acc-site" data-k="${x.k}">${esc(x.name)}</button>` : `<button class="btn sm" disabled>${esc(x.name)} (soon)</button>`).join('')}</div>` : ''}
     <div class="grid cols-3">
       <div class="px"><h2>${esc(st.clubName)}</h2>
         <div class="row between"><span class="dim">Squad Rating</span><span class="gold" style="font-size:18px">${rating}</span></div>
@@ -606,7 +618,6 @@
         <div class="row between"><span class="dim">Chemistry</span><span class="good" style="font-size:20px">${chem.total}/33</span></div>
         <div class="mt">${['pac', 'sho', 'pas', 'dri', 'def', 'phy'].map(k => statBar(k.toUpperCase(), avg(k))).join('')}</div>
         <h3 class="mt">PlayStyles+ in XI</h3><div>${Object.keys(pss).map(p => `<span class="pill ps${/\+$/.test(p) ? '' : ' silver'}" title="${esc(PS_DESC[p] || PS_DESC[p.replace(/\+$/, '') + '+'] || '')}">${esc(PS_ICON[p] || PS_ICON[p.replace(/\+$/, '') + '+'] || '')} ${esc(p)} ×${pss[p]}</span>`).join('') || '<span class="dim">None yet</span>'}</div>
-        ${rolesPanel()}
         <div class="row mt"><button class="btn y" data-act="squad-auto">Auto-build best XI</button><button class="btn" data-act="squad-clear">Clear</button></div>
         <p class="dim" style="font-size:8px">Chem: club 2/5/8 · nation 2/5/8 · league 3/5/8 in-position players = 1/2/3 pts (max 3 each). Out-of-position players get 0.</p>
       </div></div>`;
@@ -769,34 +780,8 @@
     setTimeout(step, 30);
   }
   VIEWS.tactics = function () {
-    const t = clubTac(), left = Engine.TAC_MAXPTS - t.a - t.m - t.d, tr = TT();
-    const bars = [['a', 'Attack', 'A lot of runs in behind, a high line and quick forward balls. At 3 the attackers run in space on every counter and while you control the ball.'],
-      ['m', 'Midfield', 'Short passing and control. At 3 the team passes around in midfield and the forwards come deep to play and move the ball around.'],
-      ['d', 'Defence', 'A deeper, compact block with less pressing. At 3 it is a low block: everybody including the attackers defends when the ball is lost.']];
-    const cap = k => { const o = [t.a, t.m, t.d]; o[['a', 'm', 'd'].indexOf(k)] = 0; return o.includes(3) ? 2 : 3; };
-    const box = (on) => `<span style="display:inline-block;width:26px;height:14px;margin-right:3px;background:${on ? '#ffd400' : '#1c2434'};border:1px solid #556"></span>`;
-    const roleNames = tt => tt && tt.roles ? Object.entries(tt.roles).filter(([g]) => g !== 'GK').map(([g, key]) => `<b>${esc(g)}</b> ${esc((RUT.ROLE_BY[key] || {}).name || key)}`).join(' · ') : '';
-    return `<h1>Tactics</h1><div class="row mb"><button class="btn y" data-act="nav" data-v="staff">Staff &amp; Training: coaches, auto setup</button></div>
-      ${fcHTML()}
-      <div class="px mt"><div class="row between"><h2>Classic tactics · points + trait</h2>${tacMode() === 'classic' ? '<span class="pill good">Active</span>' : '<button class="btn" data-act="tac-classic">Activate</button>'}</div></div><p class="dim">You have ${Engine.TAC_MAXPTS} tactic points to spread over Attack, Midfield and Defence (3 at most on one bar; with a 3 on a bar the others stop at 2), and one tactical trait that picks the role every position plays. Saved with your club.</p>
-      ${tboardHTML()}
-      ${ordersHTML()}
-      ${pbHTML()}
-      ${labHTML()}
-      <div class="grid cols-2"><div class="px"><h2>Points · <span class="${left ? 'gold' : 'good'}">${left} left</span></h2>
-        ${bars.map(([k, name, desc]) => `<div class="mt"><div class="row between"><b>${name}</b><span>
-          <button class="btn sm" data-act="tac-pt" data-k="${k}" data-d="-1" ${t[k] <= 0 ? 'disabled' : ''}>−</button>
-          ${[1, 2, 3].map(n => box(t[k] >= n)).join('')}
-          <button class="btn sm" data-act="tac-pt" data-k="${k}" data-d="1" ${t[k] >= cap(k) || left <= 0 ? 'disabled' : ''}>+</button></span></div>
-          <p class="dim" style="font-size:8px;line-height:1.8">${esc(desc)}</p></div>`).join('')}
-        <div class="row mt"><button class="btn" data-act="tac-reset">Reset to 2-2-2</button></div>
-        <p class="dim mt" style="font-size:8px;line-height:1.9">Now playing: <b>${esc(styleName(myTac()))}</b><br>${esc(styleBlurb(myTac()))}</p></div>
-      <div class="px"><h2>Set pieces</h2><p class="dim" style="font-size:8px;line-height:1.8">Who takes your corners and free kicks, and how corners are played. Auto picks the best dead-ball specialists (Free Kick Accuracy, Curve, Dead Ball+). Local matches only: online uses Auto.</p>${spHTML()}</div>
-      <div class="px"><h2>Tactical trait${t.trait ? '' : ' · none'}</h2><p class="dim" style="font-size:8px">One at a time. A player who has a role of his own chosen for his position keeps it; everybody else plays the role the trait asks for.</p>
-        ${Object.entries(tr).map(([k, x]) => `<div class="mt" style="padding:6px;border:1px solid ${t.trait === k ? '#ffd400' : '#334'}">
-          <div class="row between"><b class="${t.trait === k ? 'gold' : ''}">${esc(x.name)}</b><button class="btn sm ${t.trait === k ? 'y' : ''}" data-act="tac-trait" data-t="${k}">${t.trait === k ? 'Equipped' : 'Equip'}</button></div>
-          <p class="dim" style="font-size:8px;line-height:1.8">${esc(x.blurb)}</p>
-          <p style="font-size:7px;line-height:1.8">${roleNames(x)}</p></div>`).join('')}</div></div>`;
+    return `<h1>Tactics</h1>${fcHTML()}
+      <div class="px mt"><h2>Set pieces</h2><p class="dim" style="font-size:8px;line-height:1.8">Who takes your corners and free kicks, and how corners are played. Auto picks the best dead-ball specialists (Free Kick Accuracy, Curve, Dead Ball+). Local matches only: online uses Auto.</p>${spHTML()}</div>`;
   };
 
   /* v117: PLAYER ORDERS (Club > Tactics). Each starting player can get one standing order, picked from the list or typed ("stay back", "run to goal and shoot"). */
@@ -1289,16 +1274,17 @@
      + focus for every position on a pitch view, with a Team Tactical Analysis radar. Saved as D().fctac; D().tacMode picks FC 27 ('fc') or the classic points.
      fctac = { preset (shown; 'x' = Custom), base (the preset whose touches and default roles it keeps), bu, da, ln 0..99, man (line set by hand), roles {slot: 'fc-..:f'} } */
   const FCP = () => Engine.FC_PRESETS;
-  const tacMode = () => D().tacMode || (D().autoCoach ? 'classic' : 'fc');
+  const tacMode = () => 'fc';   // v214 (JODIO): FC 27 tactics are the only tactics
   const fcFromPreset = k => { const P = FCP()[k]; return { preset: k, base: k === 'x' ? 's' : k, bu: P.bu, da: P.da, ln: P.ln, man: false, roles: {} }; };
   const fcTac = () => { const d = D(); if (!d.fctac || !FCP()[d.fctac.preset]) d.fctac = fcFromPreset('s'); const t = d.fctac; t.roles = t.roles || {}; if (!FCP()[t.base]) t.base = t.preset === 'x' ? 's' : t.preset; return t; };
   const fcSpec = () => { const t = fcTac(); return Engine.tacSpec({ fc: { bu: t.bu, da: t.da, ln: t.ln, pr: t.base }, form: State.formationKey() || '' }); };
   const famTag = f => f === 2 ? '<em class="fam f2">++</em>' : f === 1 ? '<em class="fam f1">+</em>' : '';
   function fcPitchHTML() {
     const key = State.formationKey() || '433', pts = (Engine.FORMATIONS[key] || Engine.FORMATIONS['433']).pts, cards = State.squadCards(), cl = (v, a, b) => Math.max(a, Math.min(b, v));
-    return `<div class="fc-pitch"><div class="fc-mid"></div><div class="fc-box"></div><div class="fc-box top"></div><div class="fc-tag">WITHOUT BALL</div>${pts.map((p, i) => {
+    // v214 (JODIO's FC 27 screenshot): dark player tiles on a teal pitch: surname, role with ++/+, focus, position, and a rating dot
+    return `<div class="fc-pitch fc27-pitch"><div class="fc27-lines"><i class="m"></i><i class="c"></i><i class="b"></i><i class="b t"></i><i class="g"></i><i class="g t"></i></div>${pts.map((p, i) => {
       const c = cards[i], pos = State.FORMATION[i], r = RUT.ROLE_BY[State.slotRole(i)] || (c ? RUT.roleOf(c, pos) : null), fam = c && r && r.fc ? RUT.roleFam(c, r.key, pos) : 0;
-      return `<button class="fc-mk" data-act="fc-role" data-i="${i}" style="top:${cl(94 - p[0] / 70 * 86, 4, 94).toFixed(1)}%;left:${cl(4 + p[1] / 68 * 92, 7, 93).toFixed(1)}%"><b>${esc(c ? c.name.split(' ').slice(-1)[0] : 'Empty')}</b><span>${esc(r ? r.name : 'Auto')}${famTag(fam)}</span><i>${esc(r && r.focusName ? r.focusName : '')}</i><small>${esc(pos)}</small></button>`;
+      return `<button class="fc-mk fc27-mk" data-act="fc-role" data-i="${i}" style="top:${cl(92 - p[0] / 70 * 82, 7, 92).toFixed(1)}%;left:${cl(4 + p[1] / 68 * 92, 9, 91).toFixed(1)}%">${c ? `<u>${c.rating}</u>` : ''}<b>${esc(c ? c.name.split(' ').slice(-1)[0] : 'Empty')}</b><span>${esc(r ? r.name : 'Auto')}${famTag(fam)}</span><i>${esc(r && r.focusName ? r.focusName : '')}</i><small>${esc(pos)}</small></button>`;
     }).join('')}</div>`;
   }
   /** Team Tactical Analysis: six 0..100 scores from the built tactic and the roles on the pitch, with strengths and warnings. */
@@ -1330,20 +1316,19 @@
     const poly = f => ks.map((k, i) => pt(i, f(k)).map(x => x.toFixed(1)).join(',')).join(' ');
     return `<svg viewBox="0 0 240 210" class="fc-radar" role="img" aria-label="Team tactical analysis">${[0.25, 0.5, 0.75, 1].map(f => `<polygon points="${poly(() => R * f)}" fill="none" stroke="#3a4560"/>`).join('')}${ks.map((k, i) => { const [x, y] = pt(i, R); return `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#3a4560"/>`; }).join('')}<polygon points="${poly(k => R * v[k] / 100)}" fill="rgba(255,212,0,.32)" stroke="#ffd400" stroke-width="2"/>${ks.map((k, i) => { const [x, y] = pt(i, R + 18); return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" fill="#e8ecf4" font-size="10" font-family="monospace" text-anchor="middle" dominant-baseline="middle">${k} ${v[k]}</text>`; }).join('')}</svg>`;
   }
+  const FC_ICON = { x: '&#9881;', s: '&#9878;', w: '&#8644;', p: '&#9673;', c: '&#9889;', l: '&#10150;', h: '&#9650;', t: '&#10022;', b: '&#9638;' };
   function fcHTML() {
-    const t = fcTac(), P = FCP(), B = Engine.FC_BUILD, Df = Engine.FC_DEF, fk = State.formationKey() || '433', on = tacMode() === 'fc', A = fcAnalysis();
+    const t = fcTac(), P = FCP(), B = Engine.FC_BUILD, Df = Engine.FC_DEF, fk = State.formationKey() || '433', A = fcAnalysis(), ks = ['x'].concat(Object.keys(P).filter(k => k !== 'x'));
     const opt = (o, cur) => Object.entries(o).map(([k, x]) => `<option value="${k}" ${k === cur ? 'selected' : ''}>${esc(x.name)}</option>`).join('');
-    return `<div class="px fc-list"><div class="row between"><div><b class="gold">${esc(P[t.preset].name)}${t.preset === 'x' && t.base !== 's' ? ' <span class="dim">(from ' + esc(P[t.base].name) + ')</span>' : ''} · ${esc((State.FORMS[fk] || {}).name || '')}</b><div class="dim" style="font-size:8px;line-height:1.9">Formation ${esc((State.FORMS[fk] || {}).name || '')} · Build-Up Style ${esc(B[t.bu].name)} · Defensive Approach ${esc(Df[t.da].name)}</div></div>${on ? '<span class="pill good">Active</span>' : '<button class="btn y" data-act="fc-activate">Activate</button>'}</div></div>
-      <div class="grid cols-2 fc-grid"><div class="px fc-edit"><h2>Edit Tactic</h2>
-        <label>Tactical Preset <span class="dim">· ${Object.keys(P).length - 1} presets available</span></label><select id="fc-pre">${opt(P, t.preset)}</select><p class="dim fc-note">${esc(P[t.preset === 'x' ? t.base : t.preset].blurb)}</p>
-        <label>Formation</label><select id="fc-form">${Object.entries(State.FORMS).map(([k, f]) => `<option value="${k}" ${k === fk ? 'selected' : ''}>${esc(f.name)}</option>`).join('')}</select>
-        <label>Build-Up Style</label><select id="fc-bu">${opt(B, t.bu)}</select><p class="dim fc-note">${esc(B[t.bu].blurb)}</p>
-        <label>Defensive Approach</label><select id="fc-da">${opt(Df, t.da)}</select><p class="dim fc-note">${esc(Df[t.da].blurb)}</p>
-        <label>Line Height <b class="gold" id="fc-lnv">${t.ln}</b></label><input type="range" id="fc-ln" min="0" max="99" value="${t.ln}" ${t.man ? '' : 'disabled'} style="width:100%">
-        <label class="fc-chk"><input type="checkbox" id="fc-man" ${t.man ? 'checked' : ''}> Manually Adjust Line</label>
-        <h3 class="mt">Team Tactical Analysis</h3>${radarSVG(A.v)}
-        ${A.good.map(([h, d]) => `<div class="fc-an good"><b>✓ ${esc(h)}</b><span>${esc(d)}</span></div>`).join('')}${A.warn.map(([h, d]) => `<div class="fc-an bad"><b>! ${esc(h)}</b><span>${esc(d)}</span></div>`).join('')}</div>
-      <div class="px"><h2>Roles <span class="dim" style="font-size:8px">· tap a player to change his role and focus</span></h2>${fcPitchHTML()}<p class="dim" style="font-size:7px;line-height:1.9">++ = his best role in that position, + = a good fit. Players in a ++ or + role read the game better; with no + a little worse. The role and focus change where he stands and runs, how he passes and how he defends.</p></div></div>`;
+    return `<div class="fc27"><div class="fc27-head"><h2>Tactical Presets</h2><span>${ks.length - 1} Presets available.</span></div>
+      <div class="fc27-body"><div class="fc27-side"><div class="fc27-list">${ks.map(k => `<button class="fc27-pre ${t.preset === k ? 'on' : ''}" data-act="fc-preset" data-k="${k}"><div><b>${esc(k === 'x' ? 'Custom' : P[k].name)}</b><p>${esc(k === 'x' ? 'Tactics that you have customised.' : P[k].blurb)}</p></div><em>${FC_ICON[k] || '&#9679;'}</em>${t.preset === k ? '<s>&#10003;</s>' : ''}</button>`).join('')}</div>
+        <div class="fc27-edit"><label>Formation</label><select id="fc-form">${Object.entries(State.FORMS).map(([k, f]) => `<option value="${k}" ${k === fk ? 'selected' : ''}>${esc(f.name)}</option>`).join('')}</select>
+          <label>Build-Up Style</label><select id="fc-bu">${opt(B, t.bu)}</select><p>${esc(B[t.bu].blurb)}</p>
+          <label>Defensive Approach</label><select id="fc-da">${opt(Df, t.da)}</select><p>${esc(Df[t.da].blurb)}</p>
+          <label>Line Height <b id="fc-lnv">${t.ln}</b></label><input type="range" id="fc-ln" min="0" max="99" value="${t.ln}" ${t.man ? '' : 'disabled'}>
+          <label class="fc-chk"><input type="checkbox" id="fc-man" ${t.man ? 'checked' : ''}> Manually Adjust Line</label></div></div>
+        <div class="fc27-main"><h3>${esc(P[t.preset].name)}${t.preset === 'x' && t.base !== 's' ? ' <span>from ' + esc(P[t.base].name) + '</span>' : ''} <span>· ${esc((State.FORMS[fk] || {}).name || '')}</span></h3>${fcPitchHTML()}<p class="fc27-tip">Tap a player to change his role and focus. ++ = his best role there, + = a good fit.</p></div></div>
+      <div class="fc27-an"><div><h3>Team Tactical Analysis</h3>${radarSVG(A.v)}</div><div>${A.good.map(([h, d]) => `<div class="fc-an good"><b>&#10003; ${esc(h)}</b><span>${esc(d)}</span></div>`).join('')}${A.warn.map(([h, d]) => `<div class="fc-an bad"><b>! ${esc(h)}</b><span>${esc(d)}</span></div>`).join('')}</div></div></div>`;
   }
   function fcRoleModal(i) {
     const c = State.squadCards()[i], pos = State.FORMATION[i], cur = State.slotRole(i), cb = cur && RUT.ROLE_BY[cur] ? RUT.ROLE_BY[cur].base : '';
@@ -1361,7 +1346,7 @@
     on('#fc-man', e => { t.man = e.checked; if (!t.man) t.ln = Engine.FC_DEF[t.da].ln; save(); });
     const ln = $('#fc-ln'); if (ln) { ln.addEventListener('input', () => { $('#fc-lnv').textContent = ln.value; }); ln.addEventListener('change', () => { t.ln = +ln.value; t.preset = 'x'; save(); }); }
   }
-  const myTac = () => tacMode() === 'fc' ? fcSpec() : Engine.tacSpec(Object.assign({}, clubTac(), { form: State.formationKey() || '' }));
+  const myTac = () => fcSpec();
   const styleOptions = (cur, auto) => (auto ? `<option value="auto" ${cur === 'auto' ? 'selected' : ''}>Auto (a random tactic)</option>` : '') + `<option value="balanced" ${cur === 'balanced' ? 'selected' : ''}>Balanced (no trait)</option>` + Object.entries(TT()).map(([k, t]) => `<option value="${k}" ${cur === k ? 'selected' : ''}>${esc(t.name)}</option>`).join('');
   const styleBlurb = k => k === 'auto' ? 'A random tactic every match.' : Engine.buildTactic(k).blurb;
   const styleName = k => Engine.buildTactic(k).name;
@@ -1558,7 +1543,7 @@
       <div class="px"><h2>Hire a coach (${hired.length}/${s.MAXC})</h2><div style="max-height:520px;overflow:auto">${cards || '<p class="dim">You have hired everyone.</p>'}</div><p class="dim" style="font-size:8px">Releasing a coach gives no refund; his points stay with the team.</p></div></div>
       <div id="sf-coaches">${hired.map(sfCoachHTML).join('')}</div>
       ${trainTestHTML()}
-      ${autoHTML()}`;
+`;
   };
   function sfLive() {
     if (App.view !== 'staff') return;
@@ -1784,7 +1769,7 @@
     const st = Object.keys(n).filter(k => n[k]).map(k => names[k] + ' ' + (n[k] > 0 ? '+' : '') + n[k]).join(' · ');
     tp.querySelector('.tp-s').textContent = msg || (st ? 'Now: ' + st : 'Your starting tactic. Each press moves it one step (two at most).');
     const log = (m.autoLog || []).filter(x => x.team === team).slice(-1)[0];
-    tp.querySelector('small').textContent = D().autoCoach ? (log ? '· coach: ' + log.label.toLowerCase() : '· auto coach on') : '';
+    tp.querySelector('small').textContent = false ? (log ? '· coach: ' + log.label.toLowerCase() : '· auto coach on') : '';
   }
 
   /* v136 (JODIO): in a knockout match the human takes the penalty shootout kicks: pick a corner, stop the timing bar; as the keeper pick the dive. The AI side's kicks use the old odds. */
@@ -1914,7 +1899,7 @@
     const own = !o.online && !o.training && !o.duel && o.home && o.home.name === D().clubName;
     const recOn = !!(RUT.Rec && hu && humans.length === 1 && !o.online && !o.training && !o.duel);       // v108: your local matches are recorded (set-up + your inputs), so highlights can be replayed exactly
     const mcfg = {
-      home: sm(o.home), away: sm(o.away), tacGain: own ? [CLUB_GAIN, 0] : undefined, coach: own ? [coachK(), null] : undefined, train: own ? [trainBoost(), null] : undefined, autoCoach: (canTac && own && D().autoCoach) ? [humans[0] === 0, humans[0] === 1] : undefined, plays: (own && !humans.length && !o.online && !o.training && !o.duel && (D().plays || []).some(pl => pl.on)) ? [playsCfg(), null] : undefined, humans, halfSeconds: o.halfSeconds || App.halfSeconds, setPieces: (!o.online && !o.training && !o.duel && humans.length === 1 && humans[0] === 0) ? [spCfg(), null] : undefined, knockout: o.knockout, camera: App.camMode || 'tv', seed: o.seed,
+      home: sm(o.home), away: sm(o.away), tacGain: own ? [CLUB_GAIN, 0] : undefined, coach: own ? [coachK(), null] : undefined, train: own ? [trainBoost(), null] : undefined, autoCoach: false ? [humans[0] === 0, humans[0] === 1] : undefined, plays: (own && !humans.length && !o.online && !o.training && !o.duel && (D().plays || []).some(pl => pl.on)) ? [playsCfg(), null] : undefined, humans, halfSeconds: o.halfSeconds || App.halfSeconds, setPieces: (!o.online && !o.training && !o.duel && humans.length === 1 && humans[0] === 0) ? [spCfg(), null] : undefined, knockout: o.knockout, camera: App.camMode || 'tv', seed: o.seed,
       penAsk: (humans.length === 1 && !o.online && !o.training) ? (mm, cb) => askPens(mm, wrap, humans[0], cb) : undefined,
       training: o.training || null, duel: !!o.duel, pitch: o.pitch || App.pitch || 'huge', surface: (o.phys || physCfg()).surface, ballModel: (o.phys || physCfg()).ballModel, assist: (o.phys || physCfg()).assist, styles: o.styles, brain: o.brain || (gfxPref() === 'ultra' ? 'ultra' : 'std'),
       onEnd: res => { if (own) recordPlayerStats(res, o.away); if (recOn) saveRec(m, o); playsLive(m); setTimeout(() => { m.stop(); wrap.remove(); App.match = null; o.onEnd(res); }, 1800); },
@@ -2669,8 +2654,8 @@
         ${c.generated ? '<div class="dim">Reserve pool</div>' : ''}${c.promo ? `<div class="gold">${c.promo.toUpperCase()} promo</div>` : ''}${c.clInfo ? `<div class="dim" style="font-size:7px">CL form +${c.clInfo.pct}%${c.clInfo.avg ? ' · avg ' + c.clInfo.avg + ' in ' + c.clInfo.games + ' game' + (c.clInfo.games > 1 ? 's' : '') : ' · no games yet'}</div>` : ''}${c.evoLevel ? `<div class="good">Evolved ×${c.evoLevel}</div>` : ''}</div></div>
       <div>
         <h3>PlayStyles+</h3><div>${c.playStyles.map(p => { const g = /\+$/.test(p); const k = p.replace(/\+$/, '') + '+'; return `<div class="pill ps${g ? '' : ' silver'}">${esc(PS_ICON[p] || PS_ICON[k] || '')} ${esc(p)} <span style="color:#fff;opacity:.6">— ${esc(PS_DESC[k] || PS_DESC[p] || '')}</span></div>`; }).join('') || '<span class="dim">None</span>'}</div>
-        ${(() => { if (!RUT.roleOf) return ''; const ri = roleInfo(c, itemId); return `<h3 class="mt">Role <span class="dim" style="font-size:7px">(${esc(ri.pos)} · ${esc(RUT.ROLE_GROUP_NAME[ri.group])}${ri.auto ? ' · auto, best fit' : ''})</span></h3><div class="pill ps">${esc(ri.role.name)} <span style="color:#fff;opacity:.6">— ${esc(ri.role.desc)}</span></div><div>${roleTags(ri.role)}</div>${it && where === 'club' ? `<button class="btn sm mt" data-act="role-pick" data-item="${itemId}">Change role</button>` : ''}`; })()}
-        <h3 class="mt">Traits <span class="dim" style="font-size:7px">(how the AI plays him)</span></h3><div>${[...(RUT.traitsFor ? RUT.traitsFor(c) : [])].map(t => `<div class="pill ps">${esc((RUT.TRAIT_INFO || {})[t] || t)}</div>`).join('') || '<span class="dim">None</span>'}</div>
+        ${(() => { if (!RUT.roleOf) return ''; const ri = roleInfo(c, itemId); return `<h3 class="mt">Role <span class="dim" style="font-size:7px">(${esc(ri.pos)} · ${esc(RUT.ROLE_GROUP_NAME[ri.group])}${ri.auto ? ' · auto, best fit' : ''})</span></h3><div class="pill ps">${esc(ri.role.name)} <span style="color:#fff;opacity:.6">— ${esc(ri.role.desc)}</span></div>${it && where === 'club' ? `<button class="btn sm mt" data-act="role-pick" data-item="${itemId}">Change role</button>` : ''}`; })()}
+        
         <div class="stat-grid mt">${Object.entries(groups).map(([g, keys]) => `<div class="grp"><h3>${g}</h3>${keys.map(k => statBar(pretty(k), c.sub[k] || 0)).join('')}</div>`).join('')}</div>
         ${ps ? `<h3 class="mt">Price history (FUTBIN-style)</h3>
           <div class="row between" style="font-size:8px"><span>Now <span class="gold">${fmt(ps.current)}</span></span><span>24h <span class="${ps.change24 >= 0 ? 'good' : 'bad'}">${ps.change24 >= 0 ? '+' : ''}${ps.change24.toFixed(1)}%</span></span>
@@ -3046,6 +3031,7 @@
     'tac-pt': el => { const t = clubTac(), k = el.dataset.k, d = +el.dataset.d, o = { a: t.a, m: t.m, d: t.d }; o[k] += d; const v = Engine.tacFix(o.a, o.m, o.d); if (v[0] !== o.a || v[1] !== o.m || v[2] !== o.d) { toast('A bar on 3 keeps the others at 2 or less, 6 points in all.', 'bad'); return; } D().tactics = { a: o.a, m: o.m, d: o.d, trait: t.trait }; D().tacMode = 'classic'; State.save(); render(); },
     'tac-trait': el => { const t = clubTac(); t.trait = t.trait === el.dataset.t ? '' : el.dataset.t; D().tacMode = 'classic'; State.save(); render(); },
     'tac-classic': () => { D().tacMode = 'classic'; State.save(); toast('Classic tactics active.', 'good'); render(); },
+    'fc-preset': el => { const t = fcTac(), k = el.dataset.k, P = FCP()[k]; if (!P) return; if (k === 'x') { t.preset = 'x'; State.save(); render(); return; } Object.assign(t, fcFromPreset(k)); if (P.form && State.FORMS[P.form] && P.form !== State.formationKey()) State.setFormation(P.form); State.save(); toast('Preset: ' + P.name, 'good'); render(); },
     'fc-activate': () => { D().tacMode = 'fc'; State.save(); toast('FC 27 tactics active.', 'good'); render(); },
     'fc-role': el => fcRoleModal(+el.dataset.i),
     'fc-set': el => { const t = fcTac(), i = el.dataset.i; if (el.dataset.k) t.roles[i] = el.dataset.k; else delete t.roles[i]; D().tacMode = 'fc'; State.save(); closeModal(); const r = RUT.ROLE_BY[State.slotRole(+i)]; toast(r ? r.name + (r.focusName ? ' · ' + r.focusName : '') : 'Role reset', 'good'); render(); },
@@ -3340,6 +3326,7 @@
   document.addEventListener('input', e => { if (e.target && e.target.id === 'dr-paste' && App.direct) App.direct.paste = e.target.value; });
   document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'on-code') ACTIONS['on-join'](e.target, e); });
   document.addEventListener('click', e => {
+    if (e.target.closest('#mnav-more')) { $('#tabs').classList.toggle('open'); window.scrollTo(0, 0); return; }
     if (e.target.closest('#burger')) { $('#tabs').classList.toggle('open'); return; }
     const tab = e.target.closest('#tabs button');
     if (tab && tab.dataset.train) { $('#tabs').classList.remove('open'); startTraining(); return; }

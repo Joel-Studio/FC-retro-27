@@ -6,7 +6,7 @@
   <title>FC RETRO 27</title>
   <!-- Optional pixel font. Without internet the game falls back to monospace and still runs. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Barlow+Condensed:wght@500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Barlow:wght@400;600;700;800&family=Barlow+Condensed:wght@500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -17,7 +17,7 @@
       <nav class="site-nav" id="tabs">
         <div class="dd"><button data-view="home">Home</button></div>
         <div class="dd"><button data-view="club">Club ▾</button>
-          <div class="dd-menu"><button data-view="club">My Club</button><button data-view="squad">Squad &amp; Chemistry</button><button data-view="tactics">Tactics</button><button data-view="staff">Staff &amp; Training</button><button data-view="pstats">Player Stats</button><button data-view="evo">Evolutions</button><button data-view="coach">Coach &amp; Highlights</button><button data-view="playstyles">PlayStyles Guide</button><button data-view="unassigned">Unassigned</button></div></div>
+          <div class="dd-menu"><button data-view="club">My Club</button><button data-view="squad">Squad &amp; Chemistry</button><button data-view="tactics">Tactics</button><button data-view="staff">Staff &amp; Training</button><button data-view="pstats">Player Stats</button><button data-view="evo">Evolutions</button><button data-view="playstyles">PlayStyles Guide</button><button data-view="unassigned">Unassigned</button></div></div>
         <div class="dd"><button data-view="play">Play ▾</button>
           <div class="dd-menu"><button data-view="play">Kick Off</button><button data-view="casual">Casual Match</button><button data-view="online">Online Match</button><button data-view="rivals">Rivals &amp; Champions</button><button data-view="play" data-train="1">Testing Ground</button><button data-view="rules">Match Rules</button></div></div>
         <div class="dd"><button data-view="league">League ▾</button>
@@ -38,10 +38,13 @@
   <footer class="site-foot">
     <div><b class="gold">FC RETRO 27</b><br><span class="dim">A 1999 pixel engine with a modern Ultimate Team.</span></div>
     <div><b>Play</b><br><a href="#" data-act="nav" data-v="play">Kick Off</a><br><a href="#" data-act="nav" data-v="rules">Match Rules</a><br><a href="#" data-act="nav" data-v="playstyles">PlayStyles Guide</a><br><a href="#" data-act="nav" data-v="league">League</a><br><a href="#" data-act="nav" data-v="top5">Top 5 Leagues</a><br><a href="#" data-act="nav" data-v="quests">Quests</a></div>
-    <div><b>Club</b><br><a href="#" data-act="nav" data-v="squad">Squad</a><br><a href="#" data-act="nav" data-v="tactics">Tactics</a><br><a href="#" data-act="nav" data-v="evo">Evolutions</a><br><a href="#" data-act="nav" data-v="coach">Coach &amp; Highlights</a></div>
+    <div><b>Club</b><br><a href="#" data-act="nav" data-v="squad">Squad</a><br><a href="#" data-act="nav" data-v="tactics">Tactics</a><br><a href="#" data-act="nav" data-v="evo">Evolutions</a></div>
     <div><b>Trade</b><br><a href="#" data-act="nav" data-v="market">Transfer Market</a><br><a href="#" data-act="nav" data-v="sbc">SBCs</a></div>
     <div class="dim">Ratings are estimates. Saves live in this browser.</div>
   </footer>
+  <nav class="mnav" id="mnav" aria-label="Main">
+    <button data-act="nav" data-v="home"><i>&#8962;</i>Home</button><button data-act="nav" data-v="squad"><i>&#9917;</i>Squad</button><button data-act="nav" data-v="play"><i>&#9654;</i>Play</button><button data-act="nav" data-v="market"><i>&#8644;</i>Market</button><button data-act="nav" data-v="store"><i>&#9670;</i>Store</button><button id="mnav-more"><i>&#9776;</i>Menu</button>
+  </nav>
   <div id="modal-root"></div>
   <div id="toasts"></div>
 

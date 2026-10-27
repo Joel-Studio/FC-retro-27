@@ -1286,3 +1286,130 @@ html.lite .modal-bg, html.lite .pfx, html.lite .walkout { filter: none; }
 .fam{font-style:normal;margin-left:3px;font-weight:700}
 .fam.f2{color:#3fb950}.fam.f1{color:#9fd0ff}
 @media (max-width:600px){.fc-mk{min-width:58px;max-width:70px;font-size:6px}.fc-mk b{font-size:7px}}
+
+/* v214: FC 27 tactics screen (from JODIO's screenshot): preset list left, teal pitch with dark player tiles right */
+.fc27{font-family:var(--font);background:radial-gradient(120% 90% at 70% 0%,#2a3590 0%,#1b2260 45%,#0b0f2a 100%);border:1px solid rgba(255,255,255,.16);border-radius:14px;padding:18px;color:#eef4f6;margin-bottom:12px}
+.fc27-head{text-align:center;margin-bottom:14px}.fc27-head h2{font-family:inherit;font-size:24px;font-weight:700;margin:0;color:#fff;letter-spacing:.3px}.fc27-head span{font-size:12px;opacity:.75}
+.fc27-body{display:grid;grid-template-columns:minmax(220px,300px) 1fr;gap:18px}
+.fc27-side{border-right:2px solid rgba(255,255,255,.18);padding-right:14px}
+.fc27-list{max-height:330px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:4px}
+.fc27-pre{position:relative;display:flex;align-items:center;gap:10px;text-align:left;background:transparent;border:1px solid transparent;border-radius:10px;padding:10px 12px;color:#eef4f6;cursor:pointer;font-family:inherit}
+.fc27-pre:hover{background:rgba(255,255,255,.06)}
+.fc27-pre.on{background:linear-gradient(135deg,rgba(255,255,255,.22),rgba(255,255,255,.08));border-color:rgba(255,255,255,.35);box-shadow:0 4px 18px rgba(0,0,0,.25)}
+.fc27-pre div{flex:1}.fc27-pre b{display:block;font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:.5px}.fc27-pre p{margin:3px 0 0;font-size:11px;line-height:1.35;opacity:.8}
+.fc27-pre em{font-style:normal;font-size:30px;width:44px;text-align:center;opacity:.95}
+.fc27-pre s{position:absolute;top:8px;right:8px;text-decoration:none;background:#2ecc71;color:#06301a;border-radius:50%;width:18px;height:18px;font-size:12px;line-height:18px;text-align:center;font-weight:900}
+.fc27-edit{margin-top:12px;display:flex;flex-direction:column;gap:4px}.fc27-edit label{font-size:12px;font-weight:700;margin-top:6px;color:#fff}.fc27-edit p{font-size:11px;opacity:.75;margin:0;line-height:1.35}
+.fc27-edit select{font-family:inherit;font-size:13px;background:#141a45;color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:6px}.fc27-edit input[type=range]{width:100%}.fc27-edit b{color:#ffd400}
+.fc27-main h3{font-family:inherit;font-size:20px;font-weight:700;margin:0 0 10px;color:#fff}.fc27-main h3 span{font-size:13px;font-weight:400;opacity:.7}
+.fc27-pitch{position:relative;height:440px;border-radius:10px;overflow:hidden;background:none;border:none}
+.fc27-lines{position:absolute;inset:0;background:linear-gradient(180deg,#1f3f8a,#16296a);clip-path:polygon(4% 0,96% 0,100% 100%,0 100%);border:2px solid rgba(255,255,255,.35);border-radius:6px}
+.fc27-lines i{position:absolute;border:2px solid rgba(255,255,255,.3)}
+.fc27-lines .m{left:0;right:0;top:50%;border-width:2px 0 0}.fc27-lines .c{left:50%;top:50%;width:80px;height:80px;margin:-40px 0 0 -40px;border-radius:50%}
+.fc27-lines .b{left:25%;right:25%;bottom:0;height:17%;border-bottom:0}.fc27-lines .b.t{top:0;bottom:auto;border-top:0;border-bottom:2px solid rgba(255,255,255,.3)}
+.fc27-lines .g{left:39%;right:39%;bottom:0;height:7%;border-bottom:0}.fc27-lines .g.t{top:0;bottom:auto;border-top:0;border-bottom:2px solid rgba(255,255,255,.3)}
+.fc27-mk{position:absolute;transform:translate(-50%,-50%);width:96px;background:linear-gradient(180deg,#1c1f24,#111316);border:1px solid #3a3f47;border-radius:6px 6px 14px 14px;color:#fff;padding:5px 4px 6px;text-align:center;cursor:pointer;font-family:"Segoe UI",Roboto,Arial,sans-serif;box-shadow:0 4px 10px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:1px}
+.fc27-mk:hover{border-color:#ffd400}
+.fc27-mk u{position:absolute;top:-7px;right:-7px;text-decoration:none;background:#d9a520;color:#1a1200;border-radius:50%;width:20px;height:20px;font-size:9px;line-height:20px;font-weight:800}
+.fc27-mk b{color:#fff;font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fc27-mk span{font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fc27-mk span .fam{color:#2ee88a;font-style:normal;font-weight:900;margin-left:2px}
+.fc27-mk i{font-style:normal;font-size:10px;color:#a9b3bd;min-height:12px}.fc27-mk small{font-size:11px;font-weight:700;color:#fff;margin-top:1px}
+.fc27-tip{font-size:11px;opacity:.75;margin:8px 0 0}
+.fc27-an{display:grid;grid-template-columns:260px 1fr;gap:16px;margin-top:16px;border-top:1px solid rgba(255,255,255,.15);padding-top:12px}.fc27-an h3{font-family:inherit;font-size:15px;margin:0 0 6px}
+.fc27 .fc-an{font-family:inherit}.fc27 .fc-an b{font-size:13px}.fc27 .fc-an span{font-size:11px}
+@media (max-width:760px){.fc27{padding:12px}.fc27-body,.fc27-an{grid-template-columns:1fr}.fc27-side{border-right:0;padding-right:0;border-bottom:2px solid rgba(255,255,255,.18);padding-bottom:10px}.fc27-list{max-height:220px}.fc27-pitch{height:400px}.fc27-mk{width:72px;padding:3px 2px 4px}.fc27-mk b{font-size:10px}.fc27-mk span,.fc27-mk i{font-size:8.5px}.fc27-pre em{font-size:22px;width:30px}}
+
+
+/* =============================================================================
+ * v214 — FC 27 Ultimate Team menu design (JODIO's screenshots), keeping the game's own colours:
+ * clean sans type, big bold uppercase titles, a slim top bar with tabs and the coins on the right,
+ * frosted glass panels with light streaks, rounded tiles, white pill buttons for the main action.
+ * ========================================================================== */
+:root { --font: 'Barlow', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; --r: 14px; --glass: linear-gradient(155deg, rgba(255,255,255,.13), rgba(255,255,255,.035) 55%, rgba(60,242,255,.05)); --gline: rgba(255,255,255,.17); }
+html, body { font-size: 14px; line-height: 1.45; }
+body { image-rendering: auto; background: radial-gradient(90% 70% at 85% -10%, #3a1f8a 0%, transparent 60%), radial-gradient(70% 60% at 0% 100%, #11307a 0%, transparent 60%), linear-gradient(160deg, #141a52 0%, #0b0f2a 70%) fixed; }
+body::after { display: none; }
+body::before { background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.05) 38%, transparent 46%), linear-gradient(115deg, transparent 52%, rgba(60,242,255,.06) 56%, transparent 62%), radial-gradient(40% 35% at 20% 15%, rgba(60,242,255,.08), transparent 70%); }
+button, input, select, textarea { font-family: var(--font); font-size: 14px; }
+h1 { font-family: var(--font); font-size: 34px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: #fff; text-shadow: none; margin: 10px 8px 14px; }
+h2 { font-family: var(--font); font-size: 21px; font-weight: 700; color: #fff; text-shadow: none; letter-spacing: .2px; }
+h3 { font-family: var(--font); font-size: 16px; font-weight: 700; color: var(--accent); letter-spacing: .2px; }
+.dim { color: rgba(225,230,255,.72); }
+.gold { color: var(--accent); }
+
+/* top bar: logo, tabs, coins */
+header.top { background: linear-gradient(180deg, rgba(8,11,34,.92), rgba(8,11,34,.72)); border-bottom: 1px solid var(--gline); backdrop-filter: blur(10px); }
+.site-bar { padding: 8px 20px; gap: 22px; }
+.site-bar .logo { font-family: var(--font); font-weight: 800; font-size: 20px; letter-spacing: 1px; color: #fff; display: flex; flex-direction: column; line-height: 1.05; padding-left: 14px; border-left: 3px solid var(--accent); }
+.site-bar .logo small { font-size: 10px; font-weight: 600; color: var(--accent2); letter-spacing: 2px; }
+.site-nav { flex-wrap: nowrap; } .site-nav button { font-size: 14px; font-weight: 600; color: rgba(235,240,255,.78); padding: 9px 9px; text-transform: none; white-space: nowrap; }
+@media (max-width: 1440px) { .site-user .dim { display: none; } }
+.site-nav button:hover, .site-nav button.on { color: #fff; background: transparent; }
+.site-nav button::after { height: 2px; bottom: 2px; background: #fff; }
+.site-nav button.cta { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+.dd-menu { background: rgba(14,18,56,.97); backdrop-filter: blur(10px); border: 1px solid var(--gline); min-width: 220px; }
+.dd-menu button { font-size: 14px; padding: 11px 16px; }
+.dd-menu button:hover { background: rgba(255,255,255,.08); }
+.coins { font-family: var(--font); font-weight: 700; font-size: 15px; background: rgba(255,255,255,.08); border: 1px solid var(--gline); border-radius: 999px; padding: 5px 14px; }
+.crumbs { background: transparent; font-size: 12px; padding: 8px 22px 0; letter-spacing: .3px; }
+.crumbs b { color: #fff; }
+main#view { max-width: 1320px; margin: 0 auto; padding: 6px 14px 20px; }
+
+/* glass panels and tiles */
+.px { background: var(--glass), rgba(27,34,96,.55); border: 1px solid var(--gline); border-radius: var(--r); box-shadow: 0 18px 40px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.12); backdrop-filter: blur(8px); padding: 18px; margin: 8px; }
+.px:hover { border-color: rgba(255,255,255,.28); }
+.hero { border-radius: 18px; box-shadow: 0 20px 50px rgba(0,0,0,.4); border: 1px solid var(--gline); background: linear-gradient(115deg, rgba(255,255,255,.08), transparent 40%), linear-gradient(120deg, #232c78, #3a0f6a 60%, #0b0f2a); }
+.hero-h { font-family: var(--font); font-size: 40px; font-weight: 800; text-transform: uppercase; line-height: 1.05; }
+.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 3px; }
+.modal.px { background: linear-gradient(155deg, rgba(255,255,255,.10), rgba(255,255,255,.02)), #141a52; border-radius: 18px; }
+.overlay { background: rgba(5,8,26,.72); backdrop-filter: blur(6px); }
+
+/* buttons: rounded, bold, no shouting caps; the main (yellow) action is a bright pill like "Go to SBCs" */
+.btn { font-family: var(--font); font-size: 14px; font-weight: 700; text-transform: none; letter-spacing: .2px; border-radius: 10px; padding: 10px 18px; background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.2); box-shadow: 0 6px 16px rgba(0,0,0,.25); }
+.btn:hover:not(:disabled) { background: rgba(255,255,255,.18); box-shadow: 0 10px 22px rgba(0,0,0,.3); }
+.btn.sm { font-size: 13px; padding: 6px 12px; border-radius: 8px; }
+.btn.y { background: linear-gradient(180deg, #fff3a8, var(--accent)); color: #1a1300; border-color: transparent; border-radius: 999px; padding-left: 24px; padding-right: 24px; }
+.btn.c { background: linear-gradient(180deg, #7ff8ff, #0aa8c2); color: #04232a; border-color: transparent; }
+.btn.g { background: linear-gradient(180deg, #5ee08a, #1e9e4a); border-color: transparent; }
+.btn.r { background: linear-gradient(180deg, #ff6f88, #c22f4a); border-color: transparent; }
+.btn.p { background: linear-gradient(180deg, #c76cf0, #9b2fc2); border-color: transparent; }
+.btn.y:not(:disabled) { animation: none; }
+.pill { font-family: var(--font); font-size: 12px; border-radius: 999px; padding: 3px 10px; }
+label { font-size: 13px; font-weight: 600; }
+input, select, textarea { background: rgba(8,11,34,.6); border: 1px solid var(--gline); border-radius: 8px; padding: 7px 10px; color: #fff; }
+table { font-size: 14px; } table.list td, table.list th { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,.08); }
+table.list tr:hover td { background: rgba(255,255,255,.04); }
+.badge { font-family: var(--font); font-size: 11px; font-weight: 800; }
+.site-foot { background: rgba(5,8,26,.7); border-top: 1px solid var(--gline); font-size: 13px; }
+.site-foot b { font-family: var(--font); font-size: 15px; }
+.toast, #toast { font-family: var(--font); font-size: 14px; border-radius: 10px; }
+.fc27 .fc27-mk span .fam { color: var(--good); }
+
+/* v214: easier phone layout: a bottom tab bar (Home, Squad, Play, Transfers, Store, Menu), a compact header, big touch targets, one column */
+.mnav { display: none; }
+@media (max-width: 1180px) { .site-nav button { font-size: 13px; padding: 8px 8px; } .site-user .dim { display: none; } }
+@media (max-width: 800px) {
+  body { padding-bottom: 78px; }
+  .mnav { display: flex; position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: 80; background: rgba(12,16,52,.94); backdrop-filter: blur(12px); border: 1px solid var(--gline); border-radius: 18px; padding: 4px; box-shadow: 0 10px 30px rgba(0,0,0,.5); padding-bottom: calc(4px + env(safe-area-inset-bottom)); }
+  .mnav button { flex: 1; min-width: 0; overflow: hidden; background: none; border: 0; color: rgba(235,240,255,.7); font-family: var(--font); font-size: 11px; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 7px 2px; border-radius: 14px; min-height: 52px; cursor: pointer; }
+  .mnav button i { font-style: normal; font-size: 20px; line-height: 1; }
+  .mnav button.on { color: #1a1300; background: linear-gradient(180deg, #fff3a8, var(--accent)); }
+  .site-bar { padding: 8px 12px; gap: 8px; flex-wrap: nowrap; }
+  .site-bar .logo { font-size: 15px; padding-left: 8px; } .site-bar .logo small { display: none; }
+  .site-nav:not(.open) { display: none; }
+  .burger { display: none !important; }
+  .site-user { gap: 4px; } .site-user .dim { display: none; } #btn-logout { padding: 5px 9px; font-size: 12px; } .coins { font-size: 14px; padding: 4px 10px; }
+  .site-nav.open { display: flex; position: fixed; left: 0; right: 0; top: 0; bottom: 74px; z-index: 70; overflow-y: auto; background: rgba(9,12,40,.98); padding: 18px 14px; gap: 4px; }
+  .site-nav.open .dd > button { font-size: 18px; font-weight: 800; color: #fff; padding: 12px 6px 4px; text-align: left; width: 100%; }
+  .site-nav.open .dd-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: none; border: 0; padding: 4px 0 8px; min-width: 0; }
+  .site-nav.open .dd-menu button { background: rgba(255,255,255,.07); border: 1px solid var(--gline); border-radius: 12px; font-size: 14px; padding: 12px 10px; min-height: 46px; }
+  .crumbs { display: none; }
+  h1 { font-size: 26px; margin: 8px 4px 10px; }
+  .hero { padding: 18px; } .hero-h { font-size: 30px; } .hero-card { display: none; }
+  .px { margin: 6px 2px; padding: 14px; }
+  .btn { min-height: 44px; font-size: 15px; } .btn.sm { min-height: 38px; font-size: 13px; }
+  .grid, .grid.cols-2, .grid.cols-3, .grid.cols-4 { grid-template-columns: 1fr !important; }
+  main#view { padding: 4px 8px 12px; }
+  .site-foot { display: none; }
+}
+.site-bar .logo { white-space: nowrap; }
