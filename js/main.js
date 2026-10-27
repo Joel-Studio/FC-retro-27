@@ -237,6 +237,7 @@
       ['#sp-ck', '#sp-fk', '#sp-cs'].forEach(id => { const e = $(id); if (e) e.addEventListener('change', upd); });
     }
     State.save();
+    siteLinks(true);
   }
 
   /* ================================ VIEWS ================================ */
@@ -248,7 +249,19 @@
   const SITES = [
     { k: 'netlify', name: 'Netlify', url: 'https://fc-retro-27.netlify.app/', here: () => /netlify\.app$/.test(location.hostname) },     // v214 (JODIO): Netlify is the only other site
   ];
-  const sitesHTML = () => !SITES.some(x => !x.here()) ? '' : `<div class="px mt"><b>Play this club on another site</b><p class="dim" style="font-size:7px;line-height:1.9">Your players, coins and progress go with you. Websites open already logged in; on Claude press <b>Paste my club</b> on the login screen.</p><div class="row">${SITES.filter(x => !x.here()).map(x => x.url ? `<button class="btn y" data-act="acc-site" data-k="${x.k}">Go to ${esc(x.name)}</button>` : `<button class="btn" disabled>${esc(x.name)}: coming soon</button>`).join('')}</div></div>`;
+  /* v222 (JODIO): the transfer button is a plain link that already carries the club (#rut=...), so the browser opens it like any link:
+     no pop-up blocker, no "allow pop-ups" message. The code is refreshed after each render, every 10 s and when the pointer reaches the button. */
+  let siteCodeAt = 0;
+  async function siteLinks(force) {
+    const as = document.querySelectorAll('a.site-go'); if (!as.length || !RUT.Auth.user) return;
+    if (!force && Date.now() - siteCodeAt < 3000 && as[0].dataset.ready) return;
+    try { State.save(); const code = encodeURIComponent(await RUT.Auth.exportCode('')); siteCodeAt = Date.now();
+      document.querySelectorAll('a.site-go').forEach(a => { const x = SITES.find(q => q.k === a.dataset.k); if (x && x.url) { a.href = x.url + '#rut=' + code; a.dataset.ready = '1'; } });
+    } catch (e) { /* the link still opens the site, the club can be moved with the transfer code */ }
+  }
+  setInterval(() => siteLinks(true), 10000);
+  document.addEventListener('pointerover', e => { if (e.target.closest && e.target.closest('a.site-go')) siteLinks(); }, true);
+  const sitesHTML = () => !SITES.some(x => !x.here()) ? '' : `<div class="px mt"><b>Play this club on another site</b><p class="dim" style="font-size:7px;line-height:1.9">Your players, coins and progress go with you. Websites open already logged in; on Claude press <b>Paste my club</b> on the login screen.</p><div class="row">${SITES.filter(x => !x.here()).map(x => x.url ? `<a class="btn y site-go" data-k="${x.k}" href="${x.url}" target="_blank" rel="noopener">Go to ${esc(x.name)}</a>` : `<button class="btn" disabled>${esc(x.name)}: coming soon</button>`).join('')}</div></div>`;
   VIEWS.home = function () {
     const st = D(), cards = State.squadCards();
     const rating = SBC.squadRating(cards.map(c => (c ? c.rating : 0))), chem = SBC.chemistry(cards).total;
@@ -262,7 +275,7 @@
         <div class="row"><button class="btn y" data-act="nav" data-v="play">▶ Kick Off</button><button class="btn c" data-act="nav" data-v="store">Open Packs</button><button class="btn" data-act="nav" data-v="rules">Match Rules</button></div></div>
       <div class="hero-card">${cardHTML(feat, { attrs: `data-act="price" data-card="${feat.id}"` })}<div class="dim" style="font-size:7px;text-align:center">Signature star: ${esc(DB.signatureFor(feat).celebration)}</div></div>
     </section>
-    ${mbBanner()}${digestBanner()}${SITES.some(x => !x.here()) ? `<div class="row mb" style="font-size:8px"><span class="dim">Play this club on another site:</span>${SITES.filter(x => !x.here()).map(x => x.url ? `<button class="btn sm" data-act="acc-site" data-k="${x.k}">${esc(x.name)}</button>` : `<button class="btn sm" disabled>${esc(x.name)} (soon)</button>`).join('')}</div>` : ''}
+    ${mbBanner()}${digestBanner()}${SITES.some(x => !x.here()) ? `<div class="row mb" style="font-size:8px"><span class="dim">Play this club on another site:</span>${SITES.filter(x => !x.here()).map(x => x.url ? `<a class="btn sm site-go" data-k="${x.k}" href="${x.url}" target="_blank" rel="noopener">${esc(x.name)}</a>` : `<button class="btn sm" disabled>${esc(x.name)} (soon)</button>`).join('')}</div>` : ''}
     <div class="grid cols-3">
       <div class="px"><h2>${esc(st.clubName)}</h2>
         <div class="row between"><span class="dim">Squad Rating</span><span class="gold" style="font-size:18px">${rating}</span></div>
@@ -3388,6 +3401,8 @@
     const tab = e.target.closest('#tabs button');
     if (tab && tab.dataset.train) { $('#tabs').classList.remove('open'); startTraining(); return; }
     if (tab) { if (tab.dataset.mt) App.marketTab = tab.dataset.mt; if (tab.dataset.view === 'top5') App.t5tab = tab.dataset.t5 || 'lg'; $('#tabs').classList.remove('open'); setView(tab.dataset.view); return; }
+    const sg = e.target.closest('a.site-go');
+    if (sg) { toast(sg.dataset.ready ? 'Opening your club on Netlify in a new tab...' : 'Opening Netlify. If your club is not there, use Settings > Account > Show transfer code.', 'good'); return; }   // v222: the browser follows the link itself
     const el = e.target.closest('[data-act]');
     if (!el) return;
     const fn = ACTIONS[el.dataset.act];
