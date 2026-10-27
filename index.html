@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FC RETRO 27</title>
+  <!-- Optional pixel font. Without internet the game falls back to monospace and still runs. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Barlow+Condensed:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="top site">
+    <div class="site-bar">
+      <a class="logo" href="#" data-act="nav" data-v="home">FC RETRO 27<small>FC 27 · 2D ARCADE EDITION</small></a>
+      <button class="burger btn sm" id="burger" aria-label="Menu">☰</button>
+      <nav class="site-nav" id="tabs">
+        <div class="dd"><button data-view="home">Home</button></div>
+        <div class="dd"><button data-view="club">Club ▾</button>
+          <div class="dd-menu"><button data-view="club">My Club</button><button data-view="squad">Squad &amp; Chemistry</button><button data-view="tactics">Tactics</button><button data-view="staff">Staff &amp; Training</button><button data-view="pstats">Player Stats</button><button data-view="evo">Evolutions</button><button data-view="coach">Coach &amp; Highlights</button><button data-view="playstyles">PlayStyles Guide</button><button data-view="unassigned">Unassigned</button></div></div>
+        <div class="dd"><button data-view="play">Play ▾</button>
+          <div class="dd-menu"><button data-view="play">Kick Off</button><button data-view="casual">Casual Match</button><button data-view="online">Online Match</button><button data-view="rivals">Rivals &amp; Champions</button><button data-view="play" data-train="1">Testing Ground</button><button data-view="rules">Match Rules</button></div></div>
+        <div class="dd"><button data-view="league">League ▾</button>
+          <div class="dd-menu"><button data-view="league">League</button><button data-view="top5">Top 5 Leagues</button><button data-view="top5" data-t5="ucl">Champions League</button></div></div>
+        <div class="dd"><button data-view="quests">Quests</button></div>
+        <div class="dd"><button data-view="market">Market ▾</button>
+          <div class="dd-menu"><button data-view="market" data-mt="search">Search</button><button data-view="market" data-mt="tl">Transfer List</button><button data-view="market" data-mt="wl">Watchlist</button><button data-view="promoshop">Promo Shop</button><button data-view="bdorgal">Ballon d&#39;Or</button></div></div>
+        <div class="dd"><button data-view="sbc">SBCs</button></div>
+        <div class="dd"><button data-view="store" class="cta">Store</button></div>
+        <div class="dd"><button data-view="settings">Settings ⚙</button></div>
+      </nav>
+      <div class="row site-user"><span class="dim" id="hdr-club"></span><button class="btn sm" id="btn-logout" title="Log out">Log out</button><span class="coins" id="hdr-coins">0</span></div>
+    </div>
+    <div class="crumbs" id="crumbs"></div>
+  </header>
+
+  <main id="view"></main>
+  <footer class="site-foot">
+    <div><b class="gold">FC RETRO 27</b><br><span class="dim">A 1999 pixel engine with a modern Ultimate Team.</span></div>
+    <div><b>Play</b><br><a href="#" data-act="nav" data-v="play">Kick Off</a><br><a href="#" data-act="nav" data-v="rules">Match Rules</a><br><a href="#" data-act="nav" data-v="playstyles">PlayStyles Guide</a><br><a href="#" data-act="nav" data-v="league">League</a><br><a href="#" data-act="nav" data-v="top5">Top 5 Leagues</a><br><a href="#" data-act="nav" data-v="quests">Quests</a></div>
+    <div><b>Club</b><br><a href="#" data-act="nav" data-v="squad">Squad</a><br><a href="#" data-act="nav" data-v="tactics">Tactics</a><br><a href="#" data-act="nav" data-v="evo">Evolutions</a><br><a href="#" data-act="nav" data-v="coach">Coach &amp; Highlights</a></div>
+    <div><b>Trade</b><br><a href="#" data-act="nav" data-v="market">Transfer Market</a><br><a href="#" data-act="nav" data-v="sbc">SBCs</a></div>
+    <div class="dim">Ratings are estimates. Saves live in this browser.</div>
+  </footer>
+  <div id="modal-root"></div>
+  <div id="toasts"></div>
+
+  <!-- Plain scripts (not ES modules) so the game runs straight from file:// -->
+  <script src="js/version.js"></script>
+  <script src="js/intro.js"></script>
+  <script src="js/database.js"></script>
+  <script src="js/faces.js"></script>
+  <script src="js/descriptions.js"></script>
+  <script src="js/looks_real.js"></script>
+  <script src="js/looks_desc.js"></script>
+  <script src="js/pixelart.js"></script>
+  <script src="js/psicons.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/cl_data.js"></script>
+  <script src="js/cl.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/market.js"></script>
+  <script src="js/sbc.js"></script>
+  <script src="js/packs.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/traits.js"></script>
+  <script src="js/league.js"></script>
+  <script src="js/top5.js"></script>
+  <script src="js/quests.js"></script>
+  <script src="js/roles.js"></script>
+  <script src="js/peerjs.min.js"></script>
+  <script src="js/supabase.min.js"></script>
+  <script src="js/net.js"></script>
+  <script src="js/rec.js"></script>
+  <script src="js/coach.js"></script>
+  <script src="js/staff.js"></script>
+  <!-- v105: three.min.js + render3d.js (the parked Ultra WebGL view) are no longer loaded at start: 640 KB less to download and parse -->
+  <script src="js/engine.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/updater.js"></script>
+</body>
+</html>

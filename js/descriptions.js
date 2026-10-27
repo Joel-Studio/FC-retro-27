@@ -1,0 +1,160 @@
+/* Player appearance descriptions from JODIO's "Player Descriptions" file (players without a portrait). */
+window.RUT = window.RUT || {};
+RUT.DESCS = {
+"Lautaro Martínez":"Argentine, 27, stocky athletic build, short dark brown hair, light stubble, warm tan skin, intense dark eyes, strong nose.",
+"William Saliba":"French, tall, dark skin, very short black hair (buzz cut), lean angular face, calm expression.",
+"Jan Oblak":"Slovenian GK, short dark hair receding slightly, clean-shaven, serious expression, broad shoulders, green GK kit.",
+"Mike Maignan":"French GK, Black, short black hair with slight fade, confident look, red-black kit.",
+"Moisés Caicedo":"Ecuadorian, dark skin, short black curly hair, round youthful face, blue kit.",
+"Nicolò Barella":"Italian, light brown short hair, thin face, light stubble, sharp blue eyes, blue-black kit.",
+"Nuno Mendes":"Portuguese, dark skin, short black hair, slim face, navy kit.",
+"Robert Lewandowski":"Polish, 36, short dark blond hair, high cheekbones, light stubble, sharp blue-grey eyes.",
+"Rúben Dias":"Portuguese, short dark brown hair, light beard stubble, strong square jaw, serious stare, sky-blue kit.",
+"Emiliano Martínez":"Argentine GK, dark short hair, goatee/stubble, intense intimidating stare, claret-blue kit.",
+"Josko Gvardiol":"Croatian, short dark hair, boyish round face, light stubble, sky-blue kit.",
+"Luis Díaz":"Colombian, dark skin, curly black hair, wide friendly grin, strong brows, red kit.",
+"Manuel Neuer":"German GK, 38, short sandy-blond hair, clean-shaven, tall broad frame, red GK kit.",
+"Federico Dimarco":"Italian, short dark hair, lean face, stubble, blue-black kit.",
+"Gleison Bremer":"Brazilian, dark skin, short black hair, athletic strong face, black-white kit.",
+"Joan García":"Spanish GK, 23, short brown hair, youthful clean face, blue-red GK kit.",
+"Jonathan Tah":"German, Black, short black hair, broad strong face, red kit.",
+"Adrien Rabiot":"French, 29, short dark brown hair, sharp cheekbones, light stubble, red-black kit.",
+"Alessandro Buongiorno":"Italian, short dark hair, defined jaw, stubble, sky-blue kit.",
+"Alex Baena":"Spanish, short dark hair, light beard, narrow face, red-white stripes.",
+"Alphonso Davies":"Canadian, Black, big bright smile, short black hair, tall lean, red kit.",
+"Charles De Ketelaere":"Belgian, short light brown hair, pale skin, slim face, blue-black kit.",
+"Dušan Vlahović":"Serbian, short dark blond hair, stubble, chiseled jaw, tall striker frame.",
+"João Pedro":"Brazilian, light brown skin, short black hair, light beard, blue kit.",
+"Mason Greenwood":"English, short dark brown hair, lean face, light-blue kit.",
+"Unai Simón":"Spanish GK, short dark hair, sturdy face, serious, red-white GK kit.",
+"Xavi Simons":"Dutch, light brown skin, black hair, often with headband, slim youthful face, navy-white kit.",
+"Exequiel Palacios":"Argentine, short dark hair, stubble, red-black kit.",
+"Geronimo Rulli":"French GK, blond short hair, clean face.",
+"Julian Brandt":"German, distinctive pale face, short brown hair, tired-eyed look, yellow kit.",
+"Koke":"Spanish, short dark hair, scruffy beard, weathered face, red-white kit.",
+"Brice Samba":"French GK, Black, short hair, broad face, red kit.",
+"Christoph Baumgartner":"Austrian, short brown hair, youthful, red-white kit.",
+"Aleksandr Golovin":"Russian, short blond hair, clean face, pale skin, red kit.",
+"Aleix García":"Spanish, short dark hair, beard, black-red kit.",
+"James Maddison":"English, short light brown hair, light stubble, cocky smirk, white-navy kit.",
+"Kingsley Coman":"French, Black, short black hair, slim face, red kit.",
+"Lucas Paquetá":"Brazilian, light brown skin, short dark hair with dyed blond hints, beard, claret kit.",
+"Nico Paz":"Argentine, young, dark short hair, clean face, blue-black kit.",
+"Oliver Baumann":"German GK, short brown hair, red kit.",
+"Thomas Partey":"Ghanaian, dark skin, short hair, strong face, red kit.",
+"Wladimiro Falcone":"Italian GK, short dark hair, yellow GK kit.",
+"Bryan Mbeumo":"Cameroonian, dark skin, short hair, slight smile, red-white kit.",
+"Douglas Luiz":"Brazilian, light brown skin, short black hair, beard, black-white kit.",
+"Eric García":"Spanish, short brown hair, boyish, blue-red kit.",
+"Gabriel Martinelli":"Brazilian, light brown skin, short dark hair, bright eyes, red kit.",
+"Ibrahima Konaté":"French, Black, tall, short black hair, wide smile, red kit.",
+"Jeremie Frimpong":"Dutch-Ghanaian, Black, short dyed hair, energetic grin, red-black kit.",
+"Manuel Akanji":"Swiss, Black, short black hair, calm face, sky-blue kit.",
+"Marcos Llorente":"Spanish, short dark blond hair, athletic jaw, red-white kit.",
+"Matthias Ginter":"German, short blond hair, sturdy face, red kit.",
+"Nahuel Molina":"Argentine, short dark hair, light beard, red-white stripes.",
+"Nicolas Jackson":"Senegalese, Black, short hair, lean face, blue kit.",
+"Takefusa Kubo":"Japanese, short black hair, youthful narrow face, blue-white kit.",
+"Álex Remiro":"Spanish GK, short brown hair, white-blue kit.",
+"Dominic Solanke":"English, Black, short hair, tall striker, white kit.",
+"Harvey Elliott":"English, curly light brown hair, babyface, red kit.",
+"Hirving Lozano":"Mexican, short dark hair, wide-eyed intense look.",
+"Jean-Clair Todibo":"French, Black, short hair, tall, claret kit.",
+"Kieran Trippier":"English, short dark blond hair, stubble, black-white kit.",
+"Morgan Gibbs-White":"English, short dark hair with dyed streaks, red kit.",
+"Naby Keïta":"Guinean, Black, short hair, green-white kit.",
+"Oihan Sancet":"Spanish, short dark hair, red-white kit.",
+"Pau Torres":"Spanish, short dark hair, lean face, claret-blue kit.",
+"Pierre-Emerick Aubameyang":"Gabonese, Black, distinctive short dyed hair, sparkling grin.",
+"Ricardo Horta":"Portuguese, short brown hair, stubble, red kit.",
+"Robin Le Normand":"Spanish, short brown hair, stubble, red-white stripes.",
+"Samuel Chukwueze":"Nigerian, dark skin, short hair, blue-black kit.",
+"Serhou Guirassy":"Guinean, Black, short hair, strong build, yellow-black kit.",
+"Stefan de Vrij":"Dutch, short brown hair, clean face, blue-black kit.",
+"Teun Koopmeiners":"Dutch, short light brown hair, black-white kit.",
+"Yassine Bounou":"Moroccan GK, dark hair, beard, blue GK kit.",
+"Youri Tielemans":"Belgian, short dark blond hair, youthful, claret-blue kit.",
+"Alex Iwobi":"Nigerian, Black, short hair, white kit.",
+"Andreas Pereira":"Brazilian, light brown skin, short dyed-blond hair, stubble.",
+"Arthur Theate":"Belgian, short brown hair, black kit.",
+"Conor Bradley":"Northern Irish, short brown hair, boyish, red kit.",
+"Éderson (Atalanta)":"Brazilian, Black, short hair, blue-black kit.",
+"Emile Smith Rowe":"English, pale, short light brown hair, white kit.",
+"Evan Ndicka":"French-Ivorian, Black, short hair, tall, red-orange kit.",
+"Galeno":"Brazilian, light brown skin, short hair, blue kit.",
+"Harvey Barnes":"English, short dark blond hair, black-white kit.",
+"Ismaël Koné":"Canadian, Black, short hair, sky-blue kit.",
+"Jacob Murphy":"English, short brown hair, black-white kit.",
+"João Neves":"Portuguese, short brown hair, young face, navy kit.",
+"Josip Stanišić":"Croatian, short dark hair, red kit.",
+"Kobbie Mainoo":"English, Black, short curly hair, youthful, red kit.",
+"Lucas Beraldo":"Brazilian, light brown skin, short dark hair, navy kit.",
+"Oscar Bobb":"Norwegian, short brown hair, young face, sky-blue kit.",
+"Pedro Neto":"Portuguese, short dark hair, stubble, blue kit.",
+"Riccardo Calafiori":"Italian, short dark hair, stubble, red kit.",
+"Rico Lewis":"English, Black, short hair, sky-blue kit.",
+"Rodrigo Muniz":"Brazilian, light brown skin, short hair, white kit.",
+"Rui Silva":"Portuguese GK, short brown hair, green-white kit.",
+"Samu Omorodion":"Spanish, tall, short dark hair, strong build, blue kit.",
+"Sean Longstaff":"English, short brown hair, black-white kit.",
+"Vitaliy Mykolenko":"Ukrainian, short brown hair, blue kit.",
+"Adam Wharton":"English, blond short hair, young, red-blue kit.",
+"Amad Diallo":"Ivorian, Black, short curly hair, young, red kit.",
+"Brahim Díaz":"Spanish-Moroccan, small build, short dark hair, white kit.",
+"Fermín López":"Spanish, short dark hair, young energetic face, blue-red kit.",
+"Fran García":"Spanish, small build, short dark hair, white kit.",
+"Jarell Quansah":"English, Black, short hair, tall CB, red kit.",
+"Jean-Philippe Mateta":"French, Black, short hair, strong face, red-blue kit.",
+"Levi Colwill":"English, short brown hair, blue kit.",
+"Malo Gusto":"French, Black, short dyed-blond hair, blue kit.",
+"Manuel Ugarte":"Uruguayan, light brown skin, short dark hair, red kit.",
+"Marc Casadó":"Spanish, short dark hair, young, blue-red kit.",
+"Marc Guéhi":"English-Ivorian, Black, short hair, red-blue kit.",
+"Noni Madueke":"English, Black, short hair, blue kit.",
+"Noussair Mazraoui":"Moroccan, short dark hair, beard, red kit.",
+"Roméo Lavia":"Belgian, Black, short hair, blue kit.",
+"Tyrick Mitchell":"English, Black, short hair, red-blue kit.",
+"Brian Brobbey":"Dutch-Ghanaian, Black, powerful build, big grin, red-white kit.",
+"Jamie Gittens":"English, Black, short dyed hair, young, yellow-black kit.",
+"Johan Bakayoko":"Dutch, Black, short hair, red-white kit.",
+"Karim Adeyemi":"German, Black, short hair, slim fast look, yellow kit.",
+"Kenan Yıldız":"Turkish, short dark hair, youthful handsome, black-white kit.",
+"Matías Soulé":"Argentine, light brown skin, short dark hair, red-orange kit.",
+"Maximilian Beier":"German, short brown hair, young, yellow kit.",
+"Santiago Giménez":"Mexican, short dark hair, stubble, red-white kit.",
+"Yan Couto":"Brazilian, light brown skin, short hair, yellow kit.",
+"Archie Gray":"English, young, short blond-brown hair, white kit.",
+"Jorrel Hato":"Dutch, Black, young, short hair, red-white kit.",
+"Lucas Bergvall":"Swedish, blond short hair, young, white kit.",
+"Wilson Odobert":"French, Black, young, short hair, white kit.",
+"Jhon Durán":"Colombian, Black, short hair, strong, claret-blue kit.",
+"Liam Delap":"English, short brown hair, stocky, blue kit.",
+"Morgan Rogers":"English, Black, short hair, young, claret-blue kit.",
+"Omari Hutchinson":"Jamaican-English, Black, young, dyed hair, blue kit."
+};
+RUT.MASTER_PROMPT = "Low-poly retro 3D character portrait in the style of Unreal Tournament 99 (1999), rendered with modern remaster graphics. Head-and-shoulders close-up, subject fills 80% of the frame, camera at eye level, slight 3/4 angle. Skin rendered with smooth Gouraud-shaded 3D polygons, subtle specular highlights, and a very light 10% pixelation filter. Facial features clearly recognizable and realistic, sharp readable eyes, defined jawline, accurate hair. Dark stadium-tunnel background with faint floodlight glow behind the head, subtle rim lighting on shoulders. Team kit colors visible on shoulders. Determined, focused expression. 512x512, crisp, high contrast, no text, no watermark.";
+/* Turn each description into a look (skin, hair colour, style, beard) unless the player already has a sampled one. */
+(function () {
+  const L = RUT.LOOKS = RUT.LOOKS || {};
+  const NATION_SKIN = { Brazilian: '#a8704e', Argentine: '#c58a68', Mexican: '#b0764f', Colombian: '#9a6040', Uruguayan: '#b8805c', Moroccan: '#b07c58', Spanish: '#cc9370', Italian: '#cf9470', Portuguese: '#c88e6c', Turkish: '#c28a66', Japanese: '#e0b48c' };
+  Object.keys(RUT.DESCS).forEach(n => {
+    if (L[n]) return;
+    const d = RUT.DESCS[n], dl = d.toLowerCase();
+    let skin = '#d9a07e';
+    const nat = d.split(',')[0].split(' ')[0].replace(/-.*/, '');
+    if (NATION_SKIN[nat]) skin = NATION_SKIN[nat];
+    if (/light brown skin/.test(dl)) skin = '#a8704e';
+    if (/pale/.test(dl)) skin = '#efc7a6';
+    if (/\bblack\b|dark skin/.test(dl)) skin = /dark skin/.test(dl) ? '#6a3e2c' : '#74452f';
+    let hair = '#2a1a10';
+    if (/blond|sandy/.test(dl)) hair = /dark blond/.test(dl) ? '#8a6a3a' : /sandy/.test(dl) ? '#b09060' : '#d8bc78';
+    else if (/light brown hair|light brown short hair|dyed/.test(dl) && !/skin, short dark hair/.test(dl)) hair = /dyed/.test(dl) ? '#b8924c' : '#7a5636';
+    else if (/dark brown/.test(dl)) hair = '#2a1a12';
+    else if (/brown hair/.test(dl)) hair = '#4a2e1c';
+    else if (/black|dark/.test(dl)) hair = '#15110f';
+    const beard = /beard|goatee|stubble|scruffy/.test(dl);
+    const style = /curly/.test(dl) ? 'curly' : /buzz/.test(dl) ? 'buzz' : /fade/.test(dl) ? 'fade' : null;
+    L[n] = { skin, hair, beard, bald: false };
+    if (style) L[n].style = style;
+  });
+})();
