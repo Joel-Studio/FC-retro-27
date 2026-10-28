@@ -1196,6 +1196,14 @@ window.RUT = window.RUT || {};
       byId[id] = card; all.push(card);
       return card;
     }
+    if (promo === 'toty' || promo === 'tots') {   // v257: boost = 1-based place in RUT.SEASON_DATA[promo].picks; the pick's own rating, 3 gold PlayStyles (and so 3 Gametraits)
+      const S = (RUT.SEASON_DATA || {})[promo] || { picks: [] }, pk = S.picks[boost - 1] || {}, target = clamp(pk.rating || Math.min(97, base.rating + 5), base.rating, 99), k = target / base.rating, up = v => clamp(Math.round(v * k), 1, 99), face = {}, sub = {};
+      Object.keys(base.face).forEach(x => { face[x] = up(base.face[x]); }); Object.keys(base.sub).forEach(x => { sub[x] = up(base.sub[x]); });
+      const ps = base.playStyles.slice(); for (let n = 0; n < 4 && ps.filter(x => /\+$/.test(x)).length < 3; n++) { const nw = newStylesFor(Object.assign({}, base, { playStyles: ps }), sub); if (!nw) break; ps.push(nw); }
+      const card = Object.assign({}, base, { id, rating: target, rarity: 'promo', promo, face, sub, rare: true, baseId, pickIdx: boost, potLg: promo === 'tots' ? base.league : undefined, seasonInfo: { label: S.label, why: pk.why }, playStyles: psGate(target, sub, ps, base.playStyles, 3) });
+      card.value = roundToIncrement(valuation(card.rating, face, card.playStyles, card.position, true) * 2.0);
+      byId[id] = card; all.push(card); return card;
+    }
     if (promo === 'award') {   // boost = 1-based index into AWARDS
       const a = AWARDS[boost - 1] || AWARDS[0], target = 94, k = target / base.rating, up = v => clamp(Math.round(v * k), 1, 99), face = {}, sub = {};
       Object.keys(base.face).forEach(x => { face[x] = up(base.face[x]); }); Object.keys(base.sub).forEach(x => { sub[x] = up(base.sub[x]); });
@@ -1313,6 +1321,10 @@ window.RUT = window.RUT || {};
   try { const P = window.RUT && RUT.POTW_DATA, find = n => all.find(c => !c.promo && c.name === n);
     [['weeks', 'lpotw', POTW_IDS, 1], ['months', 'lpotm', POTM_IDS, 2]].forEach(([k, pr, out, b]) => ((P && P[k]) || []).forEach(per => per.picks.forEach(p => { const c = find(p.name); if (!c || out.includes(c.id)) return; out.push(c.id); const card = registerPromo(c.id, pr, b); if (card) { card.potInfo = { period: per.label, why: p.why, lg: p.lg }; POT_INFO[card.id] = card.potInfo; } }))); } catch (e) { /* optional data */ }
   Object.assign(RUT.DB, { POTW_IDS, POTM_IDS, POT_INFO });
+  // v257: Team of the Year / Team of the Season cards exist from their release time on
+  const SEASON_IDS = { toty: [], tots: [] }, seasonLive = k => { const S = window.RUT && RUT.SEASON_DATA && RUT.SEASON_DATA[k]; return !!(S && Date.parse(S.release) <= Date.now()); };
+  try { ['toty', 'tots'].forEach(k => { if (!seasonLive(k)) return; const S = RUT.SEASON_DATA[k], seen = {}; S.picks.forEach((p, i) => { const c = all.find(x => !x.promo && x.name === p.name); if (!c || seen[c.id]) return; seen[c.id] = 1; if (registerPromo(c.id, k, i + 1)) SEASON_IDS[k].push(c.id); }); }); } catch (e) { /* optional */ }
+  Object.assign(RUT.DB, { SEASON_IDS, seasonLive });
   BDOR_IDS.forEach((id, i) => registerPromo(id, 'bdor', i + 1));
   AWARD_IDS.forEach((id, i) => { if (id) registerPromo(id, 'award', i + 1); });
 })();

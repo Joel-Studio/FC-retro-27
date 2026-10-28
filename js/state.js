@@ -101,7 +101,7 @@ window.RUT = window.RUT || {};
       if (!d.coinCap350) { d.coinCap350 = true; if (d.coins > 1000000) { this.log('Coins over 1,000,000 set back to 350,000 (the quests paid too much): was ' + d.coins.toLocaleString()); d.coins = 350000; } }
       // (v162: the old line that made every owned card tradeable on each load is gone: packs now decide, see Packs.PACKS[id].untradeable)
       if (!d.tradeFix162) { d.tradeFix162 = true; Object.values(d.items).forEach(it => { it.untradeable = false; }); }   // one-off: every card owned before v162 stays tradeable
-      Object.values(d.items).forEach(it => { if (it.promo && (it.promo.type === 'bdor' || it.promo.type === 'award')) it.untradeable = true; });   // v188 (JODIO): Ballon d'Or cards are untradeable
+      Object.values(d.items).forEach(it => { if (it.promo && (it.promo.type === 'bdor' || it.promo.type === 'award' || it.promo.type === 'toty' || it.promo.type === 'tots')) it.untradeable = true; });   // v188 (JODIO): Ballon d'Or cards are untradeable
       // promo cards (TOTW, TOTS, POTM, flashback...) no longer exist: every owned one becomes that player's basic gold card
       { let n = 0; Object.values(d.items).forEach(it => { if (it.promo && (it.promo.type === 'nlpofm' || it.promo.type === 'nlstar' || it.promo.type === 'clpromo' || it.promo.type === 'lpotw' || it.promo.type === 'lpotm' || it.promo.type === 'bdor' || it.promo.type === 'award')) { if (!RUT.DB.get(it.cardId)) RUT.DB.registerPromo(it.promo.baseId, it.promo.type, it.promo.boost, it.cardId); } else if (it.promo) { if (RUT.DB.get(it.promo.baseId)) { it.cardId = it.promo.baseId; n++; } delete it.promo; } });
         if (n) this.log('Promo cards removed: ' + n + ' card(s) swapped for their basic gold versions'); }

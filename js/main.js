@@ -2997,7 +2997,7 @@
   /* ======================= v109: PROMO SHOP ======================= */
   /* Buy any Nations League / Champions League promo player straight from the shop at his current market value; handing in his plain gold card as an add-on takes 90% of that card's market value off the price. Not a sale, so it does not use the daily sell limit. */
   const PSHOP = { type: 'all', name: '', sort: 'rating', open: false };
-  const PSHOP_TYPES = { nlpofm: ['NL Player of the Month', 5], nlstar: ['NL Star', 3], clpromo: ['Champions League', 4], lpotw: ['Player of the Week', 1], lpotm: ['Player of the Month', 2] };
+  const PSHOP_TYPES = { nlpofm: ['NL Player of the Month', 5], nlstar: ['NL Star', 3], clpromo: ['Champions League', 4], lpotw: ['Player of the Week', 1], lpotm: ['Player of the Month', 2], toty: ['Team of the Year', 0], tots: ['Team of the Season', 0] };
   const PSHOP_TRADE = 0.9;
   const shopPrice = c => DB.roundToIncrement(Market.currentPrice(c.id));
   function shopTradeItem(c) {   // an owned, free, plain copy of the promo player's gold card
@@ -3046,7 +3046,7 @@
     if (D().coins < net) return { ok: false, msg: 'You need ' + fmt(net) + ' coins.' };
     if (ti) State.destroy(ti);
     State.addCoins(-net, 'Promo Shop: ' + c.name);
-    const it = State.newItem(c.id, { promo: { baseId: c.baseId, type: c.promo, boost: PSHOP_TYPES[c.promo][1] } }); D().unassigned.push(it.id);
+    const it = State.newItem(c.id, { promo: { baseId: c.baseId, type: c.promo, boost: c.pickIdx || PSHOP_TYPES[c.promo][1] } }); D().unassigned.push(it.id);
     State.log('Bought ' + c.name + ' (' + PSHOP_TYPES[c.promo][0] + ')' + (ti ? ' with his gold card' : '')); State.save();
     return { ok: true, msg: 'Bought ' + c.name + ' for ' + fmt(net) + (ti ? ' (gold card handed in, -' + fmt(cr) + ')' : '') + '. Check Unassigned.' };
   }
