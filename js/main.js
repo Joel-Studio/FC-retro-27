@@ -190,8 +190,8 @@
   function updateHeader() {
     animateCoins();
     $('#hdr-club').textContent = D().clubName;
-    const names = { home: 'Home', club: 'Club', squad: 'Squad & Chemistry', play: 'Kick Off', casual: 'Casual Match', online: 'Online Match', rules: 'Match Rules', playstyles: 'PlayStyles Guide', market: 'Transfer Market', bdorgal: 'Ballon d\'Or', sbc: 'Squad Building Challenges', 'sbc-build': 'SBC Builder', evo: 'Evolutions', store: 'Store', promoshop: 'Promo Shop', pstats: 'Player Stats', unassigned: 'Unassigned', settings: 'Settings', tactics: 'Tactics', staff: 'Staff & Training', league: 'League', top5: 'Top 5 Leagues', quests: 'Quests' };
-    const parent = { top5: 'League', squad: 'Club', staff: 'Club', evo: 'Club', unassigned: 'Club', rules: 'Play', playstyles: 'Club', casual: 'Play', online: 'Play', 'sbc-build': 'SBCs', promoshop: 'Market', bdorgal: 'Market', pstats: 'Club' }[App.view];
+    const names = { home: 'Home', club: 'Club', squad: 'Squad & Chemistry', play: 'Kick Off', casual: 'Casual Match', online: 'Online Match', rules: 'Match Rules', playstyles: 'PlayStyles Guide', gametraits: 'Gametraits Guide', market: 'Transfer Market', bdorgal: 'Ballon d\'Or', sbc: 'Squad Building Challenges', 'sbc-build': 'SBC Builder', evo: 'Evolutions', store: 'Store', promoshop: 'Promo Shop', pstats: 'Player Stats', unassigned: 'Unassigned', settings: 'Settings', tactics: 'Tactics', staff: 'Staff & Training', league: 'League', top5: 'Top 5 Leagues', quests: 'Quests' };
+    const parent = { top5: 'League', squad: 'Club', staff: 'Club', evo: 'Club', unassigned: 'Club', rules: 'Play', playstyles: 'Club', gametraits: 'Club', casual: 'Play', online: 'Play', 'sbc-build': 'SBCs', promoshop: 'Market', bdorgal: 'Market', pstats: 'Club' }[App.view];
     $('#crumbs').innerHTML = `<a href="#" data-act="nav" data-v="home">Home</a>${parent ? ' › ' + parent : ''} › <b>${esc(names[App.view] || '')}</b>`;
     const mv = { club: 'squad', tactics: 'squad', evo: 'squad', staff: 'squad', casual: 'play', online: 'play', rivals: 'play', league: 'play', top5: 'play', promoshop: 'market', sbc: 'store', 'sbc-build': 'store' }[App.view] || App.view;
     document.querySelectorAll('#mnav [data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === mv));   // v214: phone tab bar
@@ -461,6 +461,19 @@
       ['Footwork', 'Goalkeeper: works by itself, he is better against low shots and close saves.'],
     ]],
   ];
+  /* v252 (JODIO): the Gametraits guide */
+  const GT_WHEN = { timef: 'The ball reaches him inside the box, facing goal.', range: '18 to 28 m out, centre of the pitch, clear sight of goal, nobody within 3 m.', crash: 'A team-mate has the ball on the wing in the final third.', perfp: 'He is pressed (a defender within 5 m) and a team-mate is free ahead.', pincr: 'He is wide in the final third and a team-mate is in the box.', switch: 'A team-mate is free on the far side, 26 m or more away.', burst: 'Open grass ahead of him, nobody close.', escape: 'A defender gets within 2.8 m of him on the ball.', ghost: 'His team has the ball in midfield and he is level with or ahead of it.', charge: 'The man on the ball takes a heavy touch (the ball runs more than 1 m from his feet) or has just received it.', shadow: 'His team does not have the ball: he tracks the nearest runner.', lane: 'A pass is in the air or rolling past him.', ditch: 'He is the last man and the attacker is within 3.4 m, outside the box.', sweep: 'A loose ball behind his defence, no team-mate nearer.', wall: 'Any shot he can reach.' };
+  VIEWS.gametraits = function () {
+    const G = RUT.GT; if (!G) return '<h1>Gametraits</h1>';
+    const card = t => `<div class="px"><h3><img src="${G.url(t.k, false)}" alt="" style="width:24px;height:24px;vertical-align:middle"> <img src="${G.url(t.k, true)}" alt="" style="width:24px;height:24px;vertical-align:middle;margin-right:4px"> ${esc(t.name)}</h3>
+      <div class="rule"><span class="pill ps silver">Normal</span> ${esc(t.d)}</div>
+      <div class="rule"><span class="pill ps">Plus +</span> ${esc(t.d2)}</div>
+      <div class="rule"><b>When:</b> ${esc(GT_WHEN[t.k] || '')}</div>
+      <div class="rule"><b>Best for:</b> ${esc(t.pos.join(', '))}</div></div>`;
+    return `<h1>Gametraits Guide</h1><p class="dim">15 Gametraits in 5 categories. Unlike a PlayStyle you press nothing: the player does it by himself in the right moment, and a red logo pops up to the right of him. Each has a normal and a plus (+) version; the plus is stronger. The logos sit on the right of the card.</p>
+      <div class="px"><h3>Who gets them</h3><div class="rule">Special cards (promo, evolved, Ballon d'Or, award, Player of the Week and Month) get as many Gametraits as PlayStyles+ they have. Plain gold cards get two thirds of that, rounded up. A 90+ card gets one extra. The most any card has is 3. Cards without a PlayStyle+ have none. The traits come from the player's position and his best stats, and the plus version needs a stat of about 86+ or a 91+ rating.</div></div>
+      ${G.CATS.map(c => `<h2 class="mt">${esc(c.name)}</h2><div class="grid cols-2">${G.LIST.filter(t => t.cat === c.k).map(card).join('')}</div>`).join('')}`;
+  };
   VIEWS.playstyles = function () {
     const G = DB.PS_GUIDE;
     const card = ([n, how]) => { const t = G[n] || ['', ''], ic = PS_ICON[n + '+'] || PS_ICON[n] || '';
@@ -2855,6 +2868,7 @@
         <div class="dim">${c.nation} · ${c.altPositions.join('/')}</div>
         ${c.generated ? '<div class="dim">Reserve pool</div>' : ''}${c.promo ? `<div class="gold">${c.promo.toUpperCase()} promo</div>` : ''}${c.clInfo ? `<div class="dim" style="font-size:7px">CL form +${c.clInfo.pct}%${c.clInfo.avg ? ' · avg ' + c.clInfo.avg + ' in ' + c.clInfo.games + ' game' + (c.clInfo.games > 1 ? 's' : '') : ' · no games yet'}</div>` : ''}${c.evoLevel ? `<div class="good">Evolved ×${c.evoLevel}</div>` : ''}</div></div>
       <div>
+        ${RUT.GT && RUT.GT.of(c).length ? `<h3>Gametraits</h3><div>${RUT.GT.of(c).map(g => { const t = RUT.GT.BY[g.k]; return `<div class="pill ps" style="background:#a3201a"><img src="${RUT.GT.url(g.k, g.lv > 1)}" alt="" style="width:14px;height:14px;vertical-align:middle"> ${esc(t.name + (g.lv > 1 ? '+' : ''))} <span style="color:#fff;opacity:.7">— ${esc(g.lv > 1 ? t.d2 : t.d)}</span></div>`; }).join('')}</div>` : ''}
         <h3>PlayStyles+</h3><div>${c.playStyles.map(p => { const g = /\+$/.test(p); const k = p.replace(/\+$/, '') + '+'; return `<div class="pill ps${g ? '' : ' silver'}">${esc(PS_ICON[p] || PS_ICON[k] || '')} ${esc(p)} <span style="color:#fff;opacity:.6">— ${esc(PS_DESC[k] || PS_DESC[p] || '')}</span></div>`; }).join('') || '<span class="dim">None</span>'}</div>
         ${(() => { if (!RUT.roleOf) return ''; const ri = roleInfo(c, itemId); return `<h3 class="mt">Role <span class="dim" style="font-size:7px">(${esc(ri.pos)} · ${esc(RUT.ROLE_GROUP_NAME[ri.group])}${ri.auto ? ' · auto, best fit' : ''})</span></h3><div class="pill ps">${esc(ri.role.name)} <span style="color:#fff;opacity:.6">— ${esc(ri.role.desc)}</span></div>${it && where === 'club' ? `<button class="btn sm mt" data-act="role-pick" data-item="${itemId}">Change role</button>` : ''}`; })()}
         

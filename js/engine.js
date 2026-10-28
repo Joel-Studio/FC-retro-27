@@ -5567,11 +5567,11 @@ void main(){
       if ((lv = gtLv(p, 'crash')) && hasBall && !p.isGK && Math.abs(car.x - gx) < 38 && Math.abs(car.y - PH2) > 14 && Math.abs(p.x - gx) > 14 && this.gtGo(p, 'crash', 5 - lv)) {
         this.gtPop(p, 'crash'); p._go = { x: clamp(gx - dir * (9 + (lv > 1 ? 0 : 2)), 3, PITCH_W - 3), y: PH2 + (p.y > PH2 ? 4 : -4), until: this.t + 2.5 };
       }
-      if ((lv = gtLv(p, 'sweep')) && p.isGK && !car && !b.shot && this.gtGo(p, 'sweep', 3)) {
+      if ((lv = gtLv(p, 'sweep')) && p.isGK && !car && !b.shot && (p._gtc && p._gtc.sweep > this.t ? false : true)) {
         const og = dir > 0 ? 0 : PITCH_W, bd = Math.abs(b.x - og);
         if (bd < 24 + 4 * lv && bd > 9 && Math.abs(b.y - PH2) < 22 && !this.players.some(o => o.team === p.team && !o.isGK && dist(o, b) < dist(p, b))) {
           const opp = this.players.some(o => o.team !== p.team && dist(o, b) < dist(p, b) - 2);
-          if (!opp || lv > 1) { this.gtPop(p, 'sweep'); p._go = { x: b.x, y: b.y, until: this.t + 1.2 }; }
+          if ((!opp || lv > 1) && this.gtGo(p, 'sweep', 3)) { this.gtPop(p, 'sweep'); p._go = { x: b.x, y: b.y, until: this.t + 1.2 }; }
         }
       }
     });
@@ -5596,17 +5596,17 @@ void main(){
     }
     if ((lv = gtLv(p, 'perfp')) && press < 5 && age > 0.2) {
       const fw = mates.filter(o => (o.x - p.x) * dir > 6 && dist(o, p) < 32 + 8 * lv && Math.abs(o.x - gx) > 4 && !this.laneBlocked(p, o, true)).sort((a, c) => Math.abs(c.x - gx) - Math.abs(a.x - gx)).reverse()[0];
-      if (fw && this.gtGo(p, 'perfp', 5 - lv)) { this.gtPop(p, 'perfp'); this.pass(p, fw, true, { power: 0.75 }); b.sure = true; return; }
+      if (fw && this.gtGo(p, 'perfp', 11 - 2 * lv)) { this.gtPop(p, 'perfp'); this.pass(p, fw, true, { power: 0.75 }); b.sure = lv > 1 || this.rng() < 0.6; return; }
     }
     if ((lv = gtLv(p, 'switch')) && press < 7 && age > 0.2) {
       const far = mates.filter(o => Math.abs(o.y - p.y) > 24 && dist(o, p) > 26 && !opps.some(q => dist(q, o) < 7)).sort((a, c) => dist(a, p) - dist(c, p))[0];
-      if (far && this.gtGo(p, 'switch', 7 - lv)) { this.gtPop(p, 'switch'); this.pass(p, far, false, { power: 0.9, lob: true }); b.sure = true; return; }
+      if (far && this.gtGo(p, 'switch', 12 - 2 * lv)) { this.gtPop(p, 'switch'); this.pass(p, far, false, { power: 0.9, lob: true }); b.sure = lv > 1; return; }
     }
     if ((lv = gtLv(p, 'escape')) && press < 2.8 && age > 0.1 && p.cool.skillcd <= 0 && this.gtGo(p, 'escape', 4 - lv)) {
       const o = opps.sort((a, c) => dist(a, p) - dist(c, p))[0];
       if (o) { const dx = p.x - o.x, dy = p.y - o.y, l = Math.hypot(dx, dy) || 1; if (this.skill(p, 'roll', -dy / l, dx / l)) this.gtPop(p, 'escape'); }
     }
-    if ((lv = gtLv(p, 'burst')) && press > 6 && !this.ctlOf(p) && this.gtGo(p, 'burst', 6 - lv)) {
+    if ((lv = gtLv(p, 'burst')) && press > 6 && !this.ctlOf(p) && this.gtGo(p, 'burst', 10 - lv)) {
       const ahead = opps.every(o => !((o.x - p.x) * dir > 0 && (o.x - p.x) * dir < 18 && Math.abs(o.y - p.y) < 8));
       if (ahead) { this.gtPop(p, 'burst'); p._burst = this.t + 0.9 + 0.5 * lv; p._burstK = 1 + 0.08 * lv; }
     }
