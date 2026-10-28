@@ -1505,6 +1505,7 @@ window.RUT = window.RUT || {};
     this.updateControl();
     for (let tm = 0; tm < 2; tm++) { const R = this.tac[tm].rotate; if (R && !this.training && this.t > this.nextRot[tm]) { this.rotateRoles(tm); this.nextRot[tm] = this.t + R * (0.7 + 0.6 * this.rng()); } }
     if (this.training) this.heroTop = Math.max(this.heroTop || 0, len(this.hero.vx, this.hero.vy));
+    this.gtPre();
     this.players.forEach(p => {
       for (const k in p.cool) if (p.cool[k] > 0) p.cool[k] -= dt;
       const c = this.ctlOf(p);
@@ -5535,16 +5536,28 @@ void main(){
   /** cooldown gate: true when the trait may fire now, and starts its cooldown */
   P.gtGo = function (p, k, cd) { const c = p._gtc || (p._gtc = {}); if ((c[k] || 0) > this.t) return false; c[k] = this.t + cd; return true; };
   /** after a Gametrait tackle: if he did not get the ball, the trait still wins it 98% of the time */
-  P.gtWin = function (p, car) { const b = this.ball; if (b.owner === car && dist(p, car) < 2.6 && this.rng() < GT98) { car.cool.stun = Math.max(car.cool.stun, 0.4); this.giveBall(p); } };
+  P.gtWin = function (p, car) { const b = this.ball; if (b.owner === car && dist(p, car) < 3.8 && this.rng() < GT98) { car.cool.stun = Math.max(car.cool.stun, 0.4); this.giveBall(p); } };
+  /** the man on the ball: his traits run BEFORE the AI thinks, so a Time Finisher shoots before the AI would pass or dribble */
+  P.gtPre = function () {
+    if (this.phase !== 'play' || this.sp || !RUT.GT) return;
+    const b = this.ball, car = b.owner;
+    if (car && car.gt && car.gt.length && !car.isGK && !(car.cool.kick > 0) && this.tk % 2 === 0) this.gtOwner(car, this.t - (car === this._gtO ? (this._gtT || 0) : this.t), true);
+  };
   P.gtStep = function (dt) {
     if (this.phase !== 'play' || this.sp || !RUT.GT) return;
     const b = this.ball, car = b.owner;
-    if (car !== this._gtO) { this._gtO = car; this._gtT = this.t; if (b.sure) b.sure = false; }
+    if (b.sure) {   // v254 a "sure" pass (Perfect Pass, Switch Master, Pinpoint Cross): the ball bends towards its man and he takes it in
+      const tg = b.passTo && b.passTo.p;
+      if (!tg || b.owner || b.shot || this.t - (b._sureT || (b._sureT = this.t)) > 6) { b.sure = false; b._sureT = 0; }
+      else { const sp = len(b.vx, b.vy), dx = tg.x - b.x, dy = tg.y - b.y, d = Math.hypot(dx, dy) || 1;
+        if (d < 2.6 && b.z < 3.2) { b.sure = false; b._sureT = 0; this.giveBall(tg); }
+        else if (sp > 2) { const k = 0.3, sp2 = Math.max(sp, 11); b.vx += (dx / d * sp2 - b.vx) * k; b.vy += (dy / d * sp2 - b.vy) * k; } }
+    } else b._sureT = 0;
+    if (car !== this._gtO) { this._gtO = car; this._gtT = this.t; if (b.sure && car) b.sure = false; }
     const age = this.t - (this._gtT || 0);
     if (b.sure && car) b.sure = false;
     const heavy = this.tk % 3 === 0;
     if (car && car._burst > this.t) { const sp = len(car.vx, car.vy), cap = (car.sprintMax || 8) * car._burstK; if (sp > 2 && sp < cap) { const k = 1 + 0.9 * dt * 1.2; car.vx *= k; car.vy *= k; } }
-    if (car && car.gt && car.gt.length && !car.isGK && !(car.cool.kick > 0)) this.gtOwner(car, age, heavy);
     if (!heavy) return;
     const dirOf = t => this.teams[t].dir;
     this.players.forEach(p => {
@@ -5599,11 +5612,12 @@ void main(){
       if (tgt && age > 0.25 && this.gtGo(p, 'pincr', 6 - lv)) { this.gtPop(p, 'pincr'); this.pass(p, tgt, false, { lob: true, power: 0.8 }); b.sure = this.rng() < GT98; return; }
     }
     if ((lv = gtLv(p, 'perfp')) && press < 5 && age > 0.2) {
-      const fw = mates.filter(o => (o.x - p.x) * dir > 6 && dist(o, p) < 32 + 8 * lv && Math.abs(o.x - gx) > 4 && !this.laneBlocked(p, o, true)).sort((a, c) => Math.abs(c.x - gx) - Math.abs(a.x - gx)).reverse()[0];
+      const offL = opps.reduce((m, o) => Math.max(m, (o.x - gx) * -dir), -99) * -1 + 0 && opps.reduce((m, o) => Math.min(m, (gx - o.x) * dir), 99);   // distance of the deepest opponent from the attacked goal line
+      const fw = mates.filter(o => (gx - o.x) * dir >= offL - 0.4 && Math.abs(o.y - PH2) < PH2 - 3 && (o.x - p.x) * dir > 6 && dist(o, p) < 32 + 8 * lv && Math.abs(o.x - gx) > 4 && !this.laneBlocked(p, o, true)).sort((a, c) => Math.abs(c.x - gx) - Math.abs(a.x - gx)).reverse()[0];
       if (fw && this.gtGo(p, 'perfp', 11 - 2 * lv)) { this.gtPop(p, 'perfp'); this.pass(p, fw, true, { power: 0.75 }); b.sure = this.rng() < GT98; return; }
     }
     if ((lv = gtLv(p, 'switch')) && press < 7 && age > 0.2) {
-      const far = mates.filter(o => Math.abs(o.y - p.y) > 24 && dist(o, p) > 26 && !opps.some(q => dist(q, o) < 7)).sort((a, c) => dist(a, p) - dist(c, p))[0];
+      const far = mates.filter(o => o.y > 6 && o.y < PITCH_H - 6 && o.x > 5 && o.x < PITCH_W - 5 && Math.abs(o.y - p.y) > 24 && dist(o, p) > 26 && !opps.some(q => dist(q, o) < 7)).sort((a, c) => dist(a, p) - dist(c, p))[0];
       if (far && this.gtGo(p, 'switch', 12 - 2 * lv)) { this.gtPop(p, 'switch'); this.pass(p, far, false, { power: 0.9, lob: true }); b.sure = this.rng() < GT98; return; }
     }
     if ((lv = gtLv(p, 'escape')) && press < 2.8 && age > 0.1 && p.cool.skillcd <= 0 && this.gtGo(p, 'escape', 4 - lv)) {
