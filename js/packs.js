@@ -55,11 +55,11 @@ window.RUT = window.RUT || {};
     nl:      { id: 'nl', name: 'Nations League Pack', price: 450000, count: 5, tier: 'nl', guaranteeMin: 84, nlstarChance: 1, nlpofmChance: 0.1, bands: [[80, 82, 45], [83, 85, 40], [86, 87, 15]],
                odds: ['1 Nations League Star card: 100%', '84+ player: 100%', 'NLPOFM card: 10%'] },
     // v155 (700k since v158): Ballon d'Or pack. Any Ballon d'Or card 16.5% since v163 (ranks 11-30 14%, top 10 2%, top 3 0.5%), 5 cards, 86+ guaranteed
-    bdor:    { id: 'bdor', name: "Ballon d'Or Pack", price: 700000, count: 5, tier: 'bdor', guaranteeMin: 86, bdorChance: [0.002, 0.008, 0.02, 0.15], awardChance: 0.02, bands: [[84, 85, 45], [86, 87, 51], [88, 99, 4]], bdorUntradeable: true,   // v189 (JODIO): fewer 88+ golds, BdO cards untradeable; v191 nerfed (any BdO card 30.5% -> 18%)
+    bdor:    { id: 'bdor', name: "Ballon d'Or Pack", price: 300000, count: 5, tier: 'bdor', guaranteeMin: 86, bdorChance: [0.002, 0.008, 0.02, 0.15], awardChance: 0.02, bands: [[84, 85, 45], [86, 87, 51], [88, 99, 4]], bdorUntradeable: true,   // v189 (JODIO): fewer 88+ golds, BdO cards untradeable; v191 nerfed (any BdO card 30.5% -> 18%)
                odds: ['5 players', '86+ player: 100%', '88+ gold: 4%', "Any Ballon d'Or card: 18%", "Ballon d'Or rank 15-30 or Ronaldo HM: 15%", "Ballon d'Or rank 11-14: 2%", "Ballon d'Or top 10 (rank 4-10): 0.8%", "Ballon d'Or top 3 (95 OVR): 0.2%", "Award winner card (94): 2%", "Ballon d'Or cards are untradeable and only come from this pack"] },
     // v191 (JODIO): 7M Guaranteed Ballon d'Or pack: one Ballon d'Or card every time, top 10 very rare
-    bdorg:   { id: 'bdorg', name: "Guaranteed Ballon d'Or Pack", price: 7000000, count: 5, tier: 'bdor', guaranteeMin: 86, bdorChance: [0.003, 0.012, 0.185, 0.8], awardChance: 0.05, bands: [[84, 85, 45], [86, 87, 51], [88, 99, 4]], bdorUntradeable: true,
-               odds: ['5 players', "Ballon d'Or card: 100%", "Ballon d'Or rank 15-30 or Ronaldo HM: 80%", "Ballon d'Or rank 11-14: 18.5%", "Ballon d'Or top 10 (rank 4-10): 1.2%", "Ballon d'Or top 3 (95-96 OVR): 0.3%", "Award winner card (94): 5%", "Ballon d'Or cards are untradeable"] },
+    bdorg:   { id: 'bdorg', name: "Guaranteed Ballon d'Or Pack", price: 3000000, count: 5, tier: 'bdor', guaranteeMin: 86, bdorChance: [0.01, 0.05, 0.185, 0.755], awardChance: 0.05, bands: [[84, 85, 45], [86, 87, 51], [88, 99, 4]], bdorUntradeable: true,
+               odds: ['5 players', "Ballon d'Or card: 100%", "Ballon d'Or rank 15-30 or Ronaldo HM: 75.5%", "Ballon d'Or rank 11-14: 18.5%", "Ballon d'Or top 10 (rank 4-10): 5%", "Ballon d'Or top 3 (95-96 OVR): 1%", "Award winner card (94): 5%", "Ballon d'Or cards are untradeable"] },
   };
 
   // v155: every pack under 200,000 coins pays out less: 88+ weight x0.5, 86-87 x0.8, 83-85 x0.9 and promo chances x0.7 (the shown odds are recomputed)
