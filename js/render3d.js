@@ -84,6 +84,31 @@
     g.fillText(look.number || '', 32, 34); return canvasTex(c, { aniso: 4 });
   }
 
+  /** v265 (JODIO): the face is the 2D pixel drawing, painted on the front of the R6 block head (the nose, ears and hair stay 3D). */
+  const faceCache = {};
+  function faceTexture(look) {
+    const key = [look.skin, look.hair, look.hairD, look.style, look.beard ? 1 : 0, look.eye].join('|');
+    if (faceCache[key]) return faceCache[key];
+    const N = 32, c = document.createElement('canvas'); c.width = c.height = N; const g = c.getContext('2d');
+    const px = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
+    const sh = (col, f) => { const n = parseInt(String(col).slice(1), 16), k = x => Math.max(0, Math.min(255, Math.round(x * (1 + f)))); return 'rgb(' + k((n >> 16) & 255) + ',' + k((n >> 8) & 255) + ',' + k(n & 255) + ')'; };
+    const skin = look.skin || '#c68642', hair = look.hair || '#222', hairD = look.hairD || hair, dark = (parseInt(skin.slice(1, 3), 16) * 0.3 + parseInt(skin.slice(3, 5), 16) * 0.59 + parseInt(skin.slice(5, 7), 16) * 0.11) < 90;
+    px(0, 0, N, N, skin);
+    px(0, 24, N, 8, sh(skin, -0.08));                                                    // jaw shade
+    px(3, 11, 4, 2, sh(skin, -0.14)); px(25, 11, 4, 2, sh(skin, -0.14));                // cheek shade
+    [8, 20].forEach(ex => {                                                              // eyes: white, iris, pupil, lid line, catch light
+      px(ex, 12, 5, 3, '#f2efe8'); px(ex + 1, 12, 3, 3, look.eye || '#3a2618'); px(ex + 2, 13, 1, 2, '#0c0808'); px(ex, 11, 5, 1, '#20140f'); px(ex + 1, 12, 1, 1, '#ffffff');
+    });
+    px(7, 8, 7, 1, hairD); px(18, 8, 7, 1, hairD);                                       // brows
+    px(15, 16, 2, 3, sh(skin, -0.16));                                                   // nose side shade
+    px(11, 22, 10, 1, dark ? sh(skin, -0.3) : '#4a1c18'); px(12, 21, 8, 1, dark ? sh(skin, -0.18) : '#b5655a'); px(12, 23, 8, 1, dark ? sh(skin, -0.1) : '#c97a6c');   // mouth
+    const top = { bald: 0, buzz: 4, fade: 5, short: 6, slick: 7, curly: 8, curlfade: 8, afro: 9, long: 7, bun: 6, dreads: 8, mohawk: 5 }[look.style];
+    if (top) { px(0, 0, N, top, hair); if (look.style === 'fade' || look.style === 'curlfade') { px(0, 0, 3, 14, hairD); px(29, 0, 3, 14, hairD); } else if (look.style !== 'buzz' && look.style !== 'slick') { px(0, top, 2, 6, hair); px(30, top, 2, 6, hair); } }
+    if (look.beard) { px(0, 19, 4, 13, hairD); px(28, 19, 4, 13, hairD); px(0, 26, N, 6, hairD); px(10, 19, 12, 2, hairD); px(13, 22, 6, 1, dark ? sh(skin, -0.3) : '#4a1c18'); }
+    const t = canvasTex(c, { aniso: 4 }); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true;
+    return faceCache[key] = t;
+  }
+
   /* ----------------------------------- the stage ----------------------------------- */
   function create(env) {
     const T = THREE, W = env.W, H = env.H, PW2 = W / 2, PH2 = H / 2;
@@ -298,10 +323,10 @@
 
     /* ---- footballers ---- */
     const geo = {
-      thigh: new T.CapsuleGeometry(0.078, 0.27, 3, 10), shin: new T.CapsuleGeometry(0.06, 0.28, 3, 10), boot: new T.BoxGeometry(0.11, 0.09, 0.27),
-      upArm: new T.CapsuleGeometry(0.054, 0.2, 3, 8), foArm: new T.CapsuleGeometry(0.044, 0.2, 3, 8), hand: new T.SphereGeometry(0.052, 8, 6),
-      chest: new T.CylinderGeometry(0.2, 0.165, 0.6, 18), shorts: new T.CylinderGeometry(0.188, 0.2, 0.26, 16), neck: new T.CylinderGeometry(0.045, 0.05, 0.1, 8),
-      head: new T.SphereGeometry(0.112, 18, 14), hair: new T.SphereGeometry(0.119, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.56), numPlane: new T.PlaneGeometry(0.23, 0.23), curl: new T.SphereGeometry(0.05, 7, 5), tail: new T.CapsuleGeometry(0.035, 0.2, 2, 6), bun: new T.SphereGeometry(0.055, 8, 6), dread: new T.CapsuleGeometry(0.018, 0.2, 2, 5),
+      thigh: new T.BoxGeometry(0.2, 0.43, 0.2), shin: new T.BoxGeometry(0.19, 0.42, 0.19), boot: new T.BoxGeometry(0.2, 0.1, 0.29),
+      upArm: new T.BoxGeometry(0.19, 0.32, 0.19), foArm: new T.BoxGeometry(0.18, 0.31, 0.18), hand: new T.BoxGeometry(0.18, 0.1, 0.18),
+      chest: new T.BoxGeometry(0.43, 0.62, 0.22), shorts: new T.BoxGeometry(0.43, 0.26, 0.23), neck: new T.BoxGeometry(0.08, 0.1, 0.08),
+      head: new T.BoxGeometry(0.23, 0.23, 0.23), hair: new T.BoxGeometry(0.245, 0.1, 0.245), numPlane: new T.PlaneGeometry(0.23, 0.23), curl: new T.SphereGeometry(0.05, 7, 5), tail: new T.CapsuleGeometry(0.035, 0.2, 2, 6), bun: new T.SphereGeometry(0.055, 8, 6), dread: new T.CapsuleGeometry(0.018, 0.2, 2, 5),
     };
     const matCache = {};
     const std = (col, rough) => { const k = col + '|' + rough; return matCache[k] || (matCache[k] = new T.MeshStandardMaterial({ color: new T.Color(col), roughness: rough == null ? 0.8 : rough, metalness: 0.02 })); };
@@ -310,12 +335,12 @@
     function addHair(head, style, hairM) {
       if (style === 'bald') return;
       if (style === 'curlfade') style = 'curly';   // v195: curly top on faded sides draws like curls in 3D
-      const cap = ink(new T.Mesh(geo.hair, hairM)); cap.position.y = 0.012; cap.rotation.x = -0.18; head.add(cap);
+      const cap = ink(new T.Mesh(geo.hair, hairM)); cap.position.y = 0.085; head.add(cap);
       const add = (g, x, y, z, sx, sy, sz) => { const m = ink(new T.Mesh(g, hairM)); m.position.set(x, y, z); m.scale.set(sx || 1, sy || 1, sz || 1); head.add(m); return m; };
       if (style === 'buzz') cap.scale.set(0.92, 0.98, 0.98);
-      else if (style === 'fade') { cap.scale.set(0.93, 1.0, 0.97); cap.position.y = 0.02; }
-      else if (style === 'slick') { cap.scale.set(0.97, 1.04, 1.05); cap.rotation.x = -0.45; }
-      else if (style === 'curly') { cap.scale.set(1.12, 1.18, 1.14); cap.position.y = 0.03; for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2; add(geo.curl, Math.cos(a) * 0.085, 0.13 + (i % 2) * 0.02, Math.sin(a) * 0.075); } }
+      else if (style === 'fade') { cap.scale.set(0.95, 0.9, 0.97); cap.position.y = 0.09; }
+      else if (style === 'slick') { cap.scale.set(0.99, 1.1, 1.0); }
+      else if (style === 'curly') { cap.scale.set(1.04, 1.5, 1.04); cap.position.y = 0.11; for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2; add(geo.curl, Math.cos(a) * 0.085, 0.13 + (i % 2) * 0.02, Math.sin(a) * 0.075); } }
       else if (style === 'long') { cap.scale.set(1.03, 1.04, 1.06); add(geo.tail, 0, -0.07, -0.085, 1.5, 1, 0.7); }
       else if (style === 'bun') { cap.scale.set(0.96, 1.0, 1.0); add(geo.bun, 0, 0.1, -0.11); }
       else if (style === 'dreads') { cap.scale.set(1.04, 1.06, 1.06); for (let i = 0; i < 8; i++) { const a = (i / 8 - 0.5) * Math.PI * 1.5; add(geo.dread, Math.sin(a) * 0.1, -0.03, -0.06 - Math.cos(a) * 0.04, 0.9, 1, 0.9); } }
@@ -326,33 +351,26 @@
       const pelvis = new T.Group(); pelvis.position.y = 0.92; root.add(pelvis);
       const sh = ink(new T.Mesh(geo.shorts, std(look.shorts, 0.8))); sh.scale.set(bw, 1, 0.74); sh.position.y = -0.03; pelvis.add(sh);
       const torso = new T.Group(); torso.position.y = 0.04; pelvis.add(torso);
-      const chest = ink(new T.Mesh(geo.chest, shirtMat)); chest.scale.set(bw, 1, 0.62); chest.position.y = 0.3; torso.add(chest);
-      if (look.number) { const num = new T.Mesh(geo.numPlane, new T.MeshBasicMaterial({ map: numberTexture(look), transparent: true, depthWrite: false })); num.position.set(0, 0.33, -0.113 * 0.62 * 2 * 0.5 - 0.0); num.position.z = -0.126 * 0.99; num.rotation.y = Math.PI; torso.add(num); }
+      const chest = ink(new T.Mesh(geo.chest, shirtMat)); chest.scale.set(bw, 1, 1); chest.position.y = 0.3; torso.add(chest);
+      if (look.number) { const num = new T.Mesh(geo.numPlane, new T.MeshBasicMaterial({ map: numberTexture(look), transparent: true, depthWrite: false })); num.position.set(0, 0.33, -0.113 * 0.62 * 2 * 0.5 - 0.0); num.position.z = -0.112; num.rotation.y = Math.PI; torso.add(num); }
       const neck = new T.Mesh(geo.neck, skin); neck.position.y = 0.64; torso.add(neck);
       const head = new T.Group(); head.position.y = 0.76; torso.add(head);
-      const hd = ink(new T.Mesh(geo.head, skin)); hd.scale.set(0.92, 1.08, 1); head.add(hd);
+      const hd = ink(new T.Mesh(geo.head, skin)); hd.scale.set(1, 1, 1); head.add(hd);
       addHair(head, look.style, hairM);
-      if (look.beard) { const br = new T.Mesh(new T.SphereGeometry(0.1, 10, 8, 0, Math.PI * 2, Math.PI * 0.45, Math.PI * 0.5), hairM); br.scale.set(0.93, 0.8, 1.02); br.position.set(0, -0.02, 0.02); head.add(br); }
-      const eyeM = new T.MeshBasicMaterial({ color: 0x151515 });
-      const whiteM = new T.MeshBasicMaterial({ color: 0xf2efe8 }), browM = new T.MeshBasicMaterial({ color: new T.Color(look.hairD || look.hair) }), lipM = new T.MeshStandardMaterial({ color: new T.Color(look.skin).multiplyScalar(0.62).lerp(new T.Color(0x9a3a32), 0.35), roughness: 0.6 });
-      [-1, 1].forEach(sg => {   // v194: eye whites with a dark iris, brows, a nose and a mouth
-        const w = new T.Mesh(new T.SphereGeometry(0.017, 8, 6), whiteM); w.scale.set(1.3, 0.75, 0.5); w.position.set(sg * 0.04, 0.02, 0.094); head.add(w);
-        const e = new T.Mesh(new T.SphereGeometry(0.0105, 6, 4), eyeM); e.position.set(sg * 0.04, 0.02, 0.101); head.add(e);
-        const br = new T.Mesh(new T.BoxGeometry(0.036, 0.007, 0.01), browM); br.position.set(sg * 0.042, 0.047, 0.094); br.rotation.z = -sg * 0.12; head.add(br);
-      });
-      const nose = new T.Mesh(new T.ConeGeometry(0.012, 0.03, 6), skin); nose.rotation.x = Math.PI / 2 + 0.5; nose.position.set(0, -0.008, 0.104); head.add(nose);
-      const mouth = new T.Mesh(new T.BoxGeometry(0.04, 0.008, 0.01), lipM); mouth.position.set(0, -0.05, 0.092); head.add(mouth);
-      const lipLo = new T.Mesh(new T.SphereGeometry(0.014, 8, 4), lipM); lipLo.scale.set(1.3, 0.4, 0.4); lipLo.position.set(0, -0.058, 0.089); head.add(lipLo);
+      if (look.beard) { const br = new T.Mesh(new T.BoxGeometry(0.24, 0.085, 0.24), hairM); br.position.set(0, -0.075, 0); head.add(br); }
+      const facePl = new T.Mesh(new T.PlaneGeometry(0.228, 0.228), new T.MeshStandardMaterial({ map: faceTexture(look), roughness: 0.75, metalness: 0.02 })); facePl.position.set(0, 0, 0.1156); head.add(facePl);
+      const nose = new T.Mesh(new T.ConeGeometry(0.012, 0.03, 6), skin); nose.rotation.x = Math.PI / 2 + 0.5; nose.position.set(0, -0.012, 0.125); head.add(nose);
+      [-1, 1].forEach(sg => { const ear = ink(new T.Mesh(new T.BoxGeometry(0.03, 0.06, 0.04), skin)); ear.position.set(sg * 0.13, -0.01, 0); head.add(ear); });
       const arm = sgn => {
-        const shd = new T.Group(); shd.position.set(sgn * 0.235 * bw, 0.54, 0); torso.add(shd);
+        const shd = new T.Group(); shd.position.set(sgn * 0.325 * bw, 0.54, 0); torso.add(shd);
         const up = ink(new T.Mesh(geo.upArm, sleeve)); up.position.y = -0.15; shd.add(up);
         const el = new T.Group(); el.position.y = -0.3; shd.add(el);
         const fo = ink(new T.Mesh(geo.foArm, skin)); fo.position.y = -0.14; el.add(fo);
-        const hand = ink(new T.Mesh(geo.hand, look.gloves ? std(look.gloves, 0.6) : skin)); hand.position.y = -0.29; el.add(hand);
+        const hand = ink(new T.Mesh(geo.hand, look.gloves ? std(look.gloves, 0.6) : skin)); hand.position.y = -0.31; el.add(hand);
         return { sh: shd, el };
       };
       const leg = sgn => {
-        const hip = new T.Group(); hip.position.set(sgn * 0.1 * bw, -0.1, 0); pelvis.add(hip);
+        const hip = new T.Group(); hip.position.set(sgn * 0.105 * bw, -0.1, 0); pelvis.add(hip);
         const th = ink(new T.Mesh(geo.thigh, skin)); th.position.y = -0.2; hip.add(th);
         const kn = new T.Group(); kn.position.y = -0.41; hip.add(kn);
         const sn = ink(new T.Mesh(geo.shin, std(look.socks, 0.85))); sn.position.y = -0.19; kn.add(sn);
