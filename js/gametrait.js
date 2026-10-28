@@ -38,7 +38,9 @@
     cnt = Math.min(3, cnt);
     const pos = c.position;
     const BIAS = { crash: 7, pincr: 5, shadow: 5, ghost: 4, lane: 3, switch: 2 };
-    const cand = LIST.filter(t => t.pos.indexOf(pos) >= 0).map(t => ({ t, sc: avg(c.sub, t.stat) + (BIAS[t.k] || 0) + (c.id ? ((c.id.length * 7 + t.k.length * 3) % 5) * 0.3 : 0) })).sort((a, b) => b.sc - a.sc);
+    // v258: a repeat card (gtVar 1, 2) never reuses the Gametraits of its earlier versions
+    const skip = new Set(); for (let v = 0; v < (c.gtVar || 0); v++) of(Object.assign({}, c, { gtVar: v, _gt: null })).forEach(o => skip.add(o.k));
+    const cand = LIST.filter(t => t.pos.indexOf(pos) >= 0 && !skip.has(t.k)).map(t => ({ t, sc: avg(c.sub, t.stat) + (BIAS[t.k] || 0) + (c.id ? ((c.id.length * 7 + t.k.length * 3) % 5) * 0.3 : 0) })).sort((a, b) => b.sc - a.sc);
     const out = [];
     for (const x of cand) { if (out.length >= cnt) break; if (x.sc < 60) continue; if (out.some(o => BY[o.k].cat === x.t.cat && out.length < 2 && BY[o.k].cat !== 'gk')) { /* spread over categories first */ continue; } out.push({ k: x.t.k, lv: x.sc >= 86 || c.rating >= 91 ? 2 : 1 }); }
     for (const x of cand) { if (out.length >= cnt) break; if (x.sc >= 60 && !out.some(o => o.k === x.t.k)) out.push({ k: x.t.k, lv: x.sc >= 86 || c.rating >= 91 ? 2 : 1 }); }

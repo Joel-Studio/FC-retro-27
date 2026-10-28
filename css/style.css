@@ -1659,3 +1659,18 @@ h1, h2 { color: #fff4d6; } h2 { color: #f4c542; } .dim { color: #c9b27a; }
 .card.pxc.r-tots::after, .c3d.r-tots::after { content: 'TEAM OF THE SEASON'; color: #fff; }
 .card.pxc.mini.r-toty::after, .card.pxc.mini.r-tots::after, .c3d.mini.r-toty::after, .c3d.mini.r-tots::after { display: none; }
 .card.r-toty .c-ovr, .card.r-tots .c-ovr { color: var(--ct, #fff); }
+
+/* v258 (JODIO): richer Team of the Year / Team of the Season artwork + a faint second 3D slab behind the front one */
+.card.pxc.r-toty { background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140'%3E%3Cg fill='none' stroke='%23ffe08a' stroke-opacity='.22'%3E%3Cpath d='M50 6l6 12 13 2-9 10 2 13-12-6-12 6 2-13-9-10 13-2z'/%3E%3Ccircle cx='50' cy='38' r='30' stroke-opacity='.12'/%3E%3Cpath d='M8 132Q20 100 30 70M92 132Q80 100 70 70' stroke-opacity='.3' stroke-width='1.4'/%3E%3C/g%3E%3Cg fill='%23ffe08a' fill-opacity='.18'%3E%3Cpath d='M0 0h100v3H0zM0 137h100v3H0z'/%3E%3Cpath d='M12 125l4-7 4 7zM84 125l4-7 4 7z'/%3E%3C/g%3E%3C/svg%3E") center / 100% 100% no-repeat,
+    repeating-linear-gradient(45deg, rgba(255,224,138,.05) 0 2px, transparent 2px 9px), repeating-linear-gradient(-45deg, rgba(255,224,138,.05) 0 2px, transparent 2px 9px),
+    linear-gradient(115deg, transparent 0 36%, rgba(255,224,138,.26) 39%, transparent 43% 58%, rgba(255,224,138,.16) 61%, transparent 65%), radial-gradient(ellipse 85% 62% at 50% 22%, #2f6bff 0%, #0f2a90 45%, #030a2c 100%); }
+.card.pxc.r-tots { background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='.2'%3E%3Cpath d='M-5 40L50 12l55 28M-5 62L50 34l55 28M-5 84L50 56l55 28' stroke-width='1.6'/%3E%3Ccircle cx='50' cy='46' r='26' stroke-opacity='.14'/%3E%3Ccircle cx='50' cy='46' r='34' stroke-opacity='.08'/%3E%3C/g%3E%3Cpath d='M0 0h100v3H0zM0 137h100v3H0z' fill='%23ffffff' fill-opacity='.2'/%3E%3C/svg%3E") center / 100% 100% no-repeat,
+    linear-gradient(115deg, transparent 0 40%, rgba(255,255,255,.16) 44%, transparent 48%), repeating-linear-gradient(120deg, rgba(255,255,255,.05) 0 6px, transparent 6px 14px), radial-gradient(ellipse 85% 62% at 50% 22%, var(--c1) 0%, var(--c2) 50%, var(--c3) 100%); }
+.c3d > .c3d-ghost { position: absolute; inset: 0; display: none; pointer-events: none; border-radius: 8px; opacity: .3;
+  transform: translateZ(calc(var(--th) * -26)) translate(13%, -5%) scale(.97); border: 1px solid var(--frame);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--frame) 55%, transparent), color-mix(in srgb, var(--frame2) 80%, transparent) 70%); box-shadow: 0 0 14px color-mix(in srgb, var(--frame) 45%, transparent); }
+.c3d.r-toty { --frame: #f3c85a; --frame2: #1a4bd8; } .c3d.r-tots { --frame: #ffd84a; --frame2: #2b2b3a; }
+.c3d.r-tots.pot-EPL { --frame: #00ff85; --frame2: #8a3cff; } .c3d.r-tots.pot-LAL { --frame: #ffb000; --frame2: #ff5a3c; } .c3d.r-tots.pot-SEA { --frame: #4ad8ff; --frame2: #2a7bff; } .c3d.r-tots.pot-BUN { --frame: #ffffff; --frame2: #e2001a; } .c3d.r-tots.pot-L1 { --frame: #dafc5a; --frame2: #1d3a8a; }
+.c3d:hover > .c3d-ghost, .c3d.live > .c3d-ghost, .hero-card .c3d > .c3d-ghost, .walkout .c3d > .c3d-ghost, .w3 .c3d > .c3d-ghost { display: block; }

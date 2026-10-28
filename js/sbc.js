@@ -219,9 +219,9 @@ window.RUT = window.RUT || {};
   } catch (e) { /* the Champions League data is optional */ }
 
   // v249 (JODIO): every Player of the Month card is an SBC: squad rating = card rating - 3 (80 to 88), three players 2 below that
-  try { (RUT.DB.POTM_IDS || []).forEach(id => { const c = RUT.DB.registerPromo(id, 'lpotm', 2), i = c && c.potInfo; if (!c) return; const need = Math.max(80, Math.min(88, c.rating - 3));
-    SBCS.push({ id: 'potm_' + id, name: 'Player of the Month: ' + c.name, group: 'Player of the Month', repeatable: false, desc: (i ? i.period + ': ' + i.why : '') + '. +2% on every stat (max 93).',
-      reqs: [{ type: 'minRating', value: need }, { type: 'minPlayerRating', value: need - 2, count: 3 }, { type: 'maxSameNation', count: 3 }], reward: { type: 'card', baseId: id, promo: 'lpotm', boost: 2 } }); }); } catch (e) { /* optional */ }
+  try { (RUT.DB.POTM_ENT || []).forEach(({ id, boost }) => { const c = RUT.DB.registerPromo(id, 'lpotm', boost), i = c && c.potInfo; if (!c) return; const need = Math.max(80, Math.min(88, c.rating - 3));
+    SBCS.push({ id: 'potm_' + id + (boost > 100 ? '_' + boost : ''), name: 'Player of the Month: ' + c.name + (boost > 100 ? ' (#' + (Math.floor(boost / 100) + 1) + ')' : ''), group: 'Player of the Month', repeatable: false, desc: (i ? i.period + ': ' + i.why : '') + '. +2% on every stat (max 93).',
+      reqs: [{ type: 'minRating', value: need }, { type: 'minPlayerRating', value: need - 2, count: 3 }, { type: 'maxSameNation', count: 3 }], reward: { type: 'card', baseId: id, promo: 'lpotm', boost } }); }); } catch (e) { /* optional */ }
 
   // v145 (JODIO): reward cards rated 91+ are harder: the squad rating is one higher (cap 90) and four players need to be rated 2 below that
   try {

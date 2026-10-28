@@ -1216,7 +1216,11 @@ window.RUT = window.RUT || {};
       const k = promo === 'lpotw' ? 1.01 : 1.02, up = v => clamp(Math.round(v * k), 1, 99), face = {}, sub = {};
       Object.keys(base.face).forEach(x => { face[x] = up(base.face[x]); }); Object.keys(base.sub).forEach(x => { sub[x] = up(base.sub[x]); });
       const rating = Math.min(promo === 'lpotw' ? 92 : 93, Math.max(base.rating + 1, up(base.rating)));
-      const card = Object.assign({}, base, { id, rating, rarity: 'promo', promo, face, sub, rare: true, baseId, potLg: base.league, playStyles: psGate(rating, sub, base.playStyles, base.playStyles, 2) });
+      // v258 (JODIO): one player can get each of these cards up to 3 times (boost 1/2, 101/102, 201/202 = 1st/2nd/3rd); every repeat carries different PlayStyles+ and Gametraits+
+      const occ = Math.min(2, Math.floor(boost / 100)), pool = base.playStyles.slice(), extra = [];
+      for (let n = 0; n < 4; n++) { const nw = newStylesFor(Object.assign({}, base, { playStyles: pool }), sub); if (!nw) break; pool.push(nw); extra.push(nw); }
+      const first = occ ? extra.slice((occ - 1) * 2, occ * 2) : base.playStyles;
+      const card = Object.assign({}, base, { id, rating, rarity: 'promo', promo, face, sub, rare: true, baseId, potLg: base.league, gtVar: occ, occ: occ + 1, playStyles: psGate(rating, sub, occ ? pool : base.playStyles, first, 2) });
       card.value = roundToIncrement(valuation(card.rating, face, card.playStyles, card.position, true) * 1.4);
       byId[id] = card; all.push(card); return card;
     }
@@ -1316,11 +1320,11 @@ window.RUT = window.RUT || {};
   // the Nations League cards exist from the start so packs, the market and saves can all find them
   Object.keys(NLPOFM).forEach(id => registerPromo(id, 'nlpofm', 5));
   NLSTAR_IDS.forEach(id => registerPromo(id, 'nlstar', 3));
-  // v249: Player of the Week / Month cards from potw_data.js, one of each type per player at most
-  const POTW_IDS = [], POTM_IDS = [], POT_INFO = {};
-  try { const P = window.RUT && RUT.POTW_DATA, find = n => all.find(c => !c.promo && c.name === n);
-    [['weeks', 'lpotw', POTW_IDS, 1], ['months', 'lpotm', POTM_IDS, 2]].forEach(([k, pr, out, b]) => ((P && P[k]) || []).forEach(per => per.picks.forEach(p => { const c = find(p.name); if (!c || out.includes(c.id)) return; out.push(c.id); const card = registerPromo(c.id, pr, b); if (card) { card.potInfo = { period: per.label, why: p.why, lg: p.lg }; POT_INFO[card.id] = card.potInfo; } }))); } catch (e) { /* optional data */ }
-  Object.assign(RUT.DB, { POTW_IDS, POTM_IDS, POT_INFO });
+  // v249: Player of the Week / Month cards from potw_data.js; v258 (JODIO): the same player may get each card up to 3 times (the 2nd and 3rd are different cards, boost +100 / +200)
+  const POTW_IDS = [], POTM_IDS = [], POTW_ENT = [], POTM_ENT = [], POT_INFO = {};
+  try { const P = window.RUT && RUT.POTW_DATA, find = n => all.find(c => !c.promo && c.name === n), cnt = {};
+    [['weeks', 'lpotw', POTW_IDS, POTW_ENT, 1], ['months', 'lpotm', POTM_IDS, POTM_ENT, 2]].forEach(([k, pr, out, ent, b]) => ((P && P[k]) || []).forEach(per => per.picks.forEach(p => { const c = find(p.name); if (!c) return; const key = pr + c.id, n = cnt[key] || 0; if (n >= 3) return; cnt[key] = n + 1; if (!n) out.push(c.id); const bo = b + 100 * n, card = registerPromo(c.id, pr, bo); if (card) { card.potInfo = { period: per.label, why: p.why, lg: p.lg }; POT_INFO[card.id] = card.potInfo; ent.push({ id: c.id, boost: bo }); } }))); } catch (e) { /* optional data */ }
+  Object.assign(RUT.DB, { POTW_IDS, POTM_IDS, POTW_ENT, POTM_ENT, POT_INFO });
   // v257: Team of the Year / Team of the Season cards exist from their release time on
   const SEASON_IDS = { toty: [], tots: [] }, seasonLive = k => { const S = window.RUT && RUT.SEASON_DATA && RUT.SEASON_DATA[k]; return !!(S && Date.parse(S.release) <= Date.now()); };
   try { ['toty', 'tots'].forEach(k => { if (!seasonLive(k)) return; const S = RUT.SEASON_DATA[k], seen = {}; S.picks.forEach((p, i) => { const c = all.find(x => !x.promo && x.name === p.name); if (!c || seen[c.id]) return; seen[c.id] = 1; if (registerPromo(c.id, k, i + 1)) SEASON_IDS[k].push(c.id); }); }); } catch (e) { /* optional */ }

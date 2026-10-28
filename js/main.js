@@ -105,9 +105,9 @@
       ${style ? `<div class="c-style" title="${esc(style.name)}">${esc(style.icon)}</div>` : ''}
       ${!o.mini && RUT.GT && RUT.GT.of(c).length ? `<div class="c-gt">${RUT.GT.of(c).map(g => `<span class="gt" title="${esc(RUT.GT.BY[g.k].name + (g.lv > 1 ? '+' : ''))}"><img src="${RUT.GT.url(g.k, g.lv > 1)}" alt="" draggable="false"></span>`).join('')}</div>` : ''}${!o.mini && RUT.PSIcon && c.playStyles && c.playStyles.some(n => /\+$/.test(n)) ? `<div class="c-ps">${c.playStyles.filter(n => /\+$/.test(n)).slice(0, 4).map(n => `<span class="ps gold" title="${esc(n)}"><img src="${RUT.PSIcon.url(n, true, frameOf(c) === 'cl' ? 'clpromo' : frameOf(c))}" alt="" draggable="false"></span>`).join('')}</div>` : ''}
       ${o.tag ? `<div class="c-tag">${esc(o.tag)}</div>` : ''}${o.offpos ? '<div class="offpos">OUT OF POS</div>' : ''}${chem}
-    </div>${C3D_LAYERS}</div>`;
+    </div>${C3D_LAYERS}${c.promo === 'toty' || c.promo === 'tots' ? C3D_GHOST : ''}</div>`;
   }
-  const C3D_LAYERS = '<i class="c3l"></i>'.repeat(8) + '<b class="c3d-back"></b>';
+  const C3D_LAYERS = '<i class="c3l"></i>'.repeat(8) + '<b class="c3d-back"></b>', C3D_GHOST = '<b class="c3d-ghost"></b>';   // v258: Team of the Year / Season cards also carry a faint second slab behind the front one
 
   /** Poster backdrop: a strong colour opposite the shirt on the colour wheel, so the pixel figure pops (like the reference art). */
   const bgCache = {};
@@ -3026,7 +3026,7 @@
         <select id="ps-sort"><option value="rating" ${PSHOP.sort === 'rating' ? 'selected' : ''}>Highest rated</option><option value="price" ${PSHOP.sort === 'price' ? 'selected' : ''}>Price high to low</option><option value="cheap" ${PSHOP.sort === 'cheap' ? 'selected' : ''}>Price low to high</option></select>
         <span class="dim" style="font-size:8px;margin-left:auto">${all.length} promo player${all.length === 1 ? '' : 's'}</span></div>
       <div class="grid cols-3">${shown.map(c => {
-        const pr = shopPrice(c), ti = shopTradeItem(c), cr = ti ? shopCredit(c) : 0, net = Math.max(0, pr - cr), tag = PSHOP_TYPES[c.promo][0];
+        const pr = shopPrice(c), ti = shopTradeItem(c), cr = ti ? shopCredit(c) : 0, net = Math.max(0, pr - cr), tag = PSHOP_TYPES[c.promo][0] + (c.occ > 1 ? ' #' + c.occ : '');
         return `<div class="px"><div class="row">${cardHTML(c, { mini: true, attrs: `data-act="price" data-card="${c.id}"` })}<div style="flex:1;font-size:8px;line-height:1.8">
           <b>${esc(c.name)}</b><div class="dim">${esc(tag)} · ${esc(c.position)} · ${c.rating}</div><div>Market value <span class="gold">${fmt(pr)}</span></div></div></div>
           <div class="row mt" style="flex-wrap:wrap"><button class="btn sm y" data-act="ps-buy" data-card="${c.id}" ${D().coins >= pr ? '' : 'disabled'}>Buy · ${fmt(pr)}</button>
