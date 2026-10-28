@@ -1041,7 +1041,7 @@ window.RUT = window.RUT || {};
       const id = sd === 'L' ? ID.armL : ID.armR;
       if (r6) {
         const eb = J['elbow' + sd], ha = J['hand' + sd], fd6 = vnorm(vsub(ha, eb)), ud6 = vnorm(vsub(eb, J['sh' + sd]));
-        boxy(R, vadd(J['sh' + sd], V(sd === 'L' ? -1.2 : 1.2, 3.0, 0.7)), vadd(vadd(eb, vmul(ud6, 1.6)), V(0, 0, 0.7)), tyaw, 3.7, 3.8, (bx, bz, tt) => isGK ? sleeve[k] : tt < 0.58 ? sleeve[k] : tt < 0.68 ? L.trim : sk, id, 1.5);
+        boxy(R, vadd(vsub(J['sh' + sd], vmul(ud6, 2.2)), V(sd === 'L' ? 1.4 : -1.4, 1.0, 0.7)), vadd(vadd(eb, vmul(ud6, 1.6)), V(0, 0, 0.7)), tyaw, 3.7, 3.8, (bx, bz, tt) => isGK ? sleeve[k] : tt < 0.58 ? sleeve[k] : tt < 0.68 ? L.trim : sk, id, 1.5);
         boxy(R, vsub(eb, vmul(fd6, 1.4)), vadd(ha, vmul(fd6, 3.0)), tyaw, 3.4, 3.6, (bx, bz, tt) => isGK ? (tt > 0.74 ? hand : tt > 0.66 ? L.trim : sleeve[k]) : (tt > 0.86 ? hand : sk), id, 1.2);
         return;
       }
