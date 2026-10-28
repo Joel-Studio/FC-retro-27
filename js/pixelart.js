@@ -240,7 +240,7 @@ window.RUT = window.RUT || {};
   const rotY = (v, a) => { const c = Math.cos(a), s = Math.sin(a); return V(v.x * c + v.z * s, v.y, -v.x * s + v.z * c); };
 
   // body proportions, from JODIO's action sheet (v11): a big chunky head (~2/7 of the height), short torso, sturdy legs
-  const R6B = { torso: 16.5, shW: 9.6, upper: 6.8, fore: 6.6, neck: 1.6, headR: 6.0 };   // v274: Roblox dummy proportions: smaller head, wide shoulders   // v265: Roblox R6 proportions (box torso, flush box arms, small square head)
+  const R6B = { hipW: 3.8, torso: 16.5, shW: 11.0, upper: 6.8, fore: 6.6, neck: 1.6, headR: 6.0 };   // v274: Roblox dummy proportions: smaller head, wide shoulders   // v265: Roblox R6 proportions (box torso, flush box arms, small square head)
   const B = { hipW: 3.3, thigh: 10.0, shin: 9.6, ankle: 1.7, hipH: 20.6, torso: 13.6, shW: 7.0, upper: 6.9, fore: 6.3, neck: 1.8, headR: 7.2 };
 
   /** Interpolate between keyframes [[u, {field: value}], ...] with ease-in-out. */
@@ -826,8 +826,8 @@ window.RUT = window.RUT || {};
   const RGB = {};
   const rgb = hex => RGB[hex] || (RGB[hex] = [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)]);
   /** Four light bands: core shadow, shade, lit, highlight. */
-  let smoothL = false;
-  function band(n) { const d = vdot(n, LIGHT); if (smoothL) return 0.8 + 0.38 * clamp((d + 0.25) / 1.15, 0, 1); return d > 0.62 ? 1.16 : d > 0.22 ? 1.0 : d > -0.2 ? 0.8 : 0.63; }
+  let smoothL = false, flatL = false;
+  function band(n) { const d = vdot(n, LIGHT); if (flatL) return d > 0.3 ? 1.02 : 0.9; if (smoothL) return 0.8 + 0.38 * clamp((d + 0.25) / 1.15, 0, 1); return d > 0.62 ? 1.16 : d > 0.22 ? 1.0 : d > -0.2 ? 0.8 : 0.63; }
   const ID = { body: 1, shorts: 2, legL: 3, legR: 4, armL: 5, armR: 6, head: 7, hair: 8 };
 
   function newRaster(s) {
@@ -926,7 +926,7 @@ window.RUT = window.RUT || {};
         if (d > lutD[j]) { lutD[j] = d; lutX[j] = x; lutZ[j] = z; lutNx[j] = p0[2] + (p1[2] - p0[2]) * u; lutNz[j] = p0[3] + (p1[3] - p0[3]) * u; }
       }
     }
-    const sm = smoothL; smoothL = true;
+    const sm = smoothL; smoothL = !flatL;
     for (let py = y0; py <= y1; py++) for (let px = x0; px <= x1; px++) {
       const qx = px + 0.5 - ax, qy = py + 0.5 - ay, t = (qx * dx + qy * dy) / dd;
       if (t < 0 || t > 1) continue;
@@ -935,7 +935,7 @@ window.RUT = window.RUT || {};
       let sh = 1;
       if (bev) { const e = Math.min(t, 1 - t) * len; if (e < bev) { const k = (bev - e) / bev; if (Math.abs(sx) / (a + 0.001) > Math.sqrt(1 - k * k * 0.6)) continue; sh = 1 - k * 0.12; } }
       const nx = lutNx[j], nz = lutNz[j], n = vnorm(V(nx * c + nz * sn, t > 0.94 ? 0.5 : (t < 0.06 ? -0.35 : 0), -nx * sn + nz * c));
-      plot(R, py * W + px, mix(base.z, top.z, t) + lutD[j], colorAt(lutX[j], lutZ[j], t), band(n) * sh * (0.95 + 0.1 * t), id);
+      plot(R, py * W + px, mix(base.z, top.z, t) + lutD[j], colorAt(lutX[j], lutZ[j], t), band(n) * sh * (flatL ? 1 : 0.95 + 0.1 * t), id);
     }
     smoothL = sm;
   }
@@ -957,7 +957,8 @@ window.RUT = window.RUT || {};
   function renderFigure(L, anim, t, yaw, gk, scale) {
     const r6 = L.r6 !== false, Bsave = r6 ? Object.assign({}, B) : null;
     if (r6) Object.assign(B, R6B);
-    try { return renderFigure0(L, anim, t, yaw, gk, scale, r6); } finally { if (Bsave) Object.assign(B, Bsave); }
+    flatL = !!L.flat;   // v276: card figures are flat 2D, two-tone cel shading
+    try { return renderFigure0(L, anim, t, yaw, gk, scale, r6); } finally { flatL = false; if (Bsave) Object.assign(B, Bsave); }
   }
   function renderFigure0(L, anim, t, yaw, gk, scale, r6) {
     // sprite-artist cheat: in profile the chest and face turn ~30 degrees toward the camera, so both arms and the face read
@@ -967,7 +968,7 @@ window.RUT = window.RUT || {};
     const view = v => rotY(v, yaw);
     const J = {}; for (const k in S) if (S[k] && S[k].x !== undefined) J[k] = view(S[k]);
     const sk = L.skin, hand = L.gloves || L.skin, isGK = !!L.gloves;
-    const tube = r6 ? (R_, base, top, yw, aB, aT, b, colorAt, id, round) => boxy(R_, round ? base : vadd(base, V(0, 0, 1.4)), round ? top : vadd(top, V(0, 0, 1.4)), yw, Math.max(aB, aT) * (aB === aT ? 1.12 : 0.9), b * 0.86, colorAt, id, round ? 2.6 : 0) : cylinder;
+    const tube = r6 ? (R_, base, top, yw, aB, aT, b, colorAt, id, round) => boxy(R_, round ? base : vadd(base, V(0, 0, 1.4)), round ? top : vadd(top, V(0, 0, 1.4)), yw, Math.max(aB, aT) * (aB === aT ? 1.28 : 1.03), b * 0.86, colorAt, id, round ? 2.6 : 0) : cylinder;
     const sole = lum(L.boots) > 0.55 ? '#3a3a3a' : '#e8e8e8';
     const ds = L.number ? L.number.split('').map(Number) : [];
     const seed = hashStr(L.shirt + L.pattern + L.trim);
@@ -978,8 +979,8 @@ window.RUT = window.RUT || {};
       const hip = J['hip' + sd], knee = J['knee' + sd], ank = J['ankle' + sd];
       if (r6) {
         const lyaw = yaw + S.pelvisYaw, kd = vnorm(vsub(knee, hip)), ad = vnorm(vsub(ank, knee)), fold6 = shade(L.socks, -0.2);
-        boxy(R, vadd(vsub(hip, vmul(kd, 1.6)), V(0, 0, 0.9)), vadd(vadd(knee, vmul(kd, 1.8)), V(0, 0, 0.9)), lyaw, 3.3, 3.2, (bx, bz, tt) => tt < 0.5 ? (tt > 0.36 && Math.abs(bx) > 2.6 ? L.trim : L.shorts) : sk, id, 1.2);
-        boxy(R, vsub(knee, vmul(ad, 1.5)), vadd(ank, vmul(ad, 1.4)), lyaw, 3.05, 3.0, (bx, bz, tt) => tt < 0.1 ? sk : tt < 0.19 ? fold6 : (tt < 0.24 || (tt > 0.28 && tt < 0.32)) ? L.trim : L.socks, id, 1.0);
+        boxy(R, vadd(vsub(hip, vmul(kd, 1.6)), V(0, 0, 0.9)), vadd(vadd(knee, vmul(kd, 1.8)), V(0, 0, 0.9)), lyaw, 3.7, 3.4, (bx, bz, tt) => tt < 0.5 ? (tt > 0.36 && Math.abs(bx) > 2.6 ? L.trim : L.shorts) : sk, id, 1.2);
+        boxy(R, vsub(knee, vmul(ad, 1.5)), vadd(ank, vmul(ad, 1.4)), lyaw, 3.4, 3.2, (bx, bz, tt) => tt < 0.1 ? sk : tt < 0.19 ? fold6 : (tt < 0.24 || (tt > 0.28 && tt < 0.32)) ? L.trim : L.socks, id, 1.0);
         capsule(R, vadd(J['heel' + sd], vmul(vsub(J['heel' + sd], J['toe' + sd]), 0.08)), vadd(J['toe' + sd], vmul(vsub(J['toe' + sd], J['heel' + sd]), 0.18)), 2.8, 2.35, (tt, n) => n.y < -0.35 ? sole : (tt > 0.45 && tt < 0.75 && n.y > 0.55 ? '#f0f0f0' : (tt > 0.3 && tt < 0.5 && Math.abs(n.x) > 0.5 ? L.bootsL : L.boots)), id);
         return;
       }
@@ -1035,8 +1036,8 @@ window.RUT = window.RUT || {};
       const id = sd === 'L' ? ID.armL : ID.armR;
       if (r6) {
         const eb = J['elbow' + sd], ha = J['hand' + sd], fd6 = vnorm(vsub(ha, eb)), ud6 = vnorm(vsub(eb, J['sh' + sd]));
-        boxy(R, vadd(J['sh' + sd], V(sd === 'L' ? -1.2 : 1.2, 3.0, 0.7)), vadd(vadd(eb, vmul(ud6, 1.6)), V(0, 0, 0.7)), tyaw, 3.3, 3.2, (bx, bz, tt) => isGK ? sleeve[k] : tt < 0.58 ? sleeve[k] : tt < 0.68 ? L.trim : sk, id, 1.5);
-        boxy(R, vsub(eb, vmul(fd6, 1.4)), vadd(ha, vmul(fd6, 3.0)), tyaw, 3.1, 3.0, (bx, bz, tt) => isGK ? (tt > 0.74 ? hand : tt > 0.66 ? L.trim : sleeve[k]) : (tt > 0.86 ? hand : sk), id, 1.2);
+        boxy(R, vadd(J['sh' + sd], V(sd === 'L' ? -1.2 : 1.2, 3.0, 0.7)), vadd(vadd(eb, vmul(ud6, 1.6)), V(0, 0, 0.7)), tyaw, 3.7, 3.4, (bx, bz, tt) => isGK ? sleeve[k] : tt < 0.58 ? sleeve[k] : tt < 0.68 ? L.trim : sk, id, 1.5);
+        boxy(R, vsub(eb, vmul(fd6, 1.4)), vadd(ha, vmul(fd6, 3.0)), tyaw, 3.4, 3.2, (bx, bz, tt) => isGK ? (tt > 0.74 ? hand : tt > 0.66 ? L.trim : sleeve[k]) : (tt > 0.86 ? hand : sk), id, 1.2);
         return;
       }
       capsule(R, J['sh' + sd], J['elbow' + sd], 2.25, 1.95, tt => isGK ? sleeve[k] : tt < 0.46 ? sleeve[k] : tt < 0.56 ? L.trim : sk, id);
@@ -1274,9 +1275,10 @@ window.RUT = window.RUT || {};
     const key = card.name + '|' + card.club + '|' + card.position + '|' + (pose || 'idle');
     if (figCache[key]) return figCache[key];
     const L0 = lookFor(card.name, kit, card.position === 'GK', 0, { club: card.club, number: card.details && card.details.number, strength: card.sub && card.sub.strength });
-    const L = Object.assign({}, L0, { r6: true, key: L0.key + '|r6' });   // v265 (JODIO): card figures use the Roblox R6 body
+    const L = Object.assign({}, L0, { r6: true, flat: true, key: L0.key + '|r6flat' });   // v265 (JODIO): card figures use the Roblox R6 body
     let anim = pose === 'up' ? 'up' : pose === 'cross' ? 'cross' : idleFor(card.position), t = anim === 'up' ? 0.25 : 0.1, yaw = -0.45;
-    if (!pose || pose === 'idle') { const pz = cardPose(card); anim = pz[0]; t = pz[1]; yaw = pz[2]; }   // v259 (JODIO): every player strikes his own pose on his card
+    if (!pose || pose === 'idle') { const pz = cardPose(card); anim = pz[0]; t = pz[1]; yaw = pz[2]; }
+    yaw *= 0.15;   // v276 (JODIO): the card figure is a flat 2D drawing, seen from the front   // v259 (JODIO): every player strikes his own pose on his card
     return (figCache[key] = sprite(L, anim, t, yaw, 77 * 2.5 / BASE).toDataURL());   // v164: drawn at 2.5x so the card shows a smooth figure, not big pixels
   }
 
