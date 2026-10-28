@@ -3,7 +3,7 @@
    Settings > Commentary turns it off. English first. */
 (function () {
   const RUT = window.RUT = window.RUT || {};
-  const CLIPS = { en: { kickoff: ['audio/en/kickoff.mp3'] } };
+  const CLIPS = { en: { kickoff: ['audio/en/kickoff.mp3'], half: ['audio/en/half.mp3'] } };
   const LINES = { en: {
     kickoff: ["And we're underway!", 'Here we go!'],
     goal: ['GOAL! What a finish!', "He's done it! Unbelievable!", 'Into the top corner, the keeper had no chance!', 'GOAL! The stadium erupts!'],
