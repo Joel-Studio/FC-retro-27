@@ -1837,6 +1837,7 @@
     if (!C.begin()) { toast('Champions League: ' + C.UCL.perDay + ' matches a day. Come back tomorrow.', 'bad'); return; }
     const st = D(), home = { name: st.clubName, short: 'RFC', cards: State.matchCards() }, away = C.opponent(nx.i), styles = [myTac(), nx.club.tac];
     const done = res => finishMatch(res, away, { mult: 1, q: { mode: 'ucl' }, coins: r => C.payout(r.score[0], r.score[1]), after: r => {
+      rivLearn(r);
       const o = C.record(r.score[0], r.score[1], r.pens ? (r.pens[0] > r.pens[1] ? 0 : 1) : null); if (!o) return ''; updateHeader();
       if (o.champion) return `<p class="good">CHAMPIONS OF EUROPE! +${fmt(o.bonus)} coins.</p>`;
       if (o.out || o.outNow) return `<p class="bad">${o.outNow ? 'League phase over: ' + ord(o.rank) + '. You are out of the Champions League.' : 'Knocked out of the Champions League.'}</p>`;
@@ -2486,7 +2487,10 @@
   const rivDivName = i => (i >= 10 ? 'Elite' : 'Division ' + (10 - i));
   const rivWeekCoins = (div, w) => (w < 3 ? 0 : 10000 + div * 6000 + Math.min(w, 20) * 1500);
   const champCoins = w => w * 8000 + (w >= 13 ? 100000 : w >= 11 ? 60000 : w >= 7 ? 25000 : 0);
-  const rivCoins = (gf, ga) => Math.round((gf > ga ? 1500 : gf === ga ? 600 : 300) * EARN);
+  // v262 (JODIO): a Rivals win pays 120K in Division 10 up to 230K in Division 5, then 240K in Division 4 up to 310K in Division 1 (Elite 310K); 45% less against an AI rival. Draws and defeats pay as before.
+  const rivWin = div => (div >= 10 ? 310000 : div <= 5 ? 120000 + div * 22000 : 240000 + (div - 6) * 70000 / 3);
+  const rivCoins = (gf, ga, ai) => (gf > ga ? Math.round(rivWin(RV().div) * (ai ? 0.55 : 1)) : Math.round((gf === ga ? 600 : 300) * EARN));
+  const rivLearn = r => { try { T5().learnFrom(r.scout); } catch (e) { /* the rivals just do not remember this one */ } };   // v262: Rivals / Champions / Champions League sides remember how you play
   // v207 (JODIO): each Champions match pays and costs 40% more than any other mode: win 56K and goal 14K (Champions League 40K / 10K, both before the +30%), goal conceded 21K (Top 5 15K), defeat 14K (10K), quitting 28K (20K). A draw counts as a defeat.
   const CH_PAY = { win: 56000, goal: 14000, conceded: 21000, loss: 14000, quit: 28000 };
   const champPay = (gf, ga) => (gf > ga ? CH_PAY.win : 0) + gf * CH_PAY.goal;
@@ -2532,11 +2536,12 @@
       ['Sporting Arcade', '2-3-1|positional'], ['Olympique 8-Bit', '2-1-3|highline'], ['Borussia Block', '3-1-2|longball'], ['Lazio Lite', '1-3-2|total'], ['Benfica Bytes', '2-2-2|falsenine']];
     const RV0 = RIVALS[seed % RIVALS.length];
     const away = Engine.buildOpponent({ name: RV0[0], lo, hi: 96, pool: 'all', specials: kind === 'champs', floor: lo - 4 }, seed); away.name = RV0[0];
-    away.learn = { prior: null, every: 6 }; away.switchTac = true;
+    let prior = null; try { prior = T5().root().scout || null; } catch (e) { /* no memory yet */ }
+    away.learn = { prior, every: 6 }; away.switchTac = true;
     const home = { name: D().clubName, short: 'RFC', cards: State.matchCards() };
     runMatch({ tag: kind === 'champs' ? 'Champions' : 'Rivals', home, away, humans: [0], knockout: true, extraTime: true, noSpeed: true, pitch: 'colossal', halfSeconds: 90, styles: [myTac(), RV0[1]],
-      onEnd: res => finishMatch(res, away, { mult: 1, q: { mode: kind }, lossFee: kind === 'champs' ? 0 : null, coins: x => kind === 'champs' ? champPay(x.score[0], x.won ? -1 : 99) : rivCoins(x.score[0], x.score[1]) / EARN,
-        after: x => (kind === 'champs' ? champFees(x.won ? 1 : 0, x.score[1]) : '') + rivRecord(kind, x.won ? 1 : 0, x.won ? 0 : x.draw ? 0 : 1) }),
+      onEnd: res => finishMatch(res, away, { mult: 1, q: { mode: kind }, lossFee: kind === 'champs' ? 0 : null, coins: x => kind === 'champs' ? champPay(x.score[0], x.won ? -1 : 99) : rivCoins(x.score[0], x.score[1], true) / EARN,
+        after: x => (rivLearn(x), '') + (kind === 'champs' ? champFees(x.won ? 1 : 0, x.score[1]) : '') + rivRecord(kind, x.won ? 1 : 0, x.won ? 0 : x.draw ? 0 : 1) }),
       onQuit: () => quitMatch(kind === 'champs' ? CH_PAY.quit : null) });
   }
   VIEWS.rivals = function () {
