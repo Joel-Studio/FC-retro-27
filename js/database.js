@@ -362,7 +362,7 @@ window.RUT = window.RUT || {};
     ['Harry Kane', 'Bayern', 'ENG', 'ST', 90, 68, 93, 85, 83, 47, 82, 'PS DB LB'],
     ['Jamal Musiala', 'Bayern', 'GER', 'CAM', 87, 82, 81, 80, 91, 59, 61, 'TE TR'],
     ['Joshua Kimmich', 'Bayern', 'GER', 'CDM', 88, 70, 74, 89, 84, 81, 74, 'PP LB'],
-    ['Michael Olise', 'Bayern', 'FRA', 'RW', 90, 84, 85, 89, 91, 42, 66, 'FS WP'],
+    ['Michael Olise', 'Bayern', 'FRA', 'RW', 90, 90, 88, 89, 91, 42, 66, 'FS WP'],
     ['Gregor Kobel', 'Dortmund', 'SUI', 'GK', 87, 85, 84, 80, 88, 50, 84, 'FR'],
     ['Manuel Neuer', 'Bayern', 'GER', 'GK', 86, 84, 85, 90, 86, 55, 86, 'FW'],
     ['Luis Díaz', 'Bayern', 'COL', 'LW', 88, 92, 82, 81, 90, 47, 72, 'QS TR'],

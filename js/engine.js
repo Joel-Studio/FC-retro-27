@@ -280,7 +280,8 @@ window.RUT = window.RUT || {};
   /* ------------------------------ Player --------------------------------- */
   function makePlayer(card, team, slot, rng, troles, fpos) {
     const s = card.sub, ps = new Set(card.playStyles);
-    const pf = {}; card.playStyles.forEach(n => { pf[n.replace(/\+$/, '')] = /\+$/.test(n) ? 1.5 : 0.55; });   // v148: PlayStyle tier factor (Silver 0.55); v167 (JODIO): PlayStyle+ is 1.5, half as strong again as before
+    const pf = {}; card.playStyles.forEach(n => { pf[n.replace(/\+$/, '')] = /\+$/.test(n) ? 1.5 : 0.55; });
+    if (card.position === 'GK') { const gs = card.sub || {}, ga = ((gs.gkDiving || 0) + (gs.gkReflexes || 0) + (gs.gkPositioning || 0) + (gs.gkHandling || 0)) / 4; if (ga >= 90) { const gm = 1.4 + 0.04 * Math.min(9, ga - 90); Object.keys(pf).forEach(k => { pf[k] *= gm; }); } }   // v251 (JODIO): a 90+ keeper gets far more out of his PlayStyles (1.4x at 90, up to 1.76x at 99)   // v148: PlayStyle tier factor (Silver 0.55); v167 (JODIO): PlayStyle+ is 1.5, half as strong again as before
     const isGK = card.position === 'GK' || slot === 0;
     // role play (js/roles.js): his traits with the role of his pitch slot layered on top (a chosen role on the card, else the best fit)
     const rpos = RUT.State && RUT.State.BASE_FORMATION && slot >= 0 && slot < 11 ? (fpos || RUT.State.BASE_FORMATION)[slot] : card.position;   // the labels of the team's own formation (AI sides: 4-3-3)
@@ -2999,7 +3000,7 @@ window.RUT = window.RUT || {};
         const endY = curly ? sh.aimY : b.y + b.vy * tl, onTarget = Math.abs(endY - PH2) < GOAL_HALF + 0.15 && zl < GOAL_H + 0.1 && zl > -0.5;        // inside the posts and under the bar, or he stays on his feet
         if (onTarget) {
           // anticipation: the sharper the reflexes and positioning, the sooner he moves; a keeper who guesses the corner early gets there
-          let react = Math.max(0.02, (0.08 * this.gkWeak(p) - (p.tr.has('stk') ? 0.03 : 0) + 0.3 - 0.24 * nrm(s.gkReflexes) - 0.06 * nrm(s.gkPositioning) - 0.05 * clamp(p.iq, 0, 1) - 0.04 * (p.pf['Footwork'] || 0)) * 0.5);   // dives go early: half the old reaction time
+          let react = Math.max(0.02, (0.08 * this.gkWeak(p) - (p.tr.has('stk') ? 0.03 : 0) + 0.3 - 0.24 * nrm(s.gkReflexes) - 0.06 * nrm(s.gkPositioning) - 0.05 * clamp(p.iq, 0, 1) - 0.04 * (p.pf['Footwork'] || 0)) * 0.5 * (1 - 0.4 * clamp(((s.gkReflexes || 0) + (s.gkDiving || 0)) / 2 - 89, 0, 10) / 10));   // v251: a 90+ keeper starts his dive up to 40% sooner   // dives go early: half the old reaction time
           if (sh.fk) react *= 0.4;                                                       // v207: set on his line for a free kick, he is ready for it
           const hard = (sh.pw || 0) >= 0.92;   // v188 (JODIO): a 92%+ power strike is read, not guessed: no dive, he steps straight into its path
           const gs = (sh.pen || sh.fk) && p._guess != null && (!hard || (sh.pen && this.ctls[p.team])) ? p._guess : null; p._guess = null;   // v207: your own keeper's penalty pick holds even against a power strike
@@ -3532,8 +3533,8 @@ window.RUT = window.RUT || {};
     if (!gk) return;                                                       // testing ground without a keeper
     const s = gk.card.sub;
     const diving = gk.dive && gk.dive.t > gk.dive.react, weak = this.gkWeak(gk);
-    const reach = -0.4 * weak + (gk.tr.has('stk') ? 0.25 : 0) + 1.5 + 1.5 * nrm(s.gkDiving) + 0.55 * (gk.pf['Far Reach'] || 0) + (diving ? 1.0 + 0.8 * nrm(s.gkDiving) : 0) + (b.shot && b.shot.fk ? 1.8 : 0) + (diving && b.z > 1.6 ? 0.6 : 0);   // v220 (JODIO): a high dive stretches further up into the top corners. v207: a free kick, set on his line: a fuller stretch. a full-stretch dive adds a body length
-    if (dist(gk, b) > reach || b.z > GOAL_H + 0.4) return;
+    const reach = -0.4 * weak + (gk.tr.has('stk') ? 0.25 : 0) + 1.5 + 1.5 * nrm(s.gkDiving) + 0.55 * (gk.pf['Far Reach'] || 0) + (diving ? 1.0 + 0.8 * nrm(s.gkDiving) : 0) + (b.shot && b.shot.fk ? 1.8 : 0) + (diving && b.z > 1.6 ? 0.6 : 0) + (clamp(((s.gkDiving || 0) + (s.gkReflexes || 0) + (s.gkPositioning || 0) + (s.gkHandling || 0)) / 4 - 89, 0, 10) / 10) * (0.8 + (diving ? 0.5 : 0));   // v251: a 90+ keeper reaches further and higher. v220 (JODIO): a high dive stretches further up into the top corners. v207: a free kick, set on his line: a fuller stretch. a full-stretch dive adds a body length
+    if (dist(gk, b) > reach || b.z > GOAL_H + 0.4 + 0.5 * clamp(((s.gkDiving || 0) + (s.gkReflexes || 0)) / 2 - 89, 0, 10) / 10) return;
     b.shot.saveChecked = true;
     const sp = len(b.vx, b.vy);
     const shooterDist = dist(b.shot.by, gk);
@@ -4537,7 +4538,7 @@ void main(){
     if (flip) { ctx.translate(Math.round(s.x * SC) * 2, 0); ctx.scale(-1, 1); }
     if (p.hlUntil > this.t && this.ball.owner !== p) {                      // the man being passed to: a white outline that fades
       const hc = this._hlc || (this._hlc = document.createElement('canvas')), hx = hc.getContext('2d');
-      hc.width = spr.width; hc.height = spr.height; hx.drawImage(spr, 0, 0);
+      if (hc.width !== spr.width || hc.height !== spr.height) { hc.width = spr.width; hc.height = spr.height; } else hx.clearRect(0, 0, hc.width, hc.height); hx.globalCompositeOperation = 'source-over'; hx.drawImage(spr, 0, 0);
       hx.globalCompositeOperation = 'source-in'; hx.fillStyle = '#fff'; hx.fillRect(0, 0, hc.width, hc.height);
       const o = Math.max(1, Math.round(1.6 * SC)); ctx.globalAlpha = Math.min(1, (p.hlUntil - this.t) / 0.5);
       for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; ctx.drawImage(hc, dxd + Math.round(Math.cos(a) * o), dyd + Math.round(Math.sin(a) * o)); }
@@ -4628,7 +4629,9 @@ void main(){
     const N = n + 2;                                                  // 1 px margin for the soft edge
     if (ballCanvas.n !== N) { ballCanvas.c = document.createElement('canvas'); ballCanvas.c.width = ballCanvas.c.height = N; ballCanvas.g = ballCanvas.c.getContext('2d'); ballCanvas.n = N; }
     const g = ballCanvas.g, r = n / 2, c0 = N / 2 - 0.5;
-    const img = g.createImageData(N, N), d = img.data;
+    const same = ballCanvas.n === N && ballCanvas.img && ballCanvas.M && M.every((v, i) => v === ballCanvas.M[i]);   // v251: a ball that hasn't turned or changed size keeps its last picture
+    if (same) { ctx.drawImage(ballCanvas.c, (s.x * SC - N / 2) / SC, (s.y * SC - N / 2) / SC, N / SC, N / SC); return; }
+    const img = (ballCanvas.img && ballCanvas.img.width === N) ? ballCanvas.img : (ballCanvas.img = g.createImageData(N, N)), d = img.data; ballCanvas.M = M.slice();
     const sm = (a, c, x) => { const t = clamp((x - a) / (c - a), 0, 1); return t * t * (3 - 2 * t); };
     for (let py = 0; py < N; py++) for (let px = 0; px < N; px++) {
       const sx = (px - c0) / r, sy = (py - c0) / r, d2 = sx * sx + sy * sy, rr = Math.sqrt(d2);
