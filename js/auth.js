@@ -41,8 +41,10 @@ window.RUT = window.RUT || {};
   /* v137 cloud save: when the page runs as a claude.ai artifact with the `db` capability and the viewer is signed in with write access, every account
    * (name, salt, password hash, save) is mirrored to the artifact database, so the same club and password work on another device. Never throws: without
    * the database everything stays local exactly as before. */
+  // v243 (JODIO): which site this page is, for the "Main site" setting
+  const SITE = window.RUT_SITE || (h => /claude|anthropic/.test(h) ? 'claude' : /vercel/.test(h) ? 'vercel' : /wix/.test(h) ? 'wix' : /replit/.test(h) ? 'replit' : /lovable/.test(h) ? 'lovable' : /netlify/.test(h) ? 'netlify' : /github/.test(h) ? 'github' : 'other')(location.hostname || '');
   const cloud = {
-    _db: undefined, q: Promise.resolve(), timer: 0, last: null, err: null,
+    _db: undefined, site: SITE, main: '', q: Promise.resolve(), timer: 0, last: null, err: null,
     async db() {
       try { if ((JSON.parse(localStorage.getItem('rut_settings') || '{}') || {}).net === 'offline') return null; } catch (e) { /* default online */ }   // v198: Offline mode in Settings
       if (this._db !== undefined) return this._db;
@@ -73,7 +75,7 @@ window.RUT = window.RUT || {};
       return decodeURIComponent(escape(atob(t.slice(1))));
     },
     timeout(p, ms) { return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('cloud timeout')), ms || 10000))]); },
-    async head(id) { const db = await this.db(); if (!db) return null; const s = await this.timeout(db.doc('rut_clubs/' + this.key(id)).get()); if (s.exists) return s.data();
+    async head(id) { const db = await this.db(); if (!db) return null; const s = await this.timeout(db.doc('rut_clubs/' + this.key(id)).get()); if (s.exists) { const d = s.data(); this.main = d.main || ''; return d; }
       if (this._old) { const o = await this.timeout(this._old.doc('rut_clubs/' + this.key(id)).get()).catch(() => null); if (o && o.exists) return Object.assign({ _old: 1 }, o.data()); } return null; },
     async fetchSave(h) {
       let db = await this.db(); if (h && h._old) db = this._old; if (!db || !h || !h.n) return null; let t = '';
@@ -86,10 +88,11 @@ window.RUT = window.RUT || {};
       const raw = store.get(LEGACY + u.ns) || '', mt = +(store.get('rut_mt' + u.ns) || Date.now());
       if (this.last === u.id + ':' + mt) return true;
       const h = await this.head(u.id), base = +(store.get('rut_base' + u.ns) || 0);
-      if (!this.force && h && h.hash === u.hash && (base ? h.savedAt !== base : h.savedAt > mt) && !(mt > base && mt > h.savedAt)) return false;   // v240: newer play on this device (online or offline) is never dropped   // another device uploaded since this one last synced: don't overwrite it, the next login takes it
+      const isMain = !!(h && h.main && h.main === SITE);   // v243: the main site's save always wins
+      if (!this.force && !isMain && h && h.hash === u.hash && (base ? h.savedAt !== base : h.savedAt > mt)) { if (Auth._pull) setTimeout(Auth._pull, 500); return false; }   // v243: another site saved since this page last synced, so its save is the newest: take it instead of overwriting it with this page's older club   // v240: newer play on this device (online or offline) is never dropped   // another device uploaded since this one last synced: don't overwrite it, the next login takes it
       const t = await this.pack(raw), CH = 150000, n = Math.max(1, Math.ceil(t.length / CH));
       for (let i = 0; i < n; i++) await this.timeout(db.doc('rut_saves/' + this.key(u.id) + '_' + i).set({ d: t.slice(i * CH, (i + 1) * CH) }), 20000);
-      await this.timeout(db.doc('rut_clubs/' + this.key(u.id)).set({ id: u.id, name: u.name, salt: u.salt, hash: u.hash, created: u.created, savedAt: mt, n, len: raw.length }), 20000);
+      await this.timeout(db.doc('rut_clubs/' + this.key(u.id)).set({ id: u.id, name: u.name, salt: u.salt, hash: u.hash, created: u.created, savedAt: mt, n, len: raw.length, main: (h && h.main) || '', site: SITE }), 20000);
       this.last = u.id + ':' + mt; store.set('rut_base' + u.ns, String(mt)); this.err = null; this.force = false; return true;
     },
     schedule() {
@@ -138,11 +141,16 @@ window.RUT = window.RUT || {};
     async cloudSync(acc) {
       const h = await cloud.head(acc.id); if (!h) { cloud.schedule(); return 'up'; }
       const mt = +(store.get('rut_mt' + acc.ns) || 0), base = +(store.get('rut_base' + acc.ns) || 0);
-      if ((base ? h.savedAt !== base : h.savedAt > mt) && h.hash === acc.hash && !(mt > base && mt > h.savedAt)) {   // the cloud copy is newer than anything played here: it wins (v240: unsynced newer play here, e.g. offline, wins instead)
+      if (!(h.main && h.main === SITE && base) && (base ? h.savedAt !== base : h.savedAt > mt) && h.hash === acc.hash) {   /* v243: the cloud moved since this page synced, so it holds the newest play */   // the cloud copy is newer than anything played here: it wins (v240: unsynced newer play here, e.g. offline, wins instead)
         const save = await cloud.fetchSave(h); if (save) { const cur = store.get(LEGACY + acc.ns); if (cur) store.set('rut_bak' + acc.ns, cur); /* v240: the replaced save is kept as a backup */ store.set(LEGACY + acc.ns, save); store.set('rut_mt' + acc.ns, String(h.savedAt)); store.set('rut_base' + acc.ns, String(h.savedAt)); cloud.last = acc.id + ':' + h.savedAt; return 'down'; } }
       else cloud.schedule();
       return 'same';
     },
+    /** v243: pick the main site ('' = none): its save always wins, the other sites take it. */
+    async setMain(k) { const u = this.user; if (!u) throw new Error('Log in first.'); const db = await cloud.db(); if (!db) throw new Error('Cloud save is off on this site.'); cloud.auth = u.hash;
+      const h = await cloud.head(u.id); if (!h) { await cloud.push(); } const h2 = await cloud.head(u.id); if (!h2) throw new Error('Could not reach the cloud save.');
+      await cloud.timeout(db.doc('rut_clubs/' + cloud.key(u.id)).set(Object.assign({}, h2, { main: k || '' })), 20000); cloud.main = k || '';
+      if (k && k === SITE) { cloud.force = true; cloud.last = null; await cloud.push(); } else if (k) { await this.cloudSync(u).then(r => { if (r === 'down') setTimeout(() => location.reload(), 800); }); } return k; },
     async login(name, pw) {
       const all = accounts(), acc = all[idOf(name)];
       const fails = +(store.get('rut_fails', true) || 0);
@@ -164,7 +172,7 @@ window.RUT = window.RUT || {};
         // v242 (JODIO): a save made on another site or device comes in while this page is open (not during a match or a pop-up)
         const pull = async () => { const u = Auth.user; if (!u || document.hidden || (window.App && App.match) || document.querySelector('#modal-root .modal')) return;
           try { const r = await Auth.cloudSync(u); if (r === 'down') { RUT.State.data = null; RUT.State.load(); if (RUT.toast) RUT.toast('Your club was updated from another site.', 'good'); setTimeout(() => location.reload(), 800); } } catch (e) { /* offline: next time */ } };
-        setInterval(pull, 45000); try { document.addEventListener('visibilitychange', () => { if (!document.hidden) pull(); }); } catch (e) { /* ignore */ } }
+        Auth._pull = pull; setInterval(pull, 20000); try { document.addEventListener('visibilitychange', () => { if (!document.hidden) pull(); }); } catch (e) { /* ignore */ } }
     },
     /** v116: the accounts on THIS device, with a few numbers from each save (never the password or its hash). */
     list() {
