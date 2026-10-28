@@ -138,15 +138,18 @@ window.RUT = window.RUT || {};
       return acc;
     },
     /** After a login: when the cloud copy is newer than this device's, take it; otherwise upload this one. */
-    async cloudSync(acc) {
+    async cloudSync(acc, live) {   // live = a pull from a page that is already open (it may hold an old club)
       const h = await cloud.head(acc.id); if (!h) { cloud.schedule(); return 'up'; }
       const mt = +(store.get('rut_mt' + acc.ns) || 0), base = +(store.get('rut_base' + acc.ns) || 0);
-      if (!(h.main && h.main === SITE && base) && (base ? h.savedAt !== base : h.savedAt > mt) && h.hash === acc.hash) {   /* v243: the cloud moved since this page synced, so it holds the newest play */   // the cloud copy is newer than anything played here: it wins (v240: unsynced newer play here, e.g. offline, wins instead)
+      if (!(h.main && h.main === SITE && base) && (base ? h.savedAt !== base : h.savedAt > mt) && h.hash === acc.hash && (live || h.main || !(mt > base && mt > h.savedAt))) {   /* v245: on a page load, unsynced newer play here is kept (as before v243) */   /* v243: the cloud moved since this page synced, so it holds the newest play */   // the cloud copy is newer than anything played here: it wins (v240: unsynced newer play here, e.g. offline, wins instead)
         const save = await cloud.fetchSave(h); if (save) { const cur = store.get(LEGACY + acc.ns); if (cur) store.set('rut_bak' + acc.ns, cur); /* v240: the replaced save is kept as a backup */ store.set(LEGACY + acc.ns, save); store.set('rut_mt' + acc.ns, String(h.savedAt)); store.set('rut_base' + acc.ns, String(h.savedAt)); cloud.last = acc.id + ':' + h.savedAt; return 'down'; } }
       else cloud.schedule();
       return 'same';
     },
     /** v243: pick the main site ('' = none): its save always wins, the other sites take it. */
+    /** v245: bring back the save that the last cloud download replaced (kept in rut_bak). */
+    async restoreBackup() { const u = this.user; if (!u) throw new Error('Log in first.'); const b = store.get('rut_bak' + u.ns); if (!b) throw new Error('No earlier save on this site.');
+      const cur = store.get(LEGACY + u.ns); store.set(LEGACY + u.ns, b); if (cur) store.set('rut_bak' + u.ns, cur); store.set('rut_mt' + u.ns, String(Date.now())); cloud.force = true; cloud.last = null; try { await cloud.push(); } catch (e) { /* offline: uploads later */ } return true; },
     async setMain(k) { const u = this.user; if (!u) throw new Error('Log in first.'); const db = await cloud.db(); if (!db) throw new Error('Cloud save is off on this site.'); cloud.auth = u.hash;
       const h = await cloud.head(u.id); if (!h) { await cloud.push(); } const h2 = await cloud.head(u.id); if (!h2) throw new Error('Could not reach the cloud save.');
       await cloud.timeout(db.doc('rut_clubs/' + cloud.key(u.id)).set(Object.assign({}, h2, { main: k || '' })), 20000); cloud.main = k || '';
@@ -171,7 +174,7 @@ window.RUT = window.RUT || {};
         try { window.addEventListener('online', again); } catch (e) { /* ignore */ } setInterval(again, 60000);
         // v242 (JODIO): a save made on another site or device comes in while this page is open (not during a match or a pop-up)
         const pull = async () => { const u = Auth.user; if (!u || document.hidden || (window.App && App.match) || document.querySelector('#modal-root .modal')) return;
-          try { const r = await Auth.cloudSync(u); if (r === 'down') { RUT.State.data = null; RUT.State.load(); if (RUT.toast) RUT.toast('Your club was updated from another site.', 'good'); setTimeout(() => location.reload(), 800); } } catch (e) { /* offline: next time */ } };
+          try { const r = await Auth.cloudSync(u, true); if (r === 'down') { RUT.State.data = null; RUT.State.load(); if (RUT.toast) RUT.toast('Your club was updated from another site.', 'good'); setTimeout(() => location.reload(), 800); } } catch (e) { /* offline: next time */ } };
         Auth._pull = pull; setInterval(pull, 20000); try { document.addEventListener('visibilitychange', () => { if (!document.hidden) pull(); }); } catch (e) { /* ignore */ } }
     },
     /** v116: the accounts on THIS device, with a few numbers from each save (never the password or its hash). */
