@@ -160,7 +160,11 @@ window.RUT = window.RUT || {};
       try { window.addEventListener('pagehide', () => { if (Auth.user) cloud.flush(); }); } catch (e) { /* ignore */ }
       if (!this._retry) { this._retry = 1;   // v240: progress made offline is uploaded as soon as the connection is back
         const again = () => { const u = Auth.user; if (u && store.get('rut_mt' + u.ns) !== store.get('rut_base' + u.ns)) cloud.schedule(); };
-        try { window.addEventListener('online', again); } catch (e) { /* ignore */ } setInterval(again, 60000); }
+        try { window.addEventListener('online', again); } catch (e) { /* ignore */ } setInterval(again, 60000);
+        // v242 (JODIO): a save made on another site or device comes in while this page is open (not during a match or a pop-up)
+        const pull = async () => { const u = Auth.user; if (!u || document.hidden || (window.App && App.match) || document.querySelector('#modal-root .modal')) return;
+          try { const r = await Auth.cloudSync(u); if (r === 'down') { RUT.State.data = null; RUT.State.load(); if (RUT.toast) RUT.toast('Your club was updated from another site.', 'good'); setTimeout(() => location.reload(), 800); } } catch (e) { /* offline: next time */ } };
+        setInterval(pull, 45000); try { document.addEventListener('visibilitychange', () => { if (!document.hidden) pull(); }); } catch (e) { /* ignore */ } }
     },
     /** v116: the accounts on THIS device, with a few numbers from each save (never the password or its hash). */
     list() {

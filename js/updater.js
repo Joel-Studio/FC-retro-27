@@ -32,7 +32,7 @@
     if (!wait) wait = setInterval(apply, 4000);
   };
   const check = () => {
-    fetch('js/version.js?t=' + Date.now(), { cache: 'no-store' })
+    fetch((window.RUT_VERSION_URL || 'js/version.js') + '?t=' + Date.now(), { cache: 'no-store' })   // v242: the Wix page asks GitHub directly
       .then(r => (r.ok ? r.text() : ''))
       .then(t => { const m = /RUT_VERSION\s*=\s*(\d+)/.exec(t || ''), n = m ? +m[1] : 0; if (n > START && n > pending) { pending = n; apply(); } })
       .catch(() => { /* offline: try again later */ });
