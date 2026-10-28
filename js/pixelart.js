@@ -315,6 +315,11 @@ window.RUT = window.RUT || {};
       footL: { x: 5.2, y: B.ankle, z: 0.5, pitch: 0, yaw: 0.3 }, footR: { x: -5.2, y: B.ankle, z: 0.5, pitch: 0, yaw: -0.3 },
       armL: { pitch: 0.8, roll: 0.55, elbow: 0.7 }, armR: { pitch: 0.8, roll: 0.55, elbow: 0.7 },
     };
+    if (gk !== true) return {                                                                  // v277 (JODIO): standing still is an A-pose: straight legs a little apart, arms down and out at about 35 degrees
+      pelvis: V(0, B.hipH - 0.1 + 0.15 * br, 0), lean: 0.01, roll: 0, yaw: 0, twist: 0, head: { down: 0.02 + 0.02 * br },
+      footL: { x: 4.6, y: B.ankle, z: 0.2, pitch: 0, yaw: 0.12 }, footR: { x: -4.6, y: B.ankle, z: 0.2, pitch: 0, yaw: -0.12 },
+      armL: { pitch: 0, roll: 0.62 + 0.02 * br, elbow: 0.04 }, armR: { pitch: 0, roll: 0.62 + 0.02 * br, elbow: 0.04 },
+    };
     if (gk === 'cb') return {                                                                  // arms crossed, chest out, planted
       pelvis: V(0, B.hipH - 1.6 + 0.2 * br, 0), lean: -0.04, roll: 0, yaw: 0.05, twist: 0, head: { down: 0.02 },
       footL: { x: 5.0, y: B.ankle, z: 0.6, pitch: 0, yaw: 0.3 }, footR: { x: -5.0, y: B.ankle, z: 0.2, pitch: 0, yaw: -0.3 },
@@ -968,7 +973,7 @@ window.RUT = window.RUT || {};
     const view = v => rotY(v, yaw);
     const J = {}; for (const k in S) if (S[k] && S[k].x !== undefined) J[k] = view(S[k]);
     const sk = L.skin, hand = L.gloves || L.skin, isGK = !!L.gloves;
-    const tube = r6 ? (R_, base, top, yw, aB, aT, b, colorAt, id, round) => boxy(R_, round ? base : vadd(base, V(0, 0, 1.4)), round ? top : vadd(top, V(0, 0, 1.4)), yw, Math.max(aB, aT) * (aB === aT ? 1.28 : 1.03), b * 0.86, colorAt, id, round ? 2.6 : 0) : cylinder;
+    const tube = r6 ? (R_, base, top, yw, aB, aT, b, colorAt, id, round) => boxy(R_, round ? base : vadd(base, V(0, 0, 1.4)), round ? top : vadd(top, V(0, 0, 1.4)), yw, Math.max(aB, aT) * (aB === aT ? 1.28 : 1.03), b * 1.18, colorAt, id, round ? 2.6 : 0) : cylinder;
     const sole = lum(L.boots) > 0.55 ? '#3a3a3a' : '#e8e8e8';
     const ds = L.number ? L.number.split('').map(Number) : [];
     const seed = hashStr(L.shirt + L.pattern + L.trim);
@@ -979,8 +984,8 @@ window.RUT = window.RUT || {};
       const hip = J['hip' + sd], knee = J['knee' + sd], ank = J['ankle' + sd];
       if (r6) {
         const lyaw = yaw + S.pelvisYaw, kd = vnorm(vsub(knee, hip)), ad = vnorm(vsub(ank, knee)), fold6 = shade(L.socks, -0.2);
-        boxy(R, vadd(vsub(hip, vmul(kd, 1.6)), V(0, 0, 0.9)), vadd(vadd(knee, vmul(kd, 1.8)), V(0, 0, 0.9)), lyaw, 3.7, 3.4, (bx, bz, tt) => tt < 0.5 ? (tt > 0.36 && Math.abs(bx) > 2.6 ? L.trim : L.shorts) : sk, id, 1.2);
-        boxy(R, vsub(knee, vmul(ad, 1.5)), vadd(ank, vmul(ad, 1.4)), lyaw, 3.4, 3.2, (bx, bz, tt) => tt < 0.1 ? sk : tt < 0.19 ? fold6 : (tt < 0.24 || (tt > 0.28 && tt < 0.32)) ? L.trim : L.socks, id, 1.0);
+        boxy(R, vadd(vsub(hip, vmul(kd, 1.6)), V(0, 0, 0.9)), vadd(vadd(knee, vmul(kd, 1.8)), V(0, 0, 0.9)), lyaw, 3.7, 3.9, (bx, bz, tt) => tt < 0.5 ? (tt > 0.36 && Math.abs(bx) > 2.6 ? L.trim : L.shorts) : sk, id, 1.2);
+        boxy(R, vsub(knee, vmul(ad, 1.5)), vadd(ank, vmul(ad, 1.4)), lyaw, 3.4, 3.6, (bx, bz, tt) => tt < 0.1 ? sk : tt < 0.19 ? fold6 : (tt < 0.24 || (tt > 0.28 && tt < 0.32)) ? L.trim : L.socks, id, 1.0);
         capsule(R, vadd(J['heel' + sd], vmul(vsub(J['heel' + sd], J['toe' + sd]), 0.08)), vadd(J['toe' + sd], vmul(vsub(J['toe' + sd], J['heel' + sd]), 0.18)), 2.8, 2.35, (tt, n) => n.y < -0.35 ? sole : (tt > 0.45 && tt < 0.75 && n.y > 0.55 ? '#f0f0f0' : (tt > 0.3 && tt < 0.5 && Math.abs(n.x) > 0.5 ? L.bootsL : L.boots)), id);
         return;
       }
@@ -1036,8 +1041,8 @@ window.RUT = window.RUT || {};
       const id = sd === 'L' ? ID.armL : ID.armR;
       if (r6) {
         const eb = J['elbow' + sd], ha = J['hand' + sd], fd6 = vnorm(vsub(ha, eb)), ud6 = vnorm(vsub(eb, J['sh' + sd]));
-        boxy(R, vadd(J['sh' + sd], V(sd === 'L' ? -1.2 : 1.2, 3.0, 0.7)), vadd(vadd(eb, vmul(ud6, 1.6)), V(0, 0, 0.7)), tyaw, 3.7, 3.4, (bx, bz, tt) => isGK ? sleeve[k] : tt < 0.58 ? sleeve[k] : tt < 0.68 ? L.trim : sk, id, 1.5);
-        boxy(R, vsub(eb, vmul(fd6, 1.4)), vadd(ha, vmul(fd6, 3.0)), tyaw, 3.4, 3.2, (bx, bz, tt) => isGK ? (tt > 0.74 ? hand : tt > 0.66 ? L.trim : sleeve[k]) : (tt > 0.86 ? hand : sk), id, 1.2);
+        boxy(R, vadd(J['sh' + sd], V(sd === 'L' ? -1.2 : 1.2, 3.0, 0.7)), vadd(vadd(eb, vmul(ud6, 1.6)), V(0, 0, 0.7)), tyaw, 3.7, 3.8, (bx, bz, tt) => isGK ? sleeve[k] : tt < 0.58 ? sleeve[k] : tt < 0.68 ? L.trim : sk, id, 1.5);
+        boxy(R, vsub(eb, vmul(fd6, 1.4)), vadd(ha, vmul(fd6, 3.0)), tyaw, 3.4, 3.6, (bx, bz, tt) => isGK ? (tt > 0.74 ? hand : tt > 0.66 ? L.trim : sleeve[k]) : (tt > 0.86 ? hand : sk), id, 1.2);
         return;
       }
       capsule(R, J['sh' + sd], J['elbow' + sd], 2.25, 1.95, tt => isGK ? sleeve[k] : tt < 0.46 ? sleeve[k] : tt < 0.56 ? L.trim : sk, id);
