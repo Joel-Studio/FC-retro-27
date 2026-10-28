@@ -280,7 +280,7 @@ window.RUT = window.RUT || {};
   /* ------------------------------ Player --------------------------------- */
   function makePlayer(card, team, slot, rng, troles, fpos) {
     const s = card.sub, ps = new Set(card.playStyles);
-    const pf = {}; card.playStyles.forEach(n => { pf[n.replace(/\+$/, '')] = /\+$/.test(n) ? 1.5 : 0.55; });
+    const pf = {}; card.playStyles.forEach(n => { pf[n.replace(/\+$/, '')] = /\+$/.test(n) ? 1.95 : 0.55; });
     const gt = RUT.GT ? RUT.GT.of(card) : [];
     if (card.position === 'GK') { const gs = card.sub || {}, ga = ((gs.gkDiving || 0) + (gs.gkReflexes || 0) + (gs.gkPositioning || 0) + (gs.gkHandling || 0)) / 4; if (ga >= 90) { const gm = 1.4 + 0.04 * Math.min(9, ga - 90); Object.keys(pf).forEach(k => { pf[k] *= gm; }); } }   // v251 (JODIO): a 90+ keeper gets far more out of his PlayStyles (1.4x at 90, up to 1.76x at 99)   // v148: PlayStyle tier factor (Silver 0.55); v167 (JODIO): PlayStyle+ is 1.5, half as strong again as before
     const isGK = card.position === 'GK' || slot === 0;
@@ -3021,7 +3021,8 @@ window.RUT = window.RUT || {};
     if (p.dive) {
       p.dive.t += dt;
       if (p.dive.t > p.dive.react) {
-        const dy = p.dive.y - p.y, sp = 7 + 7 * nrm(s.gkDiving);
+        const dy = p.dive.y - p.y, sp = (7 + 7 * nrm(s.gkDiving)) * 1.3;   // v278 (JODIO): keeper dives 30% faster
+       
         p.diveMove = true; p.tx = 0; p.ty = Math.abs(dy) < 0.15 ? 0 : clamp(dy * 9, -sp, sp);
       } else { p.tx = 0; p.ty = 0; }
       if (p.dive.t > 1.0) p.dive = null;
@@ -3570,7 +3571,7 @@ window.RUT = window.RUT || {};
     if (!gk) return;                                                       // testing ground without a keeper
     const s = gk.card.sub;
     const diving = gk.dive && gk.dive.t > gk.dive.react, weak = this.gkWeak(gk);
-    const reach = -0.4 * weak + (gk.tr.has('stk') ? 0.25 : 0) + 1.5 + 1.5 * nrm(s.gkDiving) + 0.55 * (gk.pf['Far Reach'] || 0) + (diving ? 1.0 + 0.8 * nrm(s.gkDiving) : 0) + (b.shot && b.shot.fk ? 1.8 : 0) + (diving && b.z > 1.6 ? 0.6 : 0) + (clamp(((s.gkDiving || 0) + (s.gkReflexes || 0) + (s.gkPositioning || 0) + (s.gkHandling || 0)) / 4 - 89, 0, 10) / 10) * (0.8 + (diving ? 0.5 : 0));   // v251: a 90+ keeper reaches further and higher. v220 (JODIO): a high dive stretches further up into the top corners. v207: a free kick, set on his line: a fuller stretch. a full-stretch dive adds a body length
+    const reach = -0.4 * weak + (gk.tr.has('stk') ? 0.25 : 0) + 1.5 + 1.5 * nrm(s.gkDiving) + 0.55 * (gk.pf['Far Reach'] || 0) + (diving ? (1.0 + 0.8 * nrm(s.gkDiving)) * 1.3 : 0) + (b.shot && b.shot.fk ? 1.8 : 0) + (diving && b.z > 1.6 ? 0.6 : 0) + (clamp(((s.gkDiving || 0) + (s.gkReflexes || 0) + (s.gkPositioning || 0) + (s.gkHandling || 0)) / 4 - 89, 0, 10) / 10) * (0.8 + (diving ? 0.5 : 0));   // v251: a 90+ keeper reaches further and higher. v220 (JODIO): a high dive stretches further up into the top corners. v207: a free kick, set on his line: a fuller stretch. a full-stretch dive adds a body length
     if (dist(gk, b) > reach || b.z > GOAL_H + 0.4 + 0.5 * clamp(((s.gkDiving || 0) + (s.gkReflexes || 0)) / 2 - 89, 0, 10) / 10) return;
     b.shot.saveChecked = true;
     const sp = len(b.vx, b.vy);
@@ -5565,11 +5566,12 @@ void main(){
 
   /* ---------------------------- v251 GAMETRAITS --------------------------- */
   const gtLv = (p, k) => { if (!p || !p.gt) return 0; for (let i = 0; i < p.gt.length; i++) if (p.gt[i].k === k) return p.gt[i].lv; return 0; };
-  const GT98 = 0.98, GTP = lv => (lv > 1 ? 0.99 : GT98);   // v259 (JODIO): a normal Gametrait 98%, a Gametrait+ 99%
+  const GT98 = 0.98, GTP = lv => (lv > 1 ? 0.993 : GT98);   // v259 (JODIO): a normal Gametrait 98%, a Gametrait+ 99%
   // v254 (JODIO):   // v254 (JODIO): a Gametrait does what it promises 98% of the time
   P.gtPop = function (p, k) { if (this.headless || !p.gt) return; const lv = gtLv(p, k); if (lv && (!p.gtOn || p.gtOn.k !== k || this.t - p.gtOn.t0 > 1.6)) p.gtOn = { k, lv, t0: this.t }; };
   /** cooldown gate: true when the trait may fire now, and starts its cooldown */
-  P.gtGo = function (p, k, cd) { const c = p._gtc || (p._gtc = {}); if ((c[k] || 0) > this.t) return false; c[k] = this.t + cd; return true; };
+  P.gtGo = function (p, k, cd) { const c = p._gtc || (p._gtc = {}); if ((c[k] || 0) > this.t) return false; c[k] = this.t + cd / (gtLv(p, k) > 1 ? 1.3 : 1);   // v278 (JODIO): Gametrait+ 30% stronger, comes round 30% sooner
+       return true; };
   /** after a Gametrait tackle: if he did not get the ball, the trait still wins it 98% of the time */
   P.gtWin = function (p, car, lv) { const b = this.ball; if (b.owner === car && dist(p, car) < 3.8 && this.rng() < GTP(lv)) { car.cool.stun = Math.max(car.cool.stun, 0.4); this.giveBall(p); } };
   /** the man on the ball: his traits run BEFORE the AI thinks, so a Time Finisher shoots before the AI would pass or dribble */
