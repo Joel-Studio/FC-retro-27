@@ -86,11 +86,11 @@ window.RUT = window.RUT || {};
       const raw = store.get(LEGACY + u.ns) || '', mt = +(store.get('rut_mt' + u.ns) || Date.now());
       if (this.last === u.id + ':' + mt) return true;
       const h = await this.head(u.id), base = +(store.get('rut_base' + u.ns) || 0);
-      if (h && h.hash === u.hash && (base ? h.savedAt !== base : h.savedAt > mt)) return false;   // another device uploaded since this one last synced: don't overwrite it, the next login takes it
+      if (!this.force && h && h.hash === u.hash && (base ? h.savedAt !== base : h.savedAt > mt) && !(mt > base && mt > h.savedAt)) return false;   // v240: newer play on this device (online or offline) is never dropped   // another device uploaded since this one last synced: don't overwrite it, the next login takes it
       const t = await this.pack(raw), CH = 150000, n = Math.max(1, Math.ceil(t.length / CH));
       for (let i = 0; i < n; i++) await this.timeout(db.doc('rut_saves/' + this.key(u.id) + '_' + i).set({ d: t.slice(i * CH, (i + 1) * CH) }), 20000);
       await this.timeout(db.doc('rut_clubs/' + this.key(u.id)).set({ id: u.id, name: u.name, salt: u.salt, hash: u.hash, created: u.created, savedAt: mt, n, len: raw.length }), 20000);
-      this.last = u.id + ':' + mt; store.set('rut_base' + u.ns, String(mt)); this.err = null; return true;
+      this.last = u.id + ':' + mt; store.set('rut_base' + u.ns, String(mt)); this.err = null; this.force = false; return true;
     },
     schedule() {
       if (!Auth.user) return; clearTimeout(this.timer);
@@ -138,8 +138,8 @@ window.RUT = window.RUT || {};
     async cloudSync(acc) {
       const h = await cloud.head(acc.id); if (!h) { cloud.schedule(); return 'up'; }
       const mt = +(store.get('rut_mt' + acc.ns) || 0), base = +(store.get('rut_base' + acc.ns) || 0);
-      if ((base ? h.savedAt !== base : h.savedAt > mt) && h.hash === acc.hash) {                  // the cloud copy was uploaded by another device since this one last synced: it wins
-        const save = await cloud.fetchSave(h); if (save) { store.set(LEGACY + acc.ns, save); store.set('rut_mt' + acc.ns, String(h.savedAt)); store.set('rut_base' + acc.ns, String(h.savedAt)); cloud.last = acc.id + ':' + h.savedAt; return 'down'; } }
+      if ((base ? h.savedAt !== base : h.savedAt > mt) && h.hash === acc.hash && !(mt > base && mt > h.savedAt)) {   // the cloud copy is newer than anything played here: it wins (v240: unsynced newer play here, e.g. offline, wins instead)
+        const save = await cloud.fetchSave(h); if (save) { const cur = store.get(LEGACY + acc.ns); if (cur) store.set('rut_bak' + acc.ns, cur); /* v240: the replaced save is kept as a backup */ store.set(LEGACY + acc.ns, save); store.set('rut_mt' + acc.ns, String(h.savedAt)); store.set('rut_base' + acc.ns, String(h.savedAt)); cloud.last = acc.id + ':' + h.savedAt; return 'down'; } }
       else cloud.schedule();
       return 'same';
     },
@@ -158,6 +158,9 @@ window.RUT = window.RUT || {};
       const S = RUT.State;   // only a real change moves the save stamp, so a plain page load never beats a newer cloud save
       if (S && S.save && !S._cw) { const o = S.save; S._cw = 1; S.save = function (quiet) { const k = LEGACY + Auth.ns, before = store.get(k); const r = o.apply(this, arguments); if (!quiet && store.get(k) !== before) { store.set('rut_mt' + Auth.ns, String(Date.now())); cloud.schedule(); } return r; }; }
       try { window.addEventListener('pagehide', () => { if (Auth.user) cloud.flush(); }); } catch (e) { /* ignore */ }
+      if (!this._retry) { this._retry = 1;   // v240: progress made offline is uploaded as soon as the connection is back
+        const again = () => { const u = Auth.user; if (u && store.get('rut_mt' + u.ns) !== store.get('rut_base' + u.ns)) cloud.schedule(); };
+        try { window.addEventListener('online', again); } catch (e) { /* ignore */ } setInterval(again, 60000); }
     },
     /** v116: the accounts on THIS device, with a few numbers from each save (never the password or its hash). */
     list() {

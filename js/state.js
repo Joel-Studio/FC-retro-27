@@ -127,7 +127,8 @@ window.RUT = window.RUT || {};
 
     save() {
       this.trimUnassigned();
-      try { localStorage.setItem(KEY, JSON.stringify(this.data)); } catch (e) { console.warn('Save failed', e); }
+      try { localStorage.setItem(KEY, JSON.stringify(this.data)); this._saveErr = 0; } catch (e) { console.warn('Save failed', e);   // v240: never lose progress silently
+        if (!this._saveErr && RUT.toast) RUT.toast('Could not save on this device (storage full or blocked). Your cloud save is still kept.', 'bad'); this._saveErr = 1; }
     },
 
     reset() {

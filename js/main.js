@@ -162,7 +162,7 @@
     difficulty: 'pro', halfSeconds: 90, style: 'balanced', oppStyle: 'auto',
     match: null, pitch: 'huge', online: null,
   };
-  window.App = App; // handy for debugging / tests
+  window.App = App; RUT.toast = toast; // handy for debugging / tests
 
   /* ------------------------------ settings ------------------------------ */
   // every game option in one place; saved in this browser and applied at start-up
