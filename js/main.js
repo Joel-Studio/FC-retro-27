@@ -247,7 +247,7 @@
   /* v210 (JODIO): "play this club on another site" with the club carried over. A website opens already logged in (#rut= link); the Claude page
      cannot read a link, so the code is copied as well and one paste on its login screen ("Paste my club") brings the club in. */
   const SITES = [
-    { k: 'netlify', name: 'Netlify', url: 'https://fc-retro-27.netlify.app/', here: () => /netlify\.app$/.test(location.hostname) },     // v214 (JODIO): Netlify is the only other site
+    { k: 'vercel', name: 'Vercel', url: 'https://fc-retro-27.vercel.app/', here: () => /vercel\.app$/.test(location.hostname) },     // v237 (JODIO): Vercel replaces Netlify as the transfer site
   ];
   /* v222 (JODIO): the transfer button is a plain link that already carries the club (#rut=...), so the browser opens it like any link:
      no pop-up blocker, no "allow pop-ups" message. The code is refreshed after each render, every 10 s and when the pointer reaches the button. */
@@ -3532,7 +3532,7 @@
     if (tab && tab.dataset.train) { $('#tabs').classList.remove('open'); startTraining(); return; }
     if (tab) { if (tab.dataset.mt) App.marketTab = tab.dataset.mt; if (tab.dataset.view === 'top5') App.t5tab = tab.dataset.t5 || 'lg'; $('#tabs').classList.remove('open'); setView(tab.dataset.view); return; }
     const sg = e.target.closest('a.site-go');
-    if (sg) { toast(sg.dataset.ready ? 'Opening your club on Netlify in a new tab...' : 'Opening Netlify. If your club is not there, use Settings > Account > Show transfer code.', 'good'); return; }   // v222: the browser follows the link itself
+    if (sg) { toast(sg.dataset.ready ? 'Opening your club on Vercel in a new tab...' : 'Opening Vercel. If your club is not there, use Settings > Account > Show transfer code.', 'good'); return; }   // v222: the browser follows the link itself
     const el = e.target.closest('[data-act]');
     if (!el) return;
     const fn = ACTIONS[el.dataset.act];
