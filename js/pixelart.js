@@ -911,24 +911,33 @@ window.RUT = window.RUT || {};
     const px_ = -dy / dl, py_ = dx / dl, c = Math.cos(yaw), sn = Math.sin(yaw), r = (a + b + 1) * s;
     const x0 = Math.max(0, Math.floor(Math.min(ax, tx) - r)), x1 = Math.min(W - 1, Math.ceil(Math.max(ax, tx) + r));
     const y0 = Math.max(0, Math.floor(Math.min(ay, ty) - r)), y1 = Math.min(H - 1, Math.ceil(Math.max(ay, ty) + r));
+    // v272 (JODIO: "don't make the model blocky"): the cross-section is a rounded rectangle; its visible depth, surface point and normal are tabled once per lateral position
+    const rr = Math.min(a, b) * 0.62, A = a - rr, Bz = b - rr, K = Math.max(1, s * 2), span = a + b + 1, N = Math.ceil(span * 2 * K) + 2;
+    const lutD = new Float32Array(N).fill(-1e9), lutX = new Float32Array(N), lutZ = new Float32Array(N), lutNx = new Float32Array(N), lutNz = new Float32Array(N);
+    const poly = [];
+    [[1, 1, 0], [-1, 1, 1], [-1, -1, 2], [1, -1, 3]].forEach(([sx_, sz_, q]) => { for (let k = 0; k <= 6; k++) { const th = (q + k / 6) * Math.PI / 2; poly.push([sx_ * A + rr * Math.cos(th), sz_ * Bz + rr * Math.sin(th), Math.cos(th), Math.sin(th)]); } });
+    for (let i = 0; i < poly.length; i++) {
+      const p0 = poly[i], p1 = poly[(i + 1) % poly.length], l0 = p0[0] * c + p0[1] * sn, l1 = p1[0] * c + p1[1] * sn;
+      const i0 = Math.floor((Math.min(l0, l1) + span) * K), i1 = Math.ceil((Math.max(l0, l1) + span) * K);
+      for (let j = Math.max(0, i0); j <= Math.min(N - 1, i1); j++) {
+        const lat = j / K - span, u = Math.abs(l1 - l0) < 1e-6 ? 0.5 : (lat - l0) / (l1 - l0);
+        if (u < -0.001 || u > 1.001) continue;
+        const x = p0[0] + (p1[0] - p0[0]) * u, z = p0[1] + (p1[1] - p0[1]) * u, d = -x * sn + z * c;
+        if (d > lutD[j]) { lutD[j] = d; lutX[j] = x; lutZ[j] = z; lutNx[j] = p0[2] + (p1[2] - p0[2]) * u; lutNz[j] = p0[3] + (p1[3] - p0[3]) * u; }
+      }
+    }
+    const sm = smoothL; smoothL = true;
     for (let py = y0; py <= y1; py++) for (let px = x0; px <= x1; px++) {
       const qx = px + 0.5 - ax, qy = py + 0.5 - ay, t = (qx * dx + qy * dy) / dd;
       if (t < 0 || t > 1) continue;
-      let ea = a, eb = b;
-      if (bev) { const e = Math.min(t, 1 - t) * len, k = 1 - clamp((bev - e) / bev, 0, 1) * 0.2; ea *= k; eb *= k; }
-      const sx = (qx * px_ + qy * py_) / s;
-      let best = -1e9, bx = 0, bz = 0, nx = 0, nz = 1;
-      if (c > 0.02) { const x = (sx - eb * sn) / c; if (Math.abs(x) <= ea) { const d = -x * sn + eb * c; if (d > best) { best = d; bx = x; bz = eb; nx = 0; nz = 1; } } }
-      if (Math.abs(sn) > 0.02) for (const sg of [1, -1]) {
-        if (-sg * sn <= 0) continue;
-        const z = (sx - sg * ea * c) / sn;
-        if (Math.abs(z) <= eb) { const d = -sg * ea * sn + z * c; if (d > best) { best = d; bx = sg * ea; bz = z; nx = sg; nz = 0; } }
-      }
-      if (best < -1e8) continue;
-      const n = vnorm(V(nx * c + nz * sn, t > 0.94 ? 0.6 : (t < 0.04 ? -0.3 : 0), -nx * sn + nz * c));
-      const lat = Math.min(1, Math.abs(bx) / (ea || 1));   // v267: soft light like the Roblox render: lighter up high, darker toward the sides and the bottom
-      plot(R, py * W + px, mix(base.z, top.z, t) + best, colorAt(bx, bz, t), band(n) * (0.95 + 0.1 * t - (nx ? 0.04 : 0) * lat), id);
+      const sx = (qx * px_ + qy * py_) / s, j = Math.round((sx + span) * K);
+      if (j < 0 || j >= N || lutD[j] < -1e8) continue;
+      let sh = 1;
+      if (bev) { const e = Math.min(t, 1 - t) * len; if (e < bev) { const k = (bev - e) / bev; if (Math.abs(sx) / (a + 0.001) > Math.sqrt(1 - k * k * 0.6)) continue; sh = 1 - k * 0.12; } }
+      const nx = lutNx[j], nz = lutNz[j], n = vnorm(V(nx * c + nz * sn, t > 0.94 ? 0.5 : (t < 0.06 ? -0.35 : 0), -nx * sn + nz * c));
+      plot(R, py * W + px, mix(base.z, top.z, t) + lutD[j], colorAt(lutX[j], lutZ[j], t), band(n) * sh * (0.95 + 0.1 * t), id);
     }
+    smoothL = sm;
   }
 
   /** Hair coverage: the scalp is hair above this height (local unit sphere), by how far round the head we are. */
