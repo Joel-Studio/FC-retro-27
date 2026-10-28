@@ -4334,9 +4334,9 @@ void main(){
       const o = p.gtOn; if (!o) continue;
       const age = this.t - o.t0; if (age > 1.5) { p.gtOn = null; continue; }
       const fade = age > 1.1 ? Math.max(0, 1 - (age - 1.1) / 0.4) : 1, pop = Math.min(1, age * 8);
-      const s = proj(p.x, p.y, 1.6), sz = Math.max(14, Math.round(s.k * 1.7 / ZOOM * (0.7 + 0.3 * pop))), x = Math.round(s.x + sz * 0.7), y = Math.round(s.y - sz * 0.5);
+      const s = proj(p.x, p.y, 1.6), sz = Math.max(9, Math.round(s.k * 0.95 / ZOOM * (0.7 + 0.3 * pop))), x = Math.round(s.x + sz * 0.8), y = Math.round(s.y - sz * 0.5);
       ctx.globalAlpha = fade; ctx.drawImage(RUT.GT.canvas(o.k, o.lv > 1), x, y, sz, sz);
-      { const fs = Math.max(8, Math.round(sz * 0.32)), label = RUT.GT.BY[o.k].name.toUpperCase() + (o.lv > 1 ? '+' : '');
+      { const fs = Math.max(6, Math.round(sz * 0.36)), label = RUT.GT.BY[o.k].name.toUpperCase() + (o.lv > 1 ? '+' : '');
         ctx.font = `800 ${fs}px Barlow, 'Arial Narrow', sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
         ctx.lineWidth = Math.max(2, fs * 0.28); ctx.strokeStyle = 'rgba(0,0,0,.85)'; ctx.strokeText(label, x + sz + 3, y + sz / 2); ctx.fillStyle = '#ff7b6e'; ctx.fillText(label, x + sz + 3, y + sz / 2); ctx.textBaseline = 'alphabetic'; }
       ctx.globalAlpha = 1;

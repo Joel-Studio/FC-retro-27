@@ -1172,6 +1172,14 @@ window.RUT = window.RUT || {};
   const AWARD_IDS = AWARDS.map(a => { const c = players.find(x => x.name === a[0]); return c && c.id; });
   const bdorRating = rank => (rank === 1 ? 96 : rank <= 3 ? 95 : rank <= 10 ? 94 : rank <= 20 ? 93 : rank <= 30 ? 92 : 94);   // v165: rank 31 = honorable mention (Ronaldo, 94)
   const clBoost = {};   // baseId -> CL promo boost in percent (cl.js fills it before the cards are registered)
+  /** v255 (JODIO): Nations League boost and rating cap by the country's finish (js/nl_data.js). A nation without a rank keeps the old +3% (+5% for the Player of the Month) and cap 92. */
+  function nlTier(nat, extra) {
+    const N = RUT.NL_DATA || {}, fin = /final/i.test(N.stage || '') && !/league phase|knockout|quarter|semi/i.test(N.stage || '');
+    let r = N.rank && N.rank[nat]; if (!r) return { pct: 3 + extra, cap: 92 };
+    if (r === 1 && !fin) r = 2;
+    const t = r === 1 ? [7, 97] : r === 2 ? [6, 95] : r === 3 ? [5.5, 94] : r === 4 ? [5, 93] : r <= 8 ? [4, 92] : r <= 12 ? [3, 91] : [2.5, 90];
+    return { pct: t[0] + extra, cap: t[1] };
+  }
   function registerPromoRaw(baseId, promo, boost, newId) {
     const base = byId[baseId];
     if (!base) return null;
@@ -1205,9 +1213,9 @@ window.RUT = window.RUT || {};
       byId[id] = card; all.push(card); return card;
     }
     if (promo === 'nlstar') {
-      const up = v => clamp(Math.round(v * 1.03), 1, 99), face = {}, sub = {};
+      const nt = nlTier(base.nation, 0), up = v => clamp(Math.round(v * (1 + nt.pct / 100)), 1, 99), face = {}, sub = {};
       Object.keys(base.face).forEach(k => { face[k] = up(base.face[k]); }); Object.keys(base.sub).forEach(k => { sub[k] = up(base.sub[k]); });
-      const rating = Math.min(92, up(base.rating)), nw = newStylesFor(base, sub);
+      const rating = Math.min(nt.cap, up(base.rating)), nw = newStylesFor(base, sub);
       const card = Object.assign({}, base, { id, rating, rarity: 'promo', promo, face, sub, rare: true, baseId, playStyles: psGate(rating, sub, base.playStyles.concat(nw ? [nw] : []), base.playStyles, 2) });
       card.value = roundToIncrement(valuation(card.rating, face, card.playStyles, card.position, true) * 1.4);
       byId[id] = card; all.push(card);
@@ -1223,9 +1231,9 @@ window.RUT = window.RUT || {};
       return card;
     }
     if (promo === 'nlpofm') {
-      const up = v => clamp(Math.round(v * 1.05), 1, 99), face = {}, sub = {};
+      const nt = nlTier(base.nation, 2), up = v => clamp(Math.round(v * (1 + nt.pct / 100)), 1, 99), face = {}, sub = {};
       Object.keys(base.face).forEach(k => { face[k] = up(base.face[k]); }); Object.keys(base.sub).forEach(k => { sub[k] = up(base.sub[k]); });
-      const rating = Math.min(92, up(base.rating)), news = NLPOFM[baseId] || [];
+      const rating = Math.min(nt.cap, up(base.rating)), news = NLPOFM[baseId] || [];
       const card = Object.assign({}, base, { id, rating, rarity: 'promo', promo, face, sub, rare: true, baseId, playStyles: psGate(rating, sub, news.concat(base.playStyles), news, 3) });
       card.value = roundToIncrement(valuation(card.rating, face, card.playStyles, card.position, true) * 1.4);
       byId[id] = card; all.push(card);
