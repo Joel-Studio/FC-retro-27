@@ -886,7 +886,7 @@ window.RUT = window.RUT || {};
       if (t < 0 || t > 1) continue;
       let a = mix(aB, aT, ease(Math.min(1, t * 1.6)));
       if (round && t > 0.84) a *= Math.sqrt(1 - Math.pow((t - 0.84) / 0.16, 2) * 0.55);   // rounded shoulders
-      if (round === 2 && t < 0.16) a *= Math.sqrt(1 - Math.pow((0.16 - t) / 0.16, 2) * 0.55);   // v267: the round head is rounded at the chin too
+      if (round === 2 && t < 0.3) a *= Math.sqrt(1 - Math.pow((0.3 - t) / 0.3, 2) * 0.62);   // v267: the round head is rounded at the chin too
       const sx = (qx * px_ + qy * py_) / s;
       const Rp = Math.sqrt(a * a * c * c + b * b * sn * sn);
       if (Math.abs(sx) > Rp) continue;
@@ -1045,7 +1045,7 @@ window.RUT = window.RUT || {};
 
     // ---- neck, head, hair shell, ears, nose, face
     capsule(R, J.neck, view(vadd(S.neck, V(0, B.neck + 0.9, 0))), 2.05, 2.05, () => sk, ID.head);
-    const fr = rng(L.fseed || 1), FV = { ex: 0.30 + fr() * 0.12, ey: -0.02 + fr() * 0.1, ew: 0.14 + fr() * 0.06, eh: 0.06 + fr() * 0.025, by: 0.24 + fr() * 0.08, bt: fr() * 0.16, bw: 0.034 + fr() * 0.034, mw: 0.18 + fr() * 0.09, lu: 0.04 + fr() * 0.03, ll: 0.055 + fr() * 0.04, my: -0.47 - fr() * 0.07, nw: 0.045 + fr() * 0.04, nrx: 0.9 + fr() * 0.5, nry: 0.9 + fr() * 0.4, hw: fr(), hh: fr(), jaw: 0.8 + fr() * 0.2 };   // v268: every player gets his own face proportions
+    const fr = rng(L.fseed || 1), FV = { ex: 0.30 + fr() * 0.12, ey: -0.02 + fr() * 0.1, ew: 0.14 + fr() * 0.06, eh: 0.06 + fr() * 0.025, by: 0.24 + fr() * 0.08, bt: fr() * 0.16, bw: 0.034 + fr() * 0.034, mw: 0.18 + fr() * 0.09, lu: 0.04 + fr() * 0.03, ll: 0.055 + fr() * 0.04, my: -0.47 - fr() * 0.07, nw: 0.045 + fr() * 0.04, nrx: 0.9 + fr() * 0.5, nry: 0.9 + fr() * 0.4, hw: fr(), hh: fr(), jaw: 0.64 + fr() * 0.18 };   // v268: every player gets his own face proportions
     const hc = J.headC, hr = r6 ? 5.85 + FV.hw * 0.9 : B.headR, hry = r6 ? B.headR * (0.94 + FV.hh * 0.14) : hr * 1.06;
     const hyaw = yaw + S.headYaw, hp = S.headPitch, ch = Math.cos(hyaw), sh = Math.sin(hyaw), cp = Math.cos(hp), sp = Math.sin(hp);
     const toLocal = n => { const lx = n.x * ch - n.z * sh, lz0 = n.x * sh + n.z * ch; return V(lx, n.y * cp + lz0 * sp, -n.y * sp + lz0 * cp); };
