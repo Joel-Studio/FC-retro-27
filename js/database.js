@@ -362,7 +362,7 @@ window.RUT = window.RUT || {};
     ['Harry Kane', 'Bayern', 'ENG', 'ST', 90, 68, 93, 85, 83, 47, 82, 'PS DB LB'],
     ['Jamal Musiala', 'Bayern', 'GER', 'CAM', 87, 82, 81, 80, 91, 59, 61, 'TE TR'],
     ['Joshua Kimmich', 'Bayern', 'GER', 'CDM', 88, 70, 74, 89, 84, 81, 74, 'PP LB'],
-    ['Michael Olise', 'Bayern', 'FRA', 'RW', 90, 90, 88, 89, 91, 42, 66, 'FS WP'],
+    ['Michael Olise', 'Bayern', 'FRA', 'RW', 90, 90, 88, 92, 91, 42, 66, 'FS WP'],
     ['Gregor Kobel', 'Dortmund', 'SUI', 'GK', 87, 85, 84, 80, 88, 50, 84, 'FR'],
     ['Manuel Neuer', 'Bayern', 'GER', 'GK', 86, 84, 85, 90, 86, 55, 86, 'FW'],
     ['Luis Díaz', 'Bayern', 'COL', 'LW', 88, 92, 82, 81, 90, 47, 72, 'QS TR'],
@@ -1273,9 +1273,15 @@ window.RUT = window.RUT || {};
   /** v226 (JODIO): face stat cap by OVR, 92 -> 95, 96 -> 98 (round(95 + (OVR-92)*0.75)). */
   function faceCap(r) { return clamp(Math.round(95 + (r - 92) * 0.75), 30, 99); }
   function capFace(c) { if (!c || !c.face) return c; const m = faceCap(c.rating); Object.keys(c.face).forEach(k => { if (c.face[k] > m) c.face[k] = m; }); return c; }
+  /** v251 (JODIO): every Olise card has pace = overall, shooting = overall - 2, passing = overall + 2 (the sub-stats move by the same amount) */
+  function oliseFix(c) {
+    const want = { pac: c.rating, sho: c.rating - 2, pas: Math.min(99, c.rating + 2) };
+    Object.keys(want).forEach(g => { const d = want[g] - c.face[g]; if (!d) return; c.face[g] = want[g]; (SUB_MAP[g] || []).forEach(k => { if (c.sub[k] != null) c.sub[k] = clamp(c.sub[k] + d, 1, 99); }); });
+  }
   function registerPromo(baseId, promo, boost, newId) {
     const card = registerPromoRaw(baseId, promo, boost, newId);
     if (card) capFace(card);
+    if (card && /Olise/.test(card.name)) oliseFix(card);
     if (card && !card.v157) { card.v157 = true; card.value = roundToIncrement(card.value * 1.3); }
     return card;
   }

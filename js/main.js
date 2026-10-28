@@ -103,7 +103,7 @@
       <div class="c-stats">${stats}</div>
       <div class="c-icons"><span class="c-flag" style="${flagCSS(c.nation)}"></span><span class="c-lg">${DB.LEAGUES[c.league].short}</span><span class="c-club" style="${clubCSS(c.club)}"></span></div>
       ${style ? `<div class="c-style" title="${esc(style.name)}">${esc(style.icon)}</div>` : ''}
-      ${!o.mini && RUT.PSIcon && c.playStyles && c.playStyles.some(n => /\+$/.test(n)) ? `<div class="c-ps">${c.playStyles.filter(n => /\+$/.test(n)).slice(0, 4).map(n => `<span class="ps gold" title="${esc(n)}"><img src="${RUT.PSIcon.url(n, true, frameOf(c) === 'cl' ? 'clpromo' : frameOf(c))}" alt="" draggable="false"></span>`).join('')}</div>` : ''}
+      ${!o.mini && RUT.GT && RUT.GT.of(c).length ? `<div class="c-gt">${RUT.GT.of(c).map(g => `<span class="gt" title="${esc(RUT.GT.BY[g.k].name + (g.lv > 1 ? '+' : ''))}"><img src="${RUT.GT.url(g.k, g.lv > 1)}" alt="" draggable="false"></span>`).join('')}</div>` : ''}${!o.mini && RUT.PSIcon && c.playStyles && c.playStyles.some(n => /\+$/.test(n)) ? `<div class="c-ps">${c.playStyles.filter(n => /\+$/.test(n)).slice(0, 4).map(n => `<span class="ps gold" title="${esc(n)}"><img src="${RUT.PSIcon.url(n, true, frameOf(c) === 'cl' ? 'clpromo' : frameOf(c))}" alt="" draggable="false"></span>`).join('')}</div>` : ''}
       ${o.tag ? `<div class="c-tag">${esc(o.tag)}</div>` : ''}${o.offpos ? '<div class="offpos">OUT OF POS</div>' : ''}${chem}
     </div>${C3D_LAYERS}</div>`;
   }

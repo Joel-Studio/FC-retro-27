@@ -281,6 +281,7 @@ window.RUT = window.RUT || {};
   function makePlayer(card, team, slot, rng, troles, fpos) {
     const s = card.sub, ps = new Set(card.playStyles);
     const pf = {}; card.playStyles.forEach(n => { pf[n.replace(/\+$/, '')] = /\+$/.test(n) ? 1.5 : 0.55; });
+    const gt = RUT.GT ? RUT.GT.of(card) : [];
     if (card.position === 'GK') { const gs = card.sub || {}, ga = ((gs.gkDiving || 0) + (gs.gkReflexes || 0) + (gs.gkPositioning || 0) + (gs.gkHandling || 0)) / 4; if (ga >= 90) { const gm = 1.4 + 0.04 * Math.min(9, ga - 90); Object.keys(pf).forEach(k => { pf[k] *= gm; }); } }   // v251 (JODIO): a 90+ keeper gets far more out of his PlayStyles (1.4x at 90, up to 1.76x at 99)   // v148: PlayStyle tier factor (Silver 0.55); v167 (JODIO): PlayStyle+ is 1.5, half as strong again as before
     const isGK = card.position === 'GK' || slot === 0;
     // role play (js/roles.js): his traits with the role of his pitch slot layered on top (a chosen role on the card, else the best fit)
@@ -297,7 +298,7 @@ window.RUT = window.RUT || {};
     // defending catch-up: while chasing a ball carrier, pace counts as 85/80 (x1.0625) of the defender's own stat, so 80 pace can run down 85 pace, 70 can run down 74.4, 90 down 95.6
     const A80 = 4.5 + 15 * Math.pow(n(80), 1.1), defK = isGK ? 1 : spd(Math.min(99, (s.sprintSpeed == null ? 55 : s.sprintSpeed) * 1.0625)) / spd(s.sprintSpeed);
     return {
-      defK, card, team, slot, isGK, ps, pf, fpos: rpos, name: card.name.split(' ').slice(-1)[0].toUpperCase(),
+      defK, card, team, slot, isGK, ps, pf, gt, fpos: rpos, name: card.name.split(' ').slice(-1)[0].toUpperCase(),
       iq: clamp((card.rating - 60) / 30, -0.25, 1.15) + (role && role.fc && RUT.roleFam ? [-0.04, 0.04, 0.08][RUT.roleFam(card, role.key, rpos)] : 0),   // football brain from OVR: 60 → 0 (weak decisions), 90 → 1 (smart); v210: FC 27 role familiarity ++ / + reads the game better, no + a little worse
       x: 0, y: 0, vx: 0, vy: 0, fx: team === 0 ? 1 : -1, fy: 0,
       sprintMax: isGK ? (5.4 + 2.2 * n(s.speed)) * PACE : sprint, jogMax: (isGK ? (5.4 + 2.2 * n(s.speed)) * PACE : sprint) * 0.64,
@@ -320,7 +321,7 @@ window.RUT = window.RUT || {};
     const old = this.players.find(p => p.team === team && p.slot === slot && !p.dummy); if (!old || !card) return false;
     const fk = this.tac[team].formKey, fresh = makePlayer(card, team, slot, this.rng, this.tac[team].roles, fk && RUT.State.FORMS[fk] ? RUT.State.FORMS[fk].pos : null);
     const out = old.card;
-    ['defK', 'card', 'isGK', 'ps', 'pf', 'fpos', 'name', 'iq', 'sprintMax', 'jogMax', 'accel', 'turnAcc', 'agil', 'mass', 'tr', 'role', 'order'].forEach(k => { old[k] = fresh[k]; });
+    ['defK', 'card', 'isGK', 'ps', 'pf', 'gt', 'fpos', 'name', 'iq', 'sprintMax', 'jogMax', 'accel', 'turnAcc', 'agil', 'mass', 'tr', 'role', 'order'].forEach(k => { old[k] = fresh[k]; });
     old.stamina = 100; old.mood = 1; old._look = null; old.dive = null;
     this.subs = this.subs || [0, 0]; this.subs[team]++;
     this.log && this.log.push && this.log.push({ t: this.t, type: 'sub', team, out: out.name, in: card.name });
@@ -1516,6 +1517,7 @@ window.RUT = window.RUT || {};
     });
     this.integratePlayers(dt, false);
     this.psTick();
+    this.gtStep(dt);
     this.collidePlayers(dt);
     this.enforceSet(dt);
     this.updateBall(dt);
@@ -3545,6 +3547,7 @@ window.RUT = window.RUT || {};
     if (b.shot.bk) p -= 0.3;                                                  // an 85+ finisher in the box places it
     if (b.shot.fe) p -= 0.22 * b.shot.fe;                                     // v128 finisher edge
     if (b.shot.pen && gk.tr.has('pks')) p += 0.12;                           // penalty specialists
+    { const rw = gtLv(gk, 'wall'); if (rw) { p += 0.07 + 0.09 * rw; this.gtPop(gk, 'wall'); } }   // v251 Reflex Wall
     if (shooterDist < 14) p += 0.1 * (gk.pf['Footwork'] || 0) + 0.06 * (gk.pf['1v1 Close Down'] || 0);
     if (b.trailType === 'power') p -= 0.08;
     if (b.trailType === 'finesse') p -= 0.05;
@@ -3689,6 +3692,7 @@ window.RUT = window.RUT || {};
         // cutting out a pass is hard: only a 90+ Interceptions player reads and reaches it like a specialist (Intercept+ counts as +20)
         const ic = clamp(((s.interceptions || 60) + 20 * (p.pf['Intercept'] || 0) - 60) / 30, 0, 1);
         if (b.passTo && b.passTo.p !== p && !b.shot) r *= (0.14 + 0.86 * ic * ic) * 0.9 * (1 + IC_PSC * (PSC - 1));
+        if (b.passTo && b.passTo.p !== p && !b.shot) { const lc = gtLv(p, 'lane'); if (lc) { r *= 1 + 0.5 * lc; this.gtPop(p, 'lane'); } }
         r += 0.2 * ic; r *= 0.78;                                          // v184 (JODIO): shorter interception reach
         if (!p.isGK && sp > 3 && ((b.x - p.x) * b.vx + (b.y - p.y) * b.vy) > 0) return;   // v184: a ball already past him (moving away) can't be cut out from behind
         if (b.passTo && b.passTo.p !== p && !b.shot && b.passTo.hv && b.z > 0.5) r *= 0.6;   // v149: a lofted long ball from a human's power bar is much harder to cut out
@@ -3710,6 +3714,7 @@ window.RUT = window.RUT || {};
     const p = best;
     // a shot on goal can't be "picked up" by the goalkeeper here; checkSave handles keepers
     if (b.shot && p.isGK && p.team !== b.shot.team && !b.shot.saveChecked) return;
+    if (b.sure && b.passTo && !b.shot && b.passTo.p && p.team !== b.passTo.p.team) return;   // v251 Perfect Pass: nobody cuts it out
     const opp = b.last && b.last.team !== p.team;
     // fast balls may squirm loose depending on control
     if (sp > fastAt2(this.ball, p) && !p.isGK) {      // a fast ball: control it, or it bounces off the body
@@ -4321,6 +4326,18 @@ void main(){
         ctx.font = `800 ${fs}px Barlow, 'Arial Narrow', sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.lineJoin = 'round';
         ctx.lineWidth = Math.max(2, fs * 0.28); ctx.strokeStyle = 'rgba(0,0,0,.85)'; ctx.strokeText(label, Math.round(s.x), Math.round(s.y - sz - 1));
         ctx.fillStyle = '#ffe08a'; ctx.fillText(label, Math.round(s.x), Math.round(s.y - sz - 1)); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; }
+      ctx.globalAlpha = 1;
+    }
+    // ---- v251 Gametraits: a red round logo pops up to the RIGHT of the player doing it
+    if (RUT.GT && this.phase !== 'replay') for (const p of this.players) {
+      const o = p.gtOn; if (!o) continue;
+      const age = this.t - o.t0; if (age > 1.5) { p.gtOn = null; continue; }
+      const fade = age > 1.1 ? Math.max(0, 1 - (age - 1.1) / 0.4) : 1, pop = Math.min(1, age * 8);
+      const s = proj(p.x, p.y, 1.6), sz = Math.max(14, Math.round(s.k * 1.7 / ZOOM * (0.7 + 0.3 * pop))), x = Math.round(s.x + sz * 0.7), y = Math.round(s.y - sz * 0.5);
+      ctx.globalAlpha = fade; ctx.drawImage(RUT.GT.canvas(o.k, o.lv > 1), x, y, sz, sz);
+      { const fs = Math.max(8, Math.round(sz * 0.32)), label = RUT.GT.BY[o.k].name.toUpperCase() + (o.lv > 1 ? '+' : '');
+        ctx.font = `800 ${fs}px Barlow, 'Arial Narrow', sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+        ctx.lineWidth = Math.max(2, fs * 0.28); ctx.strokeStyle = 'rgba(0,0,0,.85)'; ctx.strokeText(label, x + sz + 3, y + sz / 2); ctx.fillStyle = '#ff7b6e'; ctx.fillText(label, x + sz + 3, y + sz / 2); ctx.textBaseline = 'alphabetic'; }
       ctx.globalAlpha = 1;
     }
     // ---- floating effects: dust, text, cards
@@ -5508,6 +5525,92 @@ void main(){
     });
     return { name: d.name, short: d.name.split(' ')[0], cards };
   }
+
+
+  /* ---------------------------- v251 GAMETRAITS --------------------------- */
+  const gtLv = (p, k) => { if (!p || !p.gt) return 0; for (let i = 0; i < p.gt.length; i++) if (p.gt[i].k === k) return p.gt[i].lv; return 0; };
+  P.gtPop = function (p, k) { if (this.headless || !p.gt) return; const lv = gtLv(p, k); if (lv && (!p.gtOn || p.gtOn.k !== k || this.t - p.gtOn.t0 > 1.6)) p.gtOn = { k, lv, t0: this.t }; };
+  /** cooldown gate: true when the trait may fire now, and starts its cooldown */
+  P.gtGo = function (p, k, cd) { const c = p._gtc || (p._gtc = {}); if ((c[k] || 0) > this.t) return false; c[k] = this.t + cd; return true; };
+  P.gtStep = function (dt) {
+    if (this.phase !== 'play' || this.sp || !RUT.GT) return;
+    const b = this.ball, car = b.owner;
+    if (car !== this._gtO) { this._gtO = car; this._gtT = this.t; if (b.sure) b.sure = false; }
+    const age = this.t - (this._gtT || 0);
+    if (b.sure && car) b.sure = false;
+    const heavy = this.tk % 3 === 0;
+    if (car && car._burst > this.t) { const sp = len(car.vx, car.vy), cap = (car.sprintMax || 8) * car._burstK; if (sp > 2 && sp < cap) { const k = 1 + 0.9 * dt * 1.2; car.vx *= k; car.vy *= k; } }
+    if (car && car.gt && car.gt.length && !car.isGK && !(car.cool.kick > 0)) this.gtOwner(car, age, heavy);
+    if (!heavy) return;
+    const dirOf = t => this.teams[t].dir;
+    this.players.forEach(p => {
+      if (!p.gt || !p.gt.length || p.dummy || p === car || this.ctlOf(p)) return;
+      const hasBall = car && car.team === p.team, dir = dirOf(p.team), gx = dir > 0 ? PITCH_W : 0;
+      let lv;
+      if ((lv = gtLv(p, 'charge')) && car && car.team !== p.team && !p.isGK) {
+        const d = dist(p, car), loose = dist(car, b) > 1.15 || age < 0.35;
+        if (d < 7 + 2 * lv && loose && p.cool.slide <= 0 && p.cool.tackle <= 0 && this.gtGo(p, 'charge', 2.4 - 0.4 * lv)) {
+          this.gtPop(p, 'charge'); p._go = { x: car.x, y: car.y, until: this.t + 0.8 };
+          if (d < 2.6 && this.rng() < 0.55 + 0.2 * lv) { p._gtSl = true; this.tackle(p, true); }
+        }
+        if (d < 2.6 && loose && p.cool.slide <= 0 && !p._gtSl && this.gtGo(p, 'charge2', 1.2)) { this.gtPop(p, 'charge'); this.tackle(p, true); }
+        p._gtSl = false;
+      }
+      if ((lv = gtLv(p, 'ditch')) && car && car.team !== p.team && this.isLastMan(p, car) && dist(p, car) < 3.4 && this.inBox(car, p.team) === false && p.cool.slide <= 0 && this.gtGo(p, 'ditch', 3)) { this.gtPop(p, 'ditch'); if (this.rng() < 0.5 + 0.25 * lv) this.tackle(p, true); }
+      if ((lv = gtLv(p, 'shadow')) && !hasBall && car && !p.isGK && this.tk % 6 === 0) {
+        let near = null, nd = 1e9; this.players.forEach(o => { if (o.team !== p.team && o !== car && !o.isGK && !o.dummy) { const d = dist(o, p); if (d < nd && d < 18) { nd = d; near = o; } } });
+        if (near) { this.gtPop(p, 'shadow'); const own = this.teams[p.team].dir > 0 ? 0 : PITCH_W; p._go = { x: near.x + (own - near.x) * (0.06 + 0.02 * lv), y: near.y + (PH2 - near.y) * 0.05, until: this.t + 0.6 }; }
+      }
+      if ((lv = gtLv(p, 'ghost')) && hasBall && !p.isGK && Math.abs(car.x - gx) > 30 && Math.abs(car.x - gx) < 70 && (p.x - car.x) * dir > -4 && this.gtGo(p, 'ghost', 5 - lv)) {
+        this.gtPop(p, 'ghost'); p._go = { x: clamp(gx - dir * (14 - 3 * lv), 4, PITCH_W - 4), y: clamp(p.y + (PH2 - p.y) * 0.35, 5, PITCH_H - 5), until: this.t + 2.2 };
+      }
+      if ((lv = gtLv(p, 'crash')) && hasBall && !p.isGK && Math.abs(car.x - gx) < 38 && Math.abs(car.y - PH2) > 14 && Math.abs(p.x - gx) > 14 && this.gtGo(p, 'crash', 5 - lv)) {
+        this.gtPop(p, 'crash'); p._go = { x: clamp(gx - dir * (9 + (lv > 1 ? 0 : 2)), 3, PITCH_W - 3), y: PH2 + (p.y > PH2 ? 4 : -4), until: this.t + 2.5 };
+      }
+      if ((lv = gtLv(p, 'sweep')) && p.isGK && !car && !b.shot && this.gtGo(p, 'sweep', 3)) {
+        const og = dir > 0 ? 0 : PITCH_W, bd = Math.abs(b.x - og);
+        if (bd < 24 + 4 * lv && bd > 9 && Math.abs(b.y - PH2) < 22 && !this.players.some(o => o.team === p.team && !o.isGK && dist(o, b) < dist(p, b))) {
+          const opp = this.players.some(o => o.team !== p.team && dist(o, b) < dist(p, b) - 2);
+          if (!opp || lv > 1) { this.gtPop(p, 'sweep'); p._go = { x: b.x, y: b.y, until: this.t + 1.2 }; }
+        }
+      }
+    });
+  };
+  /** traits of the man with the ball (any controller): they fire a moment after he receives it, on the first free moment */
+  P.gtOwner = function (p, age, heavy) {
+    if (!heavy || this.deferKick && false) return;
+    const b = this.ball, dir = this.teams[p.team].dir, gx = dir > 0 ? PITCH_W : 0, dg = dist(p, { x: gx, y: PH2 });
+    const opps = this.players.filter(o => o.team !== p.team && !o.isGK && !o.dummy);
+    const press = opps.reduce((m, o) => Math.min(m, dist(o, p)), 99);
+    let lv;
+    if ((lv = gtLv(p, 'timef')) && this.inBox(p, 1 - p.team) && age < 0.5 + 0.2 * lv && Math.abs(p.x - gx) < 14 && this.gtGo(p, 'timef', 2.5)) {
+      this.gtPop(p, 'timef'); this.shoot(p, 0, (lv > 1 ? 0.88 : 0.8) + this.rng() * 0.12, null, { auto: true, assist: lv > 1 ? 'full' : 'semi' }); return;
+    }
+    if ((lv = gtLv(p, 'range')) && dg > 18 && dg < 25 + 3 * lv && Math.abs(p.y - PH2) < 16 && !this.laneBlocked(p, { x: gx, y: PH2 }, true) && press > 3 && age > 0.15 && this.gtGo(p, 'range', 7 - lv)) {
+      this.gtPop(p, 'range'); this.shoot(p, 0, 0.85 + 0.1 * lv, null, { auto: true, assist: 'full', long: false }); return;
+    }
+    const mates = this.players.filter(o => o.team === p.team && o !== p && !o.isGK && !o.dummy);
+    if ((lv = gtLv(p, 'pincr')) && Math.abs(p.y - PH2) > PH2 * 0.55 && Math.abs(p.x - gx) < 34 && Math.abs(p.x - gx) > 8 && !this.inBox(p, 1 - p.team)) {
+      const tgt = mates.filter(o => this.inBox(o, 1 - p.team)).sort((a, c) => Math.abs(a.y - PH2) - Math.abs(c.y - PH2))[0];
+      if (tgt && age > 0.25 && this.gtGo(p, 'pincr', 6 - lv)) { this.gtPop(p, 'pincr'); this.pass(p, tgt, false, { lob: true, power: 0.8 }); if (lv > 1) b.sure = true; return; }
+    }
+    if ((lv = gtLv(p, 'perfp')) && press < 5 && age > 0.2) {
+      const fw = mates.filter(o => (o.x - p.x) * dir > 6 && dist(o, p) < 32 + 8 * lv && Math.abs(o.x - gx) > 4 && !this.laneBlocked(p, o, true)).sort((a, c) => Math.abs(c.x - gx) - Math.abs(a.x - gx)).reverse()[0];
+      if (fw && this.gtGo(p, 'perfp', 5 - lv)) { this.gtPop(p, 'perfp'); this.pass(p, fw, true, { power: 0.75 }); b.sure = true; return; }
+    }
+    if ((lv = gtLv(p, 'switch')) && press < 7 && age > 0.2) {
+      const far = mates.filter(o => Math.abs(o.y - p.y) > 24 && dist(o, p) > 26 && !opps.some(q => dist(q, o) < 7)).sort((a, c) => dist(a, p) - dist(c, p))[0];
+      if (far && this.gtGo(p, 'switch', 7 - lv)) { this.gtPop(p, 'switch'); this.pass(p, far, false, { power: 0.9, lob: true }); b.sure = true; return; }
+    }
+    if ((lv = gtLv(p, 'escape')) && press < 2.8 && age > 0.1 && p.cool.skillcd <= 0 && this.gtGo(p, 'escape', 4 - lv)) {
+      const o = opps.sort((a, c) => dist(a, p) - dist(c, p))[0];
+      if (o) { const dx = p.x - o.x, dy = p.y - o.y, l = Math.hypot(dx, dy) || 1; if (this.skill(p, 'roll', -dy / l, dx / l)) this.gtPop(p, 'escape'); }
+    }
+    if ((lv = gtLv(p, 'burst')) && press > 6 && !this.ctlOf(p) && this.gtGo(p, 'burst', 6 - lv)) {
+      const ahead = opps.every(o => !((o.x - p.x) * dir > 0 && (o.x - p.x) * dir < 18 && Math.abs(o.y - p.y) < 8));
+      if (ahead) { this.gtPop(p, 'burst'); p._burst = this.t + 0.9 + 0.5 * lv; p._burstK = 1 + 0.08 * lv; }
+    }
+  };
 
   RUT.Engine = { Match, simulate, boardSim, ORDERS, formSpots, BOARD_SCN, BOARD_OPP, applyCoach, QUICK, buildOpponent, DIFFICULTY, TACTIC_TRAITS, FC_BUILD, FC_DEF, FC_PRESETS, buildTactic, parseTactic, tacFix, tacSpec, TAC_MAXPTS, FORMATIONS, FORM_KEYS, VIEW_W, VIEW_H, OUT_W, OUT_H, PITCH_W, PITCH_H, PITCH_SIZES };
 })();
