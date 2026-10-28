@@ -976,6 +976,7 @@ window.RUT = window.RUT || {};
     }
     this.kick(p, Math.cos(ang2) * speed, Math.sin(ang2) * speed, vz, pspin, ptrail);
     this.ball.passTo = { p: target, x: tx, y: ty, hv: fixed };
+    if (pspin && !(cnC && cnC.spKnuckle)) { this.ball.sure = true; this.ball._sureT = 0; }   // v259 (JODIO): a curving pass (Whipped Pass+, Trivela / outside of the boot, curled corner) always goes to the player it was aimed at
     this.ball.cross = boxCross ? { p: target, x: tx, y: ty, t: this.t } : null;
     this.offsideSnapshot(p);
     this.stats.passes[p.team]++;
@@ -3716,7 +3717,7 @@ window.RUT = window.RUT || {};
     const p = best;
     // a shot on goal can't be "picked up" by the goalkeeper here; checkSave handles keepers
     if (b.shot && p.isGK && p.team !== b.shot.team && !b.shot.saveChecked) return;
-    if (b.sure && b.passTo && !b.shot && b.passTo.p && p.team !== b.passTo.p.team) return;   // v251 Perfect Pass: nobody cuts it out
+    if (b.sure && b.passTo && !b.shot && b.passTo.p && p !== b.passTo.p) return;   // v251 Perfect Pass: nobody cuts it out; v259 curving passes too, and no other team-mate steals it either
     const opp = b.last && b.last.team !== p.team;
     // fast balls may squirm loose depending on control
     if (sp > fastAt2(this.ball, p) && !p.isGK) {      // a fast ball: control it, or it bounces off the body
@@ -3756,7 +3757,7 @@ window.RUT = window.RUT || {};
   /** A ball that nobody controls still can't pass through bodies: it hits legs, chest or head and bounces off. */
   P.bodyHits = function () {
     const b = this.ball;
-    if (len(b.vx, b.vy) < 4 || b.shot) return;
+    if (len(b.vx, b.vy) < 4 || b.shot || (b.sure && b.passTo && b.passTo.p)) return;   // v259: a sure / curving pass flies past everyone but its man
     for (const p of this.players) {
       if (p === b.noPick || p.cool.stun > 0.5) continue;
       if (b.z > (p.cool.slide > 0 ? 0.6 : 1.85)) continue;
@@ -5531,12 +5532,13 @@ void main(){
 
   /* ---------------------------- v251 GAMETRAITS --------------------------- */
   const gtLv = (p, k) => { if (!p || !p.gt) return 0; for (let i = 0; i < p.gt.length; i++) if (p.gt[i].k === k) return p.gt[i].lv; return 0; };
-  const GT98 = 0.98;   // v254 (JODIO): a Gametrait does what it promises 98% of the time
+  const GT98 = 0.98, GTP = lv => (lv > 1 ? 0.99 : GT98);   // v259 (JODIO): a normal Gametrait 98%, a Gametrait+ 99%
+  // v254 (JODIO):   // v254 (JODIO): a Gametrait does what it promises 98% of the time
   P.gtPop = function (p, k) { if (this.headless || !p.gt) return; const lv = gtLv(p, k); if (lv && (!p.gtOn || p.gtOn.k !== k || this.t - p.gtOn.t0 > 1.6)) p.gtOn = { k, lv, t0: this.t }; };
   /** cooldown gate: true when the trait may fire now, and starts its cooldown */
   P.gtGo = function (p, k, cd) { const c = p._gtc || (p._gtc = {}); if ((c[k] || 0) > this.t) return false; c[k] = this.t + cd; return true; };
   /** after a Gametrait tackle: if he did not get the ball, the trait still wins it 98% of the time */
-  P.gtWin = function (p, car) { const b = this.ball; if (b.owner === car && dist(p, car) < 3.8 && this.rng() < GT98) { car.cool.stun = Math.max(car.cool.stun, 0.4); this.giveBall(p); } };
+  P.gtWin = function (p, car, lv) { const b = this.ball; if (b.owner === car && dist(p, car) < 3.8 && this.rng() < GTP(lv)) { car.cool.stun = Math.max(car.cool.stun, 0.4); this.giveBall(p); } };
   /** the man on the ball: his traits run BEFORE the AI thinks, so a Time Finisher shoots before the AI would pass or dribble */
   P.gtPre = function () {
     if (this.phase !== 'play' || this.sp || !RUT.GT) return;
@@ -5570,7 +5572,7 @@ void main(){
           this.gtPop(p, 'charge'); p._go = { x: car.x, y: car.y, until: this.t + 0.8 };
           if (d < 2.6) { p._gtSl = true; this.tackle(p, true); this.gtWin(p, car); }
         }
-        if (d < 2.6 && loose && p.cool.slide <= 0 && !p._gtSl && this.gtGo(p, 'charge2', 1.2)) { this.gtPop(p, 'charge'); this.tackle(p, true); this.gtWin(p, car); }
+        if (d < 2.6 && loose && p.cool.slide <= 0 && !p._gtSl && this.gtGo(p, 'charge2', 1.2)) { this.gtPop(p, 'charge'); this.tackle(p, true); this.gtWin(p, car, lv); }
         p._gtSl = false;
       }
       if ((lv = gtLv(p, 'ditch')) && car && car.team !== p.team && this.isLastMan(p, car) && dist(p, car) < 3.4 && this.inBox(car, p.team) === false && p.cool.slide <= 0 && this.gtGo(p, 'ditch', 3)) { this.gtPop(p, 'ditch'); this.tackle(p, true); this.gtWin(p, car); }
@@ -5609,16 +5611,16 @@ void main(){
     const mates = this.players.filter(o => o.team === p.team && o !== p && !o.isGK && !o.dummy);
     if ((lv = gtLv(p, 'pincr')) && Math.abs(p.y - PH2) > PH2 * 0.55 && Math.abs(p.x - gx) < 34 && Math.abs(p.x - gx) > 8 && !this.inBox(p, 1 - p.team)) {
       const tgt = mates.filter(o => this.inBox(o, 1 - p.team)).sort((a, c) => Math.abs(a.y - PH2) - Math.abs(c.y - PH2))[0];
-      if (tgt && age > 0.25 && this.gtGo(p, 'pincr', 6 - lv)) { this.gtPop(p, 'pincr'); this.pass(p, tgt, false, { lob: true, power: 0.8 }); b.sure = this.rng() < GT98; return; }
+      if (tgt && age > 0.25 && this.gtGo(p, 'pincr', 6 - lv)) { this.gtPop(p, 'pincr'); this.pass(p, tgt, false, { lob: true, power: 0.8 }); b.sure = this.rng() < GTP(lv); return; }
     }
     if ((lv = gtLv(p, 'perfp')) && press < 5 && age > 0.2) {
       const offL = opps.reduce((m, o) => Math.max(m, (o.x - gx) * -dir), -99) * -1 + 0 && opps.reduce((m, o) => Math.min(m, (gx - o.x) * dir), 99);   // distance of the deepest opponent from the attacked goal line
       const fw = mates.filter(o => (gx - o.x) * dir >= offL - 0.4 && Math.abs(o.y - PH2) < PH2 - 3 && (o.x - p.x) * dir > 6 && dist(o, p) < 32 + 8 * lv && Math.abs(o.x - gx) > 4 && !this.laneBlocked(p, o, true)).sort((a, c) => Math.abs(c.x - gx) - Math.abs(a.x - gx)).reverse()[0];
-      if (fw && this.gtGo(p, 'perfp', 11 - 2 * lv)) { this.gtPop(p, 'perfp'); this.pass(p, fw, true, { power: 0.75 }); b.sure = this.rng() < GT98; return; }
+      if (fw && this.gtGo(p, 'perfp', 11 - 2 * lv)) { this.gtPop(p, 'perfp'); this.pass(p, fw, true, { power: 0.75 }); b.sure = this.rng() < GTP(lv); return; }
     }
     if ((lv = gtLv(p, 'switch')) && press < 7 && age > 0.2) {
       const far = mates.filter(o => o.y > 6 && o.y < PITCH_H - 6 && o.x > 5 && o.x < PITCH_W - 5 && Math.abs(o.y - p.y) > 24 && dist(o, p) > 26 && !opps.some(q => dist(q, o) < 7)).sort((a, c) => dist(a, p) - dist(c, p))[0];
-      if (far && this.gtGo(p, 'switch', 12 - 2 * lv)) { this.gtPop(p, 'switch'); this.pass(p, far, false, { power: 0.9, lob: true }); b.sure = this.rng() < GT98; return; }
+      if (far && this.gtGo(p, 'switch', 12 - 2 * lv)) { this.gtPop(p, 'switch'); this.pass(p, far, false, { power: 0.9, lob: true }); b.sure = this.rng() < GTP(lv); return; }
     }
     if ((lv = gtLv(p, 'escape')) && press < 2.8 && age > 0.1 && p.cool.skillcd <= 0 && this.gtGo(p, 'escape', 4 - lv)) {
       const o = opps.sort((a, c) => dist(a, p) - dist(c, p))[0];

@@ -1177,6 +1177,16 @@ window.RUT = window.RUT || {};
     LW: 'idle_w', RW: 'idle_w', LM: 'idle_w', RM: 'idle_w', ST: 'idle_st', CF: 'idle_st', LF: 'idle_st', RF: 'idle_st', GK: 'gkready' };
   const idleFor = pos => IDLE_BY_POS[pos] || 'idle';
 
+  /** v259: a card pose picked from the player's name: [animation, time 0..1, view angle]. Keepers get keeper poses. */
+  const CARD_POSES_OUT = [['idle_st', 0.1, -0.45], ['celeb_wide', 0.55, -0.4], ['celeb_siu', 0.7, -0.45], ['shot', 0.4, -0.55], ['volley', 0.45, -0.5],
+    ['header', 0.5, -0.4], ['feint', 0.5, -0.45], ['step', 0.55, -0.45], ['shield', 0.5, -0.5], ['up', 0.25, -0.45], ['cross', 0.5, -0.45], ['trap', 0.5, -0.45], ['celeb_med', 0.5, -0.4],
+    ['pass', 0.45, -0.5], ['chest', 0.5, -0.45], ['celeb_dance', 0.4, -0.4], ['jog', 0.3, -0.5]];
+  const CARD_POSES_GK = [['gkready', 0.1, -0.45], ['save', 0.5, -0.45], ['cross', 0.5, -0.45], ['gkready', 0.6, -0.55]];
+  function cardPose(card) {
+    let h = 7; for (let i = 0; i < card.name.length; i++) h = (h * 31 + card.name.charCodeAt(i)) >>> 0;
+    const pool = card.position === 'GK' ? CARD_POSES_GK : CARD_POSES_OUT;
+    return pool[h % pool.length];
+  }
   const figCache = {};
   /** PNG data URL of a card's figure (used by main.js on cards): a three-quarter view, idle or a signature pose. 77 px, shown at 2x. */
   function cardFigure(card, pose) {
@@ -1184,8 +1194,9 @@ window.RUT = window.RUT || {};
     const key = card.name + '|' + card.club + '|' + card.position + '|' + (pose || 'idle');
     if (figCache[key]) return figCache[key];
     const L = lookFor(card.name, kit, card.position === 'GK', 0, { club: card.club, number: card.details && card.details.number, strength: card.sub && card.sub.strength });
-    const anim = pose === 'up' ? 'up' : pose === 'cross' ? 'cross' : idleFor(card.position);
-    return (figCache[key] = sprite(L, anim, anim === 'up' ? 0.25 : 0.1, -0.45, 77 * 2.5 / BASE).toDataURL());   // v164: drawn at 2.5x so the card shows a smooth figure, not big pixels
+    let anim = pose === 'up' ? 'up' : pose === 'cross' ? 'cross' : idleFor(card.position), t = anim === 'up' ? 0.25 : 0.1, yaw = -0.45;
+    if (!pose || pose === 'idle') { const pz = cardPose(card); anim = pz[0]; t = pz[1]; yaw = pz[2]; }   // v259 (JODIO): every player strikes his own pose on his card
+    return (figCache[key] = sprite(L, anim, t, yaw, 77 * 2.5 / BASE).toDataURL());   // v164: drawn at 2.5x so the card shows a smooth figure, not big pixels
   }
 
   RUT.PixelArt = { setHD: v => { HD = !!v; }, isHD: () => HD, idleFor, BASE, CLUB_KITS, FRAMES, lookFor, sprite, cardFigure, shade, lum };
