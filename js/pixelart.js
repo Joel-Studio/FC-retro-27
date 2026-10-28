@@ -826,7 +826,8 @@ window.RUT = window.RUT || {};
   const RGB = {};
   const rgb = hex => RGB[hex] || (RGB[hex] = [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)]);
   /** Four light bands: core shadow, shade, lit, highlight. */
-  function band(n) { const d = vdot(n, LIGHT); return d > 0.62 ? 1.16 : d > 0.22 ? 1.0 : d > -0.2 ? 0.8 : 0.63; }
+  let smoothL = false;
+  function band(n) { const d = vdot(n, LIGHT); if (smoothL) return 0.8 + 0.38 * clamp((d + 0.25) / 1.15, 0, 1); return d > 0.62 ? 1.16 : d > 0.22 ? 1.0 : d > -0.2 ? 0.8 : 0.63; }
   const ID = { body: 1, shorts: 2, legL: 3, legR: 4, armL: 5, armR: 6, head: 7, hair: 8 };
 
   function newRaster(s) {
@@ -1056,32 +1057,37 @@ window.RUT = window.RUT || {};
         if (l.y > hl) return style === 'buzz' ? L.hairD : L.hair;
         if ((style === 'fade' || style === 'curlfade') && l.y > hl - 0.4 && l.z < 0.35) return l.y > hl - 0.2 ? L.hairD : L.skinD;   // v195: the fade goes from hair to skin
       }
-      if (L.beard && l.z > 0.05 && l.y < -0.34 && !(l.y > -0.62 && Math.abs(l.x) < 0.28 && l.z > 0.6)) return ((Math.floor(l.x * 34) + Math.floor(l.y * 34)) & 1) ? L.hairD : L.hair;   // v268: beard is stubble, not a flat patch
+      if (L.beard && l.z > 0.05 && l.y < -0.34 && !(l.y > -0.62 && Math.abs(l.x) < 0.28 && l.z > 0.6)) return L.hairD;
       return sk;
     };
+    smoothL = r6;   // v269: the round head is lit smoothly, no light bands across the face
     if (r6) cylinder(R, vadd(hc, V(0, -hry, 0)), vadd(hc, V(0, hry, 0)), hyaw, hr * FV.jaw, hr, hr, (bx, bz, tt) => headCol({ x: bx / hr, y: tt * 2 - 1, z: bz / hr }), ID.head, 2);   // v266: the round Roblox head
     else ellipsoid(R, hc, hr, hry, n => headCol(toLocal(n)), ID.head);
+    smoothL = false;
     const hairVol = true;   // v267: hair keeps its volume on the round R6 head
     if (style !== 'bald') {                                                                  // hair volume above the scalp
-      const grow = style === 'afro' ? 3.6 : style === 'curly' ? 1.8 : style === 'curlfade' ? 1.5 : style === 'dreads' ? 1.4 : style === 'buzz' ? 0.3 : style === 'fade' ? 0.5 : style === 'slick' ? 0.7 : 0.9;
-      const c2 = style === 'afro' ? vadd(hc, V(0, 1.4, -0.3)) : style === 'curly' ? vadd(hc, V(0, 0.8, 0)) : hc;
+      const grow = style === 'afro' ? 3.6 : style === 'curly' ? 1.8 : style === 'curlfade' ? 1.5 : style === 'dreads' ? 1.4 : style === 'buzz' ? 0.3 : style === 'fade' ? 0.5 : style === 'slick' ? 0.9 : 1.3;
+      const c2 = style === 'afro' ? vadd(hc, V(0, 1.2, -0.2)) : style === 'curly' ? vadd(hc, V(0, 0.8, 0)) : hc;
+      smoothL = style === 'curly' || style === 'afro' || style === 'curlfade';   // v269: curly hair is lit softly so the curls read as curls, not stones
       if (hairVol) ellipsoid(R, c2, hr + grow, hry + grow, n => {
         const l = toLocal(n);
         if (l.y <= hairline(style, l.z, l.x) + 0.08) return null;
         if (style === 'mohawk' && Math.abs(l.x) > 0.34) return null;
         // v268 (JODIO: "natural texture, see the strands, see the curls, no ball spots"): curls are rows of round locks with a lit rim and a dark gap, straight hair has fine strands that fan out from the crown or comb back
         const low = l.y < hairline(style, l.z, l.x) + 0.3, hi = lum(L.hair) < 0.3 ? (lum(L.hair) < 0.12 ? '#6c6874' : '#7a7480') : shade(L.hair, 0.5);
-        if (style === 'curly' || style === 'afro' || style === 'curlfade') { const k = style === 'afro' ? 2.6 : 3.4, vv = n.y * k, row = Math.floor(vv), uu = n.x * k + (row & 1 ? 0.5 : 0), gx = uu - Math.floor(uu) - 0.5, gy = vv - row - 0.5, d = Math.hypot(gx, gy);
-          if (d > 0.46) return L.hairD;
+        if (style === 'curly' || style === 'afro' || style === 'curlfade') { const k = style === 'afro' ? 5.5 : 7, vv = n.y * k, row = Math.floor(vv), uu = n.x * k + (row & 1 ? 0.5 : 0), gx = uu - Math.floor(uu) - 0.5, gy = vv - row - 0.5, d = Math.hypot(gx, gy);   // v269: many small curls, soft contrast
           const lit = -gx * 0.7 + gy * 0.7;
-          return d < 0.16 ? L.hairD : d < 0.24 ? L.hair : low ? (lit > 0.1 ? L.hair : L.hairD) : lit > 0.1 ? hi : lit < -0.1 ? L.hairD : L.hair; }
+          return low ? (d > 0.4 ? L.hairD : L.hair) : d > 0.42 ? L.hairD : lit > 0.12 ? L.hairL : lit < -0.14 ? L.hairD : L.hair; }
         if (style === 'dreads') { const a = Math.atan2(l.x, l.z), q = Math.sin(a * 11 + l.y * 2); return q > 0.55 ? hi : q < -0.5 || low ? L.hairD : L.hair; }   // locs run down from the crown
-        if (style === 'slick') { const a = Math.atan2(l.x, l.z + 1.7), q = Math.sin(a * 30 + Math.sin(l.y * 5) * 0.8); return low ? L.hairD : q > 0.35 ? hi : q < -0.3 ? L.hairD : L.hair; }   // combed straight back, fine strands
-        if (style === 'short' || style === 'long' || style === 'bun') { const a = Math.atan2(l.x, l.z + 0.15), q = Math.sin(a * 18 + l.y * 3); return low ? L.hairD : q > 0.4 ? hi : q < -0.35 ? L.hairD : L.hair; }
-        if (style === 'fade') { const a = Math.atan2(l.x, l.z + 0.3), q = Math.sin(a * 24 + l.y * 4); return low ? L.hairD : q > 0.45 ? hi : q < -0.3 ? L.hairD : L.hair; }
-        if (style === 'buzz') return ((Math.floor(n.x * 44) * 7 + Math.floor(n.y * 44) * 13) & 3) === 0 ? hi : L.hairD;
+        if (style === 'slick') { const a = Math.atan2(l.x, l.z + 1.7), q = Math.sin(a * 30 + Math.sin(l.y * 5) * 0.8); return low ? L.hairD : q > 0.6 ? L.hairL : q < -0.55 ? L.hairD : L.hair; }   // combed straight back, fine strands
+        if (style === 'short' || style === 'long' || style === 'bun') { const a = Math.atan2(l.x, l.z + 0.15), q = Math.sin(a * 18 + l.y * 3); return low ? L.hairD : q > 0.62 ? L.hairL : q < -0.55 ? L.hairD : L.hair; }
+        if (style === 'fade') { const a = Math.atan2(l.x, l.z + 0.3), q = Math.sin(a * 24 + l.y * 4); return low ? L.hairD : q > 0.65 ? L.hairL : q < -0.5 ? L.hairD : L.hair; }
+        if (style === 'buzz') return L.hairD;
         return low ? L.hairD : L.hair;
       }, ID.hair);
+      if (style === 'curly' || style === 'afro' || style === 'curlfade') for (let i = 0; i < 11; i++) { const a = (i / 10 - 0.5) * 2.5, gx = grow * 0.55, rr = style === 'afro' ? 3.4 : 2.5;   // v269: curls break the outline
+        ellipsoid(R, vadd(c2, V(Math.sin(a) * (hr + gx), Math.cos(a) * (hry + gx) - 0.5, 0.6)), rr, rr, () => (i & 1 ? L.hair : L.hairD), ID.hair); }
+      smoothL = false;
       if (style === 'bun') { ellipsoid(R, vadd(hc, vmul(toView(V(0, 0.95, -0.45)), hr)), 3.4, 3.1, () => L.hair, ID.hair); ellipsoid(R, vadd(hc, vmul(toView(V(0, 1.05, -0.4)), hr)), 2.0, 1.6, () => L.hairL, ID.hair); }   // top knot, seen from the front too
       if (style === 'mohawk') capsule(R, vadd(hc, vmul(toView(V(0, 0.95, 0.5)), hr)), vadd(hc, vmul(toView(V(0, 0.8, -0.7)), hr)), 1.7, 1.5, () => L.hairL, ID.hair);
       if (style === 'dreads') [-0.7, -0.35, 0, 0.35, 0.7].forEach(x => capsule(R, vadd(hc, vmul(toView(V(x, 0.2, -0.78)), hr)), vadd(hc, vmul(toView(V(x * 1.15, -1.1, -0.72)), hr)), 1.5, 1.2, () => L.hair, ID.hair));
@@ -1126,11 +1132,11 @@ window.RUT = window.RUT || {};
       const lip = dark ? shade(sk, -0.22) : '#b5655a', lipL = dark ? shade(sk, -0.08) : '#c97a6c', iris = L.eye || '#3a2618';
       const beardOn = L.beard || L.full;
       // cheekbone and jaw shading, a lighter forehead and nose bridge
-      area(-0.75, 0.75, -0.62, 0.2, (x, y) => { const cx = Math.abs(x); if (cx > 0.52 && cx < 0.7 && y > -0.4 && y < -0.12) return skC; if (!beardOn && cx < 0.55 && y < -0.58) return skD; return null; });
-      area(-0.32, 0.32, 0.3, 0.55, (x, y) => (y > 0.42 && Math.abs(x) < 0.25 ? skL : null));
+
+
       [1, -1].forEach(sg => {
         const ex = sg * FV.ex, ey = FV.ey;
-        area(ex - 0.2, ex + 0.2, ey + 0.06, ey + 0.16, (x, y) => (Math.abs(x - ex) < 0.19 ? skD : null));                                 // eye socket shadow
+        area(ex - 0.2, ex + 0.2, ey + 0.06, ey + 0.16, (x, y) => (Math.abs(x - ex) < 0.19 ? skC : null));                                 // eye socket shadow
         area(ex - FV.ew, ex + FV.ew, ey - FV.eh, ey + FV.eh, (x, y) => { const u = (x - ex) / FV.ew, v = (y - ey) / FV.eh; if (u * u + v * v > 1) return null;
           const r = Math.hypot((x - ex) / 0.075, (y - ey) / 0.075); return r < 0.45 ? '#0c0808' : r < 0.82 ? iris : r < 1 ? shade(iris, -0.4) : '#f2efe8'; });                // white, iris with a darker limbal ring, pupil
         area(ex - 0.18, ex + 0.18, ey + 0.06, ey + 0.1, (x, y) => (Math.abs(x - ex) < 0.18 ? '#20140f' : null));                          // upper lid line and lashes
@@ -1157,11 +1163,11 @@ window.RUT = window.RUT || {};
         dot(ex - sg * 0.185, ey - 0.005, dark ? shade(sk, 0.12) : '#d98a80');                                                              // tear duct
         area(ex - 0.15, ex + 0.15, ey - 0.095, ey - 0.075, (x, y) => (Math.abs(x - ex) < 0.15 ? skC : null));                              // lower lid line
         area(0.14, 0.3, -0.52, -0.26, (x, y) => (Math.abs((x - 0.14) - (-0.26 - y) * 0.55) < 0.018 ? skC : null));                         // smile line from nose to mouth corner (mirrored below)
-        area(0.62, 0.78, 0.05, 0.42, (x, y) => (x > 0.66 + (y - 0.05) * 0.08 ? skC : null));                                                // temple shading
+
       });
       [-1].forEach(sg => area(-0.3, -0.14, -0.52, -0.26, (x, y) => (Math.abs((-x - 0.14) - (-0.26 - y) * 0.55) < 0.018 ? skC : null)));
-      area(-0.45, 0.45, 0.5, 0.66, (x, y) => (y > 0.54 && Math.abs(x) < 0.4 * (1 - (y - 0.54) * 2) ? skL : null));                          // forehead light
-      area(-0.14, 0.14, -0.8, -0.72, (x, y) => (Math.abs(x) < 0.12 * (1 - (-0.72 - y) * 3) ? (beardOn ? null : skL) : null));               // chin light
+
+
       [1, -1].forEach(sg => area(sg * 0.9, sg * 1.0, -0.22, 0.08, (x, y) => ((Math.abs(x) - 0.9) > 0.07 ? skL : null)));                    // ear rim light
     } else if (scale >= 0.45) {
       [1, -1].forEach(sg => { stamp(V(sg * 0.4, 0.04, 0.92), '#1a1010', 'white'); stamp(V(sg * 0.4, 0.3, 0.87), L.hairD, scale >= 0.9 ? 'brow' : null); });
