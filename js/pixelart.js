@@ -240,7 +240,7 @@ window.RUT = window.RUT || {};
   const rotY = (v, a) => { const c = Math.cos(a), s = Math.sin(a); return V(v.x * c + v.z * s, v.y, -v.x * s + v.z * c); };
 
   // body proportions, from JODIO's action sheet (v11): a big chunky head (~2/7 of the height), short torso, sturdy legs
-  const R6B = { torso: 16.0, shW: 9.2, upper: 6.6, fore: 6.4, neck: 1.8 };   // v265: Roblox R6 proportions (box torso, flush box arms, small square head)
+  const R6B = { torso: 16.5, shW: 9.6, upper: 6.8, fore: 6.6, neck: 1.6, headR: 6.0 };   // v274: Roblox dummy proportions: smaller head, wide shoulders   // v265: Roblox R6 proportions (box torso, flush box arms, small square head)
   const B = { hipW: 3.3, thigh: 10.0, shin: 9.6, ankle: 1.7, hipH: 20.6, torso: 13.6, shW: 7.0, upper: 6.9, fore: 6.3, neck: 1.8, headR: 7.2 };
 
   /** Interpolate between keyframes [[u, {field: value}], ...] with ease-in-out. */
@@ -904,7 +904,7 @@ window.RUT = window.RUT || {};
    * v265 (JODIO: Roblox R6 body): a straight box between base and top, half width a, half depth b, turned by yaw.
    * colorAt(bx, bz, t) gets the body-space point on the visible face (front or a side). bev rounds the ends a little.
    */
-  function boxy(R, base, top, yaw, a, b, colorAt, id, bev) {
+  function boxy(R, base, top, yaw, a, b, colorAt, id, bev, tap) {
     const { W, H, s } = R;
     const ax = R.ox + base.x * s, ay = R.oy - base.y * s, tx = R.ox + top.x * s, ty = R.oy - top.y * s;
     const dx = tx - ax, dy = ty - ay, dd = dx * dx + dy * dy || 1e-6, dl = Math.sqrt(dd), len = dl / s;
@@ -914,7 +914,7 @@ window.RUT = window.RUT || {};
     for (let py = y0; py <= y1; py++) for (let px = x0; px <= x1; px++) {
       const qx = px + 0.5 - ax, qy = py + 0.5 - ay, t = (qx * dx + qy * dy) / dd;
       if (t < 0 || t > 1) continue;
-      let ea = a, eb = b;
+      let ea = tap ? a * (tap + (1 - tap) * clamp(t * 1.5, 0, 1)) : a, eb = b;   // v274: tap narrows the bottom (chest wide, waist narrow)
       if (bev) { const e = Math.min(t, 1 - t) * len, k = 1 - clamp((bev - e) / bev, 0, 1) * 0.2; ea *= k; eb *= k; }
       const sx = (qx * px_ + qy * py_) / s;
       let best = -1e9, bx = 0, bz = 0, nx = 0, nz = 1;
@@ -958,7 +958,7 @@ window.RUT = window.RUT || {};
     const view = v => rotY(v, yaw);
     const J = {}; for (const k in S) if (S[k] && S[k].x !== undefined) J[k] = view(S[k]);
     const sk = L.skin, hand = L.gloves || L.skin, isGK = !!L.gloves;
-    const tube = r6 ? (R_, base, top, yw, aB, aT, b, colorAt, id, round) => boxy(R_, base, top, yw, Math.max(aB, aT) * (aB === aT ? 1.08 : 0.88), b * 0.86, colorAt, id, 0) : cylinder;
+    const tube = r6 ? (R_, base, top, yw, aB, aT, b, colorAt, id, round) => boxy(R_, base, top, yw, Math.max(aB, aT) * (aB === aT ? 1.08 : 0.95), b * 0.86, colorAt, id, round ? 3.4 : 0, aB === aT ? 0 : Math.min(aB, aT) / Math.max(aB, aT) * 0.85) : cylinder;
     const sole = lum(L.boots) > 0.55 ? '#3a3a3a' : '#e8e8e8';
     const ds = L.number ? L.number.split('').map(Number) : [];
     const seed = hashStr(L.shirt + L.pattern + L.trim);
@@ -971,7 +971,7 @@ window.RUT = window.RUT || {};
         const lyaw = yaw + S.pelvisYaw, kd = vnorm(vsub(knee, hip)), ad = vnorm(vsub(ank, knee)), fold6 = shade(L.socks, -0.2);
         boxy(R, vsub(hip, vmul(kd, 1.6)), vadd(knee, vmul(kd, 1.8)), lyaw, 3.3, 3.2, (bx, bz, tt) => tt < 0.5 ? (tt > 0.36 && Math.abs(bx) > 2.6 ? L.trim : L.shorts) : sk, id, 1.2);
         boxy(R, vsub(knee, vmul(ad, 1.5)), vadd(ank, vmul(ad, 1.4)), lyaw, 3.05, 3.0, (bx, bz, tt) => tt < 0.1 ? sk : tt < 0.19 ? fold6 : (tt < 0.24 || (tt > 0.28 && tt < 0.32)) ? L.trim : L.socks, id, 1.0);
-        capsule(R, vadd(J['heel' + sd], vmul(vsub(J['heel' + sd], J['toe' + sd]), 0.08)), vadd(J['toe' + sd], vmul(vsub(J['toe' + sd], J['heel' + sd]), 0.18)), 3.1, 2.6, (tt, n) => n.y < -0.35 ? sole : (tt > 0.45 && tt < 0.75 && n.y > 0.55 ? '#f0f0f0' : (tt > 0.3 && tt < 0.5 && Math.abs(n.x) > 0.5 ? L.bootsL : L.boots)), id);
+        capsule(R, vadd(J['heel' + sd], vmul(vsub(J['heel' + sd], J['toe' + sd]), 0.08)), vadd(J['toe' + sd], vmul(vsub(J['toe' + sd], J['heel' + sd]), 0.18)), 2.8, 2.35, (tt, n) => n.y < -0.35 ? sole : (tt > 0.45 && tt < 0.75 && n.y > 0.55 ? '#f0f0f0' : (tt > 0.3 && tt < 0.5 && Math.abs(n.x) > 0.5 ? L.bootsL : L.boots)), id);
         return;
       }
       capsule(R, hip, knee, 3.2, 2.6, tt => tt < 0.42 ? L.shorts : sk, id);
