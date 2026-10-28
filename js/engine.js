@@ -1355,16 +1355,29 @@ window.RUT = window.RUT || {};
     });
   };
   /** Rebuild the tactic from the club's own one plus the answers to what the scouted side does. Pure arithmetic on match state: nothing random. */
+  /** v263: every system has its own shape (index into FORM_KEYS): tiki-taka 4-3-3, wings 4-4-2, low block 5-3-2, counter 3-5-2, gegenpress 4-2-3-1, positional 3-2-4-1, high line 3-4-3, total football diamond, false nine 4-3-2-1 */
+  const SYS_FORM = { tikitaka: 0, wings: 1, lowblock: 7, counter: 4, gegen: 2, positional: 10, highline: 5, total: 9, falsenine: 12, longball: 1 };
+  /** After a change of system mid-match: new roles and traits for every outfield man from the new shape's labels and the new tactic's roles. */
+  P.reroleTeam = function (ti) {
+    const T = this.tac[ti], fk = T.formKey, fpos = fk && RUT.State.FORMS[fk] ? RUT.State.FORMS[fk].pos : null;
+    if (!fpos || !RUT.roleGroup || !RUT.roleOf || !RUT.effectiveTags) return;
+    this.players.forEach(p => {
+      if (p.team !== ti || p.isGK || p.slot < 1 || p.slot > 10) return;
+      const rpos = fpos[p.slot], rg = RUT.roleGroup(rpos), own = p.card.role && RUT.ROLE_BY && RUT.roleFits(RUT.ROLE_BY[p.card.role], rg), chosen = !own && T.roles && rg && T.roles[rg] ? T.roles[rg] : undefined;
+      p.role = RUT.roleOf(p.card, rpos, chosen); p.tr = RUT.effectiveTags(p.card, rpos, chosen);
+    });
+  };
   P.adaptTactic = function (ti, L) {
     if (L.sw && this._rebuildTac && this.t >= 20 && this.t - L.swAt >= 60) {   // v261 (JODIO): Rivals / Champions / Champions League sides change their whole way of playing to beat the human, and say so
       const sp = this.scoutProfile(1 - ti, L.prior), sc0 = this.score[ti] - this.score[1 - ti], sh = this.stats.shots ? this.stats.shots[1 - ti] - this.stats.shots[ti] : 0;
       if (sc0 < 0 || (sc0 === 0 && sh >= 3) || (L.swN === 0 && this.t >= 60 && sc0 <= 0)) {
-        const rot = ['gegen', 'counter', 'tikitaka', 'wings', 'highline', 'lowblock', 'positional', 'longball', 'total', 'falsenine'];
-        let want = sp.line > 0.52 ? 'counter' : sp.line < 0.38 ? (sp.wing > 0.4 ? 'positional' : 'wings') : sp.long > 0.3 ? 'highline' : sp.press > 2.1 ? 'longball' : sp.wing > 0.48 ? 'lowblock' : sp.wing < 0.3 ? 'wings' : 'gegen';
+        const rot = ['gegen', 'counter', 'tikitaka', 'wings', 'highline', 'lowblock', 'positional', 'total', 'falsenine'];
+        let want = sp.line > 0.52 ? 'counter' : sp.line < 0.38 ? (sp.wing > 0.4 ? 'positional' : 'wings') : sp.long > 0.3 ? 'highline' : sp.press > 2.1 ? 'total' : sp.wing > 0.48 ? 'lowblock' : sp.wing < 0.3 ? 'wings' : 'gegen';
         if (want === L.trait) want = rot[(rot.indexOf(want) + 1 + L.swN) % rot.length];
         const pts = [[2, 2, 2], [3, 2, 1], [1, 2, 3], [2, 3, 1], [3, 1, 2]][(L.swN + this.score[ti] + this.score[1 - ti]) % 5];
         if (RUT.Engine && RUT.Engine.TACTIC_TRAITS[want]) {
-          const T = this._rebuildTac(ti, pts.join('-') + '|' + want); L.base = T; L.trait = want; L.swAt = this.t; L.swN++;
+          const T = this._rebuildTac(ti, pts.join('-') + '|' + want + (SYS_FORM[want] != null ? '@' + SYS_FORM[want] : '')); L.base = T; L.trait = want; L.swAt = this.t; L.swN++;
+          this.reroleTeam(ti);
           const nm = RUT.Engine.TACTIC_TRAITS[want].name; L.log.push(Math.round(this.t) + 's: switches to ' + nm);
           if (!this.headless) this.say((this.teams[ti].name + ' SWITCH TO ' + nm).toUpperCase().slice(0, 56));
         }
@@ -5652,5 +5665,5 @@ void main(){
     }
   };
 
-  RUT.Engine = { Match, simulate, boardSim, ORDERS, formSpots, BOARD_SCN, BOARD_OPP, applyCoach, QUICK, buildOpponent, DIFFICULTY, TACTIC_TRAITS, FC_BUILD, FC_DEF, FC_PRESETS, buildTactic, parseTactic, tacFix, tacSpec, TAC_MAXPTS, FORMATIONS, FORM_KEYS, VIEW_W, VIEW_H, OUT_W, OUT_H, PITCH_W, PITCH_H, PITCH_SIZES };
+  RUT.Engine = { SYS_FORM, Match, simulate, boardSim, ORDERS, formSpots, BOARD_SCN, BOARD_OPP, applyCoach, QUICK, buildOpponent, DIFFICULTY, TACTIC_TRAITS, FC_BUILD, FC_DEF, FC_PRESETS, buildTactic, parseTactic, tacFix, tacSpec, TAC_MAXPTS, FORMATIONS, FORM_KEYS, VIEW_W, VIEW_H, OUT_W, OUT_H, PITCH_W, PITCH_H, PITCH_SIZES };
 })();

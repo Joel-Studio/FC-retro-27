@@ -1835,7 +1835,7 @@
   function uclMatch(mode) {
     const C = T5().ucl, nx = C.next(); if (!nx) return;
     if (!C.begin()) { toast('Champions League: ' + C.UCL.perDay + ' matches a day. Come back tomorrow.', 'bad'); return; }
-    const st = D(), home = { name: st.clubName, short: 'RFC', cards: State.matchCards() }, away = C.opponent(nx.i), styles = [myTac(), nx.club.tac];
+    const st = D(), home = { name: st.clubName, short: 'RFC', cards: State.matchCards() }, away = C.opponent(nx.i), styles = [myTac(), withShape(nx.club.tac)];
     const done = res => finishMatch(res, away, { mult: 1, q: { mode: 'ucl' }, coins: r => C.payout(r.score[0], r.score[1]), after: r => {
       rivLearn(r);
       const o = C.record(r.score[0], r.score[1], r.pens ? (r.pens[0] > r.pens[1] ? 0 : 1) : null); if (!o) return ''; updateHeader();
@@ -1850,7 +1850,7 @@
   function top5Match(i, leg, mode) {
     const st = D(), T = T5(), L = T.cur(), tm = L && L.teams[i], nx = T.next(); if (!tm || L.done || !nx || nx[0] !== i || nx[1] !== leg) return;
     const live = T.begin();                                              // the other clubs' matches of this matchday, played out while yours runs
-    const home = { name: st.clubName, short: 'RFC', cards: State.matchCards() }, away = T.opponent(i), styles = [myTac(), tm.tac], lg = L.lg;
+    const home = { name: st.clubName, short: 'RFC', cards: State.matchCards() }, away = T.opponent(i), styles = [myTac(), withShape(tm.tac)], lg = L.lg;
     let goalFees = 0, conceded = 0;
     const done = res => finishMatch(res, away, { mult: 1, q: { mode: 'top5', lg }, coins: r => T.payout(r.score[0], r.score[1]), fees: () => goalFees, after: r => {
       try { T.learnFrom(r.scout); } catch (e) { /* the clubs just do not remember this one */ }
@@ -2490,6 +2490,8 @@
   // v262 (JODIO): a Rivals win pays 120K in Division 10 up to 230K in Division 5, then 240K in Division 4 up to 310K in Division 1 (Elite 310K); 45% less against an AI rival. Draws and defeats pay as before.
   const rivWin = div => (div >= 10 ? 310000 : div <= 5 ? 120000 + div * 22000 : 240000 + (div - 6) * 70000 / 3);
   const rivCoins = (gf, ga, ai) => (gf > ga ? Math.round(rivWin(RV().div) * (ai ? 0.55 : 1)) : Math.round((gf === ga ? 600 : 300) * EARN));
+  /** v263: an AI style string gets the shape of its system ('2-2-2|tikitaka' -> '2-2-2|tikitaka@0'); */
+  const withShape = st => { st = String(st || ''); if (st.indexOf('@') >= 0) return st; const k = (st.split('|')[1] || ''), f = Engine.SYS_FORM[k]; return f == null ? st : st + '@' + f; };
   const rivLearn = r => { try { T5().learnFrom(r.scout); } catch (e) { /* the rivals just do not remember this one */ } };   // v262: Rivals / Champions / Champions League sides remember how you play
   // v207 (JODIO): each Champions match pays and costs 40% more than any other mode: win 56K and goal 14K (Champions League 40K / 10K, both before the +30%), goal conceded 21K (Top 5 15K), defeat 14K (10K), quitting 28K (20K). A draw counts as a defeat.
   const CH_PAY = { win: 56000, goal: 14000, conceded: 21000, loss: 14000, quit: 28000 };
@@ -2533,7 +2535,7 @@
     // v261 (JODIO): Division 10 to 6 rivals field 81-96 players, Division 5 to 1, Elite and the Champions finals 90-96. Every rival has its own way of playing, and switches it mid-match to beat you.
     const r = RV(), top = kind === 'champs' || r.div >= 5, lo = top ? 90 : 81, seed = (Math.random() * 1e9) | 0;
     const RIVALS = [['Real Rivals', '2-2-2|tikitaka'], ['United FC', '1-3-2|wings'], ['Atletico Pixel', '3-1-2|lowblock'], ['Inter 99', '3-2-1|counter'], ['Dynamo Retro', '1-2-3|gegen'],
-      ['Sporting Arcade', '2-3-1|positional'], ['Olympique 8-Bit', '2-1-3|highline'], ['Borussia Block', '3-1-2|longball'], ['Lazio Lite', '1-3-2|total'], ['Benfica Bytes', '2-2-2|falsenine']];
+      ['Sporting Arcade', '2-3-1|positional'], ['Olympique 8-Bit', '2-1-3|highline'], ['Borussia Block', '2-2-2|total'], ['Lazio Lite', '1-3-2|falsenine'], ['Benfica Bytes', '3-1-2|gegen@11']].map(x => [x[0], withShape(x[1])]);
     const RV0 = RIVALS[seed % RIVALS.length];
     const away = Engine.buildOpponent({ name: RV0[0], lo, hi: 96, pool: 'all', specials: kind === 'champs', floor: lo - 4 }, seed); away.name = RV0[0];
     let prior = null; try { prior = T5().root().scout || null; } catch (e) { /* no memory yet */ }
