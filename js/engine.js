@@ -3564,9 +3564,11 @@ window.RUT = window.RUT || {};
     p *= 1.4;                                                                                // v188 (JODIO): keepers save 40% more
     const shoS = Math.max(b.shot.by.card.face && b.shot.by.card.face.sho || 0, b.shot.by.card.sub.finishing || 0);   // v197 (JODIO): 90+ shooters beat keepers far more often, more again with Finesse / Power Shot
     if (shoS >= 90) { const pfs = Math.max(b.shot.by.pf['Finesse Shot'] || 0, b.shot.by.pf['Power Shot'] || 0); p -= 0.32 + 0.05 * (shoS - 90) + 0.12 * pfs; }
+    const eg = clamp(((s.gkDiving || 60) + (s.gkReflexes || 60) + (s.gkPositioning || 60) + (s.gkHandling || 60)) / 4 - 82, 0, 11) / 11;   // v250 (JODIO): a top keeper (93 = full) stops clearly more, most of all against weak shooters
+    if (eg > 0) p += eg * (0.12 + 0.28 * clamp((84 - shoS) / 30, 0, 1));
     { const fx = b.shot.fx != null ? b.shot.fx : b.shot.by.x, gxl = this.teams[b.shot.team].dir > 0 ? PITCH_W : 0;      // v188 (JODIO): a low drive from far outside the box is saved
       if (lowBall && Math.abs(fx - gxl) > 22 && shoS < 90) p = Math.max(p, 0.97); }
-    p = clamp(p, this.tac[b.shot.team].gb > 1 ? 0.01 : 0.1, 0.98);
+    p = clamp(p, this.tac[b.shot.team].gb > 1 ? 0.01 : 0.1, eg > 0 && shoS < 80 ? 0.995 : 0.98);
     this.stats.onTarget[b.shot.team]++;
     this.ev('sot', b.shot.by, { team: b.shot.team });
     const saved = this.rng() < p; if (!saved) b.shot.beat = true;   // v197: a beaten keeper can't then just gather it with his body
