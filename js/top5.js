@@ -453,7 +453,7 @@ window.RUT = window.RUT || {};
   function uclBegin() { const U = ucl(); if (!uclCanPlay()) return false; U.day.n++; RUT.State.save(); return true; }
   function uclOpponent(i) {
     const U = ucl(), c = U.clubs[i], wc = world().clubs[c.name], cards = wc ? wc.xi.map(ref => refCard(ref, c.name)) : opponentFallback(c);
-    return { name: c.name, short: c.name, cards: uclElite(cards, c.name), kit: [c.c1, c.c2], learn: { prior: root().scout || null, every: T5.learnEvery }, smart: UCL.smart, teamIQ: UCL.teamIQ, hot: T5.hot, gb: T5.gb };
+    return { name: c.name, short: c.name, cards: uclElite(cards, c.name), kit: [c.c1, c.c2], learn: { prior: root().scout || null, every: T5.learnEvery }, switchTac: true, smart: UCL.smart, teamIQ: UCL.teamIQ, hot: T5.hot, gb: T5.gb };
   }
   /* v226 (JODIO): Champions League opponents field 88-96 players and can use special cards. Each player takes his best version rated 88-96
      (a promo card when he has one); a player with none is replaced by an 88-96 card for that position, from his own club first. */

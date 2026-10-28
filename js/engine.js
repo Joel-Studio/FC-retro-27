@@ -359,7 +359,7 @@ window.RUT = window.RUT || {};
           // v103: cfg.tacGain = [club, foe] stretch of the tactic knobs (default 1.5; the club's own tactics run at 3 in local matches)
     {   // computer teams get bolder and more aggressive the better their players are: more pressing, longer and more direct passing, more runs and shots from range
       const hs = cfg.humans || (cfg.humanTeam === 0 || cfg.humanTeam === 1 ? [cfg.humanTeam] : []);
-      [cfg.home, cfg.away].forEach((t, ti) => {
+      const boost1 = (t, ti) => {
         if (hs.includes(ti) || !t.cards || !t.cards.length) return;
         const avg = t.cards.reduce((a, c) => a + (c ? c.rating : 60), 0) / t.cards.length, lvl = clamp((avg - 62) / 28, 0, 1), T = this.tac[ti] = Object.assign({}, this.tac[ti]);        // a copy: tactics are shared between teams / matches
         T.level = lvl;
@@ -370,13 +370,19 @@ window.RUT = window.RUT || {};
         if (t.hot > 1) { T.hot = t.hot; T.shoot *= 1 + HOT_SHOOT * (t.hot - 1); T.eager += 0.25 * (t.hot - 1); }   // Top 5 Leagues clubs: far more dangerous against the human side (hot = goal multiplier aimed for)
         if (t.gb > 1) { T.gb = t.gb; T.shoot *= 1 + 0.45 * (t.gb - 1); T.press = clamp(T.press + 1, 1, 5); T.counterPress += 3; T.vert += 0.35; T.eager += 0.6; T.runs = clamp(T.runs + 1, 0, 4); T.counter += 0.5; }                      // v120: Top 5 goal boost (gb 5 = about five times the goals of a normal side)
         if (t.elite) { T.elite = true; T.press = clamp(T.press + 1, 1, 5); T.shoot *= 1.5; T.eager += 0.3; T.runs = clamp(T.runs + 1, 0, 3); }   // League A1: stronger than Legendary Galácticos, ruthless finishers whose shots are always on target
-      });
+      };
+      [cfg.home, cfg.away].forEach(boost1);
+      this._rebuildTac = (ti, style) => {   // v261: an AI side that switches its way of playing gets the same boosts a fresh tactic would get
+        const T0 = this.tac[ti] = buildTactic(style, cfg.tacGain && cfg.tacGain[ti]); boost1([cfg.home, cfg.away][ti], ti);
+        const T = this.tac[ti] = Object.assign({}, this.tac[ti]); T.defSmart = true; T.manMark = Math.max(T.manMark, T.level >= 0.28 ? 0 : 0.45);
+        T.runs = clamp(T.runs + 1, 0, 3); T.vert *= 1.1; T.range *= 1.15; T.shoot *= 1.5; T.atk = 1; return T;
+      };
     }
     [0, 1].forEach(ti => { const T = this.tac[ti] = Object.assign({}, this.tac[ti]); T.defSmart = true; T.manMark = Math.max(T.manMark, T.level >= 0.28 ? 0 : 0.45); });   // every side's AI defenders (the client's team-mates too) pick a man and stay with him
     // attacking knowledge +50% for every side's AI: more runs, more direct play, longer passing range, more shots, clearer reading of the pass (the passing style itself stays the tactic's: only tiki-taka / positional sides pass short and back)
     [0, 1].forEach(ti => { const T = this.tac[ti]; T.runs = clamp(T.runs + 1, 0, 3); T.vert *= 1.1; T.range *= 1.15; T.shoot *= 1.5; T.atk = 1; });
     this.learn = null;                                                                // Top 5 Leagues clubs study the other side's way of playing and change their tactic to beat it
-    [cfg.home, cfg.away].forEach((t, ti) => { if (t && t.learn) { this.learn = this.learn || {}; this.learn[ti] = { base: this.tac[ti], prior: t.learn.prior || null, every: t.learn.every || LEARN_EVERY, next: t.learn.every || LEARN_FIRST, log: [], count: 0 }; } });
+    [cfg.home, cfg.away].forEach((t, ti) => { if (t && t.learn) { this.learn = this.learn || {}; this.learn[ti] = { sw: !!t.switchTac, trait: String((cfg.styles || [])[ti] || '').split('|')[1] || '', swAt: 0, swN: 0, base: this.tac[ti], prior: t.learn.prior || null, every: t.learn.every || LEARN_EVERY, next: t.learn.every || LEARN_FIRST, log: [], count: 0 }; } });
     if (this.learn) this.scout = [0, 1].map(() => ({ hold: 0, wing: 0, centre: 0, passes: 0, longP: 0, shots: 0, longS: 0, skills: 0, lineS: 0, lineN: 0, preS: 0, preN: 0 }));
     this.lostAt = [-99, -99]; this.wonAt = [-99, -99]; this.nextRot = [9, 12];
     this.shoutT = [-9, -9]; this.shoutK = [{}, {}]; this.gkClaim = [-9, -9]; this.cm = [null, null];
@@ -1350,6 +1356,20 @@ window.RUT = window.RUT || {};
   };
   /** Rebuild the tactic from the club's own one plus the answers to what the scouted side does. Pure arithmetic on match state: nothing random. */
   P.adaptTactic = function (ti, L) {
+    if (L.sw && this._rebuildTac && this.t >= 20 && this.t - L.swAt >= 60) {   // v261 (JODIO): Rivals / Champions / Champions League sides change their whole way of playing to beat the human, and say so
+      const sp = this.scoutProfile(1 - ti, L.prior), sc0 = this.score[ti] - this.score[1 - ti], sh = this.stats.shots ? this.stats.shots[1 - ti] - this.stats.shots[ti] : 0;
+      if (sc0 < 0 || (sc0 === 0 && sh >= 3) || (L.swN === 0 && this.t >= 60 && sc0 <= 0)) {
+        const rot = ['gegen', 'counter', 'tikitaka', 'wings', 'highline', 'lowblock', 'positional', 'longball', 'total', 'falsenine'];
+        let want = sp.line > 0.52 ? 'counter' : sp.line < 0.38 ? (sp.wing > 0.4 ? 'positional' : 'wings') : sp.long > 0.3 ? 'highline' : sp.press > 2.1 ? 'longball' : sp.wing > 0.48 ? 'lowblock' : sp.wing < 0.3 ? 'wings' : 'gegen';
+        if (want === L.trait) want = rot[(rot.indexOf(want) + 1 + L.swN) % rot.length];
+        const pts = [[2, 2, 2], [3, 2, 1], [1, 2, 3], [2, 3, 1], [3, 1, 2]][(L.swN + this.score[ti] + this.score[1 - ti]) % 5];
+        if (RUT.Engine && RUT.Engine.TACTIC_TRAITS[want]) {
+          const T = this._rebuildTac(ti, pts.join('-') + '|' + want); L.base = T; L.trait = want; L.swAt = this.t; L.swN++;
+          const nm = RUT.Engine.TACTIC_TRAITS[want].name; L.log.push(Math.round(this.t) + 's: switches to ' + nm);
+          if (!this.headless) this.say((this.teams[ti].name + ' SWITCH TO ' + nm).toUpperCase().slice(0, 56));
+        }
+      }
+    }
     const pf = this.scoutProfile(1 - ti, L.prior), T = Object.assign({}, L.base), notes = [], hs = this.halfSeconds, left = (hs * 2 - (this.t + (this.half === 2 ? 0 : hs))) / (hs * 2);
     const sc = this.score[ti] - this.score[1 - ti], P1 = k => clamp(k, 0, 1);
     if (pf.wing > 0.48) { const k = P1((pf.wing - 0.48) / 0.2); T.fbHigh = 0; T.width += 0.1 * k; T.manMark = Math.max(T.manMark, 0.7); T.press = clamp(T.press + (k > 0.5 ? 1 : 0), 1, 5); notes.push('shuts the wings'); }

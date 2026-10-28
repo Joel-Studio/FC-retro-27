@@ -2526,11 +2526,15 @@
   }
   function rivalsAI(kind) {
     if (!onlineSquadReady()) { autoBuildSquad(); if (!onlineSquadReady()) { toast('Your XI needs 11 players. Go to Squad → Auto-build.', 'bad'); return; } }
-    const r = RV(), lo = Math.min(90, 68 + r.div * 2 + (kind === 'champs' ? 3 : 0)), seed = (Math.random() * 1e9) | 0;
-    const NAMES = ['Real Rivals', 'United FC', 'Atletico Pixel', 'Inter 99', 'Dynamo Retro', 'Sporting Arcade', 'Olympique 8-Bit', 'Borussia Block'];
-    const away = Engine.buildOpponent({ name: NAMES[seed % NAMES.length], lo, hi: lo + 6, pool: 'all' }, seed); away.name = NAMES[seed % NAMES.length];
+    // v261 (JODIO): Division 10 to 6 rivals field 81-96 players, Division 5 to 1, Elite and the Champions finals 90-96. Every rival has its own way of playing, and switches it mid-match to beat you.
+    const r = RV(), top = kind === 'champs' || r.div >= 5, lo = top ? 90 : 81, seed = (Math.random() * 1e9) | 0;
+    const RIVALS = [['Real Rivals', '2-2-2|tikitaka'], ['United FC', '1-3-2|wings'], ['Atletico Pixel', '3-1-2|lowblock'], ['Inter 99', '3-2-1|counter'], ['Dynamo Retro', '1-2-3|gegen'],
+      ['Sporting Arcade', '2-3-1|positional'], ['Olympique 8-Bit', '2-1-3|highline'], ['Borussia Block', '3-1-2|longball'], ['Lazio Lite', '1-3-2|total'], ['Benfica Bytes', '2-2-2|falsenine']];
+    const RV0 = RIVALS[seed % RIVALS.length];
+    const away = Engine.buildOpponent({ name: RV0[0], lo, hi: 96, pool: 'all', specials: kind === 'champs', floor: lo - 4 }, seed); away.name = RV0[0];
+    away.learn = { prior: null, every: 6 }; away.switchTac = true;
     const home = { name: D().clubName, short: 'RFC', cards: State.matchCards() };
-    runMatch({ tag: kind === 'champs' ? 'Champions' : 'Rivals', home, away, humans: [0], knockout: true, extraTime: true, noSpeed: true, pitch: 'colossal', halfSeconds: 90, styles: [myTac(), pickStyle('auto')],
+    runMatch({ tag: kind === 'champs' ? 'Champions' : 'Rivals', home, away, humans: [0], knockout: true, extraTime: true, noSpeed: true, pitch: 'colossal', halfSeconds: 90, styles: [myTac(), RV0[1]],
       onEnd: res => finishMatch(res, away, { mult: 1, q: { mode: kind }, lossFee: kind === 'champs' ? 0 : null, coins: x => kind === 'champs' ? champPay(x.score[0], x.won ? -1 : 99) : rivCoins(x.score[0], x.score[1]) / EARN,
         after: x => (kind === 'champs' ? champFees(x.won ? 1 : 0, x.score[1]) : '') + rivRecord(kind, x.won ? 1 : 0, x.won ? 0 : x.draw ? 0 : 1) }),
       onQuit: () => quitMatch(kind === 'champs' ? CH_PAY.quit : null) });
