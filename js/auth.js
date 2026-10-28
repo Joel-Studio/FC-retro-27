@@ -46,6 +46,7 @@ window.RUT = window.RUT || {};
   const cloud = {
     _db: undefined, site: SITE, main: '', q: Promise.resolve(), timer: 0, last: null, err: null,
     async db() {
+      if (!window.RUT_CLOUD_SAVE) return null;   // v247 (JODIO): saves stay in this browser on every site, like the artifact; online is only for online matches
       try { if ((JSON.parse(localStorage.getItem('rut_settings') || '{}') || {}).net === 'offline') return null; } catch (e) { /* default online */ }   // v198: Offline mode in Settings
       if (this._db !== undefined) return this._db;
       if (this._p) return this._p;
@@ -141,7 +142,7 @@ window.RUT = window.RUT || {};
     async cloudSync(acc, live) {   // live = a pull from a page that is already open (it may hold an old club)
       const h = await cloud.head(acc.id); if (!h) { cloud.schedule(); return 'up'; }
       const mt = +(store.get('rut_mt' + acc.ns) || 0), base = +(store.get('rut_base' + acc.ns) || 0);
-      if (!(h.main && h.main === SITE && base) && (base ? h.savedAt !== base : h.savedAt > mt) && h.hash === acc.hash && (live || h.main || !(mt > base && mt > h.savedAt))) {   /* v245: on a page load, unsynced newer play here is kept (as before v243) */   /* v243: the cloud moved since this page synced, so it holds the newest play */   // the cloud copy is newer than anything played here: it wins (v240: unsynced newer play here, e.g. offline, wins instead)
+      if (!(h.main && h.main === SITE && base) && (base ? h.savedAt !== base : h.savedAt > mt) && h.hash === acc.hash) {   /* v246: another site saved since this one last synced, so this copy is the older club: the cloud wins (this copy goes to Restore). Unsynced play is kept when nothing else saved meanwhile. */   /* v243: the cloud moved since this page synced, so it holds the newest play */   // the cloud copy is newer than anything played here: it wins (v240: unsynced newer play here, e.g. offline, wins instead)
         const save = await cloud.fetchSave(h); if (save) { const cur = store.get(LEGACY + acc.ns); if (cur) store.set('rut_bak' + acc.ns, cur); /* v240: the replaced save is kept as a backup */ store.set(LEGACY + acc.ns, save); store.set('rut_mt' + acc.ns, String(h.savedAt)); store.set('rut_base' + acc.ns, String(h.savedAt)); cloud.last = acc.id + ':' + h.savedAt; return 'down'; } }
       else cloud.schedule();
       return 'same';
@@ -168,7 +169,8 @@ window.RUT = window.RUT || {};
       if (RUT.State && RUT.State.setKey) RUT.State.setKey(LEGACY + acc.ns);
       const S = RUT.State;   // only a real change moves the save stamp, so a plain page load never beats a newer cloud save
       if (S && S.save && !S._cw) { const o = S.save; S._cw = 1; S.save = function (quiet) { const k = LEGACY + Auth.ns, before = store.get(k); const r = o.apply(this, arguments); if (!quiet && store.get(k) !== before) { store.set('rut_mt' + Auth.ns, String(Date.now())); cloud.schedule(); } return r; }; }
-      try { window.addEventListener('pagehide', () => { if (Auth.user) cloud.flush(); }); } catch (e) { /* ignore */ }
+      try { window.addEventListener('pagehide', () => { try { if (Auth.user && RUT.State.data) RUT.State.save(true); } catch (e) { /* ignore */ } if (Auth.user) cloud.flush(); }); } catch (e) { /* ignore */ }
+      if (!this._auto) { this._auto = setInterval(() => { try { if (Auth.user && RUT.State.data) RUT.State.save(true); } catch (e) { /* ignore */ } }, 3000); }   // v247 (JODIO): autosave every 3 seconds
       if (!this._retry) { this._retry = 1;   // v240: progress made offline is uploaded as soon as the connection is back
         const again = () => { const u = Auth.user; if (u && store.get('rut_mt' + u.ns) !== store.get('rut_base' + u.ns)) cloud.schedule(); };
         try { window.addEventListener('online', again); } catch (e) { /* ignore */ } setInterval(again, 60000);
