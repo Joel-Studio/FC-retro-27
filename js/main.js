@@ -249,6 +249,7 @@
   const SITES = [
     { k: 'vercel', name: 'Vercel', url: 'https://fc-retro-27.vercel.app/', here: () => /vercel\.app$/.test(location.hostname) },     // v237 (JODIO): Vercel replaces Netlify as the transfer site
     { k: 'wix', name: 'Wix', url: 'https://headless-eeuplubgmqh-yimtchijoel-140b.wix-site-host.com/', here: () => /wix-site-host\.com$/.test(location.hostname) },     // v238 (JODIO): Wix site (loads the game from jsDelivr)
+    { k: 'claude', name: 'Claude artifact', url: 'https://claude.ai/artifact/LK8vknaqmxJ72nuxVibgsN', clip: 1, here: () => /claude|anthropic/.test(location.hostname) },   // v248 (JODIO): the club is copied, then Paste my club on the artifact's login screen
   ];
   /* v222 (JODIO): the transfer button is a plain link that already carries the club (#rut=...), so the browser opens it like any link:
      no pop-up blocker, no "allow pop-ups" message. The code is refreshed after each render, every 10 s and when the pointer reaches the button. */
@@ -257,10 +258,11 @@
     const as = document.querySelectorAll('a.site-go'); if (!as.length || !RUT.Auth.user) return;
     if (!force && Date.now() - siteCodeAt < 3000 && as[0].dataset.ready) return;
     try { State.save(); const code = encodeURIComponent(await RUT.Auth.exportCode('')); siteCodeAt = Date.now();
-      document.querySelectorAll('a.site-go').forEach(a => { const x = SITES.find(q => q.k === a.dataset.k); if (x && x.url) { a.href = x.url + '#rut=' + code; a.dataset.ready = '1'; } });
+      document.querySelectorAll('a.site-go').forEach(a => { const x = SITES.find(q => q.k === a.dataset.k); if (x && x.url) { a.href = x.clip ? x.url : x.url + '#rut=' + code; if (x.clip) a.dataset.code = decodeURIComponent(code); a.dataset.ready = '1'; } });
     } catch (e) { /* the link still opens the site, the club can be moved with the transfer code */ }
   }
   setInterval(() => siteLinks(true), 10000);
+  document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a.site-go[data-k="claude"]'); if (!a) return; try { if (a.dataset.code && navigator.clipboard) navigator.clipboard.writeText(a.dataset.code); } catch (er) { /* the transfer code in Settings still works */ } toast('Club copied. On the artifact, press Paste my club on the login screen.', 'good'); }, true);
   document.addEventListener('pointerover', e => { if (e.target.closest && e.target.closest('a.site-go')) siteLinks(); }, true);
   const sitesHTML = () => !SITES.some(x => !x.here()) ? '' : `<div class="px mt"><b>Play this club on another site</b><p class="dim" style="font-size:7px;line-height:1.9">Your players, coins and progress go with you. Websites open already logged in; on Claude press <b>Paste my club</b> on the login screen.</p><div class="row">${SITES.filter(x => !x.here()).map(x => x.url ? `<a class="btn y site-go" data-k="${x.k}" href="${x.url}" target="_blank" rel="noopener">Go to ${esc(x.name)}</a>` : `<button class="btn" disabled>${esc(x.name)}: coming soon</button>`).join('')}</div></div>`;
   VIEWS.home = function () {
