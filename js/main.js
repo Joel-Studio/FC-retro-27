@@ -356,6 +356,9 @@
       <div class="px"><h3>Language</h3>
         ${opt('lang', SET.lang, [['en', 'English'], ['fr', 'Français']])}
         <p class="dim" style="font-size:8px">Mode français: menus, commentaires et événements du match.</p></div>
+      <div class="px"><h3>Commentary</h3>
+        ${opt('comm', SET.comm || 'on', [['on', 'On', 'voice during matches'], ['off', 'Off']])}
+        <p class="dim" style="font-size:8px">Recorded clips play where there is one (kick off for now); the other moments use the most natural voice on your device.</p></div>
       <div class="px"><h3>Match</h3>
         <label>Difficulty</label>
         ${opt('difficulty', App.difficulty, Object.entries(Engine.DIFFICULTY).map(([k, d]) => [k, d.name]))}
