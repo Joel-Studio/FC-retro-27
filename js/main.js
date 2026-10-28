@@ -262,7 +262,18 @@
     } catch (e) { /* the link still opens the site, the club can be moved with the transfer code */ }
   }
   setInterval(() => siteLinks(true), 10000);
-  document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a.site-go[data-k="claude"]'); if (!a) return; try { if (a.dataset.code && navigator.clipboard) navigator.clipboard.writeText(a.dataset.code); } catch (er) { /* the transfer code in Settings still works */ } toast('Club copied. On the artifact, press Paste my club on the login screen.', 'good'); }, true);
+  /* v254 (JODIO: the data from Wix / Vercel did not reach the artifact): the code is built INSIDE the click and handed to the clipboard as a promise, so it is always fresh and the browser keeps the click's permission; the message says "copied" only when it really was. */
+  document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a.site-go[data-k="claude"]'); if (!a || !RUT.Auth.user) return;
+    const build = async () => { State.save(true); return RUT.Auth.exportCode(''); };
+    const done = ok => toast(ok ? 'Club copied. On the Claude page just press Ctrl+V (or Paste my club): your club comes in by itself.' : 'Could not copy automatically: open Settings > Account > Show transfer code, copy it and paste it on the Claude page.', ok ? 'good' : 'bad');
+    try {
+      if (navigator.clipboard && window.ClipboardItem) navigator.clipboard.write([new ClipboardItem({ 'text/plain': build().then(c => new Blob([c], { type: 'text/plain' })) })]).then(() => done(true), () => { build().then(c => navigator.clipboard.writeText(c)).then(() => done(true), () => done(false)); });
+      else build().then(c => navigator.clipboard.writeText(c)).then(() => done(true), () => done(false));
+    } catch (er) { done(false); } }, true);
+  /* v254: pasting a club code ANYWHERE in the game (not in a text box) brings that club in, even when you are already logged in: the pasted club replaces the same-named club here and the game reloads into it. */
+  document.addEventListener('paste', e => { const t0 = e.target; if (t0 && /^(INPUT|TEXTAREA|SELECT)$/.test(t0.tagName)) return; if (!RUT.Auth.user || App.match) return;
+    const t = (e.clipboardData || { getData: () => '' }).getData('text') || ''; if (!/RUT1\./.test(t)) return; e.preventDefault();
+    toast('Bringing your club in...', 'good'); RUT.Auth.importAny(t, true).then(a => { RUT.State.save = () => {}; RUT.Auth.start(a, true); RUT.State.save = () => {}; setTimeout(() => location.reload(), 600); }, ex => toast(ex.message, 'bad')); }, true);
   document.addEventListener('pointerover', e => { if (e.target.closest && e.target.closest('a.site-go')) siteLinks(); }, true);
   const sitesHTML = () => !SITES.some(x => !x.here()) ? '' : `<div class="px mt"><b>Play this club on another site</b><p class="dim" style="font-size:7px;line-height:1.9">Your players, coins and progress go with you. Websites open already logged in; on Claude press <b>Paste my club</b> on the login screen.</p><div class="row">${SITES.filter(x => !x.here()).map(x => x.url ? `<a class="btn y site-go" data-k="${x.k}" href="${x.url}" target="_blank" rel="noopener">Go to ${esc(x.name)}</a>` : `<button class="btn" disabled>${esc(x.name)}: coming soon</button>`).join('')}</div></div>`;
   VIEWS.home = function () {
