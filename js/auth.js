@@ -46,8 +46,22 @@ window.RUT = window.RUT || {};
     async db() {
       try { if ((JSON.parse(localStorage.getItem('rut_settings') || '{}') || {}).net === 'offline') return null; } catch (e) { /* default online */ }   // v198: Offline mode in Settings
       if (this._db !== undefined) return this._db;
-      let d = null; try { if (window.claude && window.claude.use) d = await Promise.race([window.claude.use('db'), new Promise(r => setTimeout(() => r(null), 4000))]); } catch (e) { d = null; }
-      return (this._db = d || null);
+      if (this._p) return this._p;
+      return (this._p = (async () => {   // v239 (JODIO): one cloud for every site; the artifact's own database stays as a fallback and for older saves
+        const s = await this.supa();
+        let d = null; try { if (window.claude && window.claude.use) d = await Promise.race([window.claude.use('db'), new Promise(r => setTimeout(() => r(null), 4000))]); } catch (e) { d = null; }
+        this._old = s && d ? d : null;
+        return (this._db = s || d || null);
+      })());
+    },
+    /** v239: the shared club store (Supabase RPC rut_doc on the online relay project). Same doc().get/set/delete shape as the artifact database. */
+    async supa() {
+      const C = (RUT.Net && RUT.Net.cloudCfg) || { url: 'https://c--f528583f-d6fa-4af9-8dce-6e5ecb466150-prod.lovable.cloud', key: 'sb_publishable_blG5qm30dLoYrwpNNCrl3g_rBElzxo1' };
+      if (typeof fetch !== 'function') return null;
+      const call = (op, path, data) => fetch(C.url.replace(/\/$/, '') + '/rest/v1/rpc/rut_doc', { method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json', apikey: C.key },
+        body: JSON.stringify({ p_op: op, p_path: path, p_data: data == null ? null : data, p_auth: cloud.auth || null }) }).then(r => { if (!r.ok) throw new Error('cloud ' + r.status); return r.json(); });
+      const st = { doc: path => ({ get: () => call('get', path).then(j => ({ exists: !!j.exists, data: () => j.data })), set: d => call('set', path, d), delete: () => call('del', path) }) };
+      try { await this.timeout(st.doc('rut_clubs/00').get(), 6000); return st; } catch (e) { return null; }
     },
     key(id) { return hex(new TextEncoder().encode(id)); },
     async pack(str) {
@@ -59,15 +73,16 @@ window.RUT = window.RUT || {};
       return decodeURIComponent(escape(atob(t.slice(1))));
     },
     timeout(p, ms) { return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('cloud timeout')), ms || 10000))]); },
-    async head(id) { const db = await this.db(); if (!db) return null; const s = await this.timeout(db.doc('rut_clubs/' + this.key(id)).get()); return s.exists ? s.data() : null; },
+    async head(id) { const db = await this.db(); if (!db) return null; const s = await this.timeout(db.doc('rut_clubs/' + this.key(id)).get()); if (s.exists) return s.data();
+      if (this._old) { const o = await this.timeout(this._old.doc('rut_clubs/' + this.key(id)).get()).catch(() => null); if (o && o.exists) return Object.assign({ _old: 1 }, o.data()); } return null; },
     async fetchSave(h) {
-      const db = await this.db(); if (!db || !h || !h.n) return null; let t = '';
+      let db = await this.db(); if (h && h._old) db = this._old; if (!db || !h || !h.n) return null; let t = '';
       for (let i = 0; i < h.n; i++) { const s = await this.timeout(db.doc('rut_saves/' + this.key(h.id) + '_' + i).get()); if (!s.exists) throw new Error('cloud save is incomplete'); t += s.data().d; }
       return this.unpack(t);
     },
     /** Write the account and its save (only when the save changed since the last upload). */
     async push() {
-      const u = Auth.user, db = await this.db(); if (!db || !u) return false;
+      const u = Auth.user, db = await this.db(); if (!db || !u) return false; this.auth = u.hash;
       const raw = store.get(LEGACY + u.ns) || '', mt = +(store.get('rut_mt' + u.ns) || Date.now());
       if (this.last === u.id + ':' + mt) return true;
       const h = await this.head(u.id), base = +(store.get('rut_base' + u.ns) || 0);
@@ -82,7 +97,7 @@ window.RUT = window.RUT || {};
       this.timer = setTimeout(() => { this.q = this.q.then(() => this.push()).catch(e => { this.err = e && e.message || 'failed'; }); }, 4000);
     },
     /** v198: remove a club's cloud copy (head + save chunks). Never throws. */
-    async drop(id) { try { const db = await this.db(); if (!db) return; const h = await this.head(id); for (let i = 0; i < ((h && h.n) || 0); i++) await this.timeout(db.doc('rut_saves/' + this.key(id) + '_' + i).delete()); await this.timeout(db.doc('rut_clubs/' + this.key(id)).delete()); } catch (e) { /* offline or no access: the local change still stands */ } },
+    async drop(id) { try { const db = await this.db(); if (!db) return; const h = await this.head(id); if (h) this.auth = h.hash; for (let i = 0; i < ((h && h.n) || 0); i++) await this.timeout(db.doc('rut_saves/' + this.key(id) + '_' + i).delete()); await this.timeout(db.doc('rut_clubs/' + this.key(id)).delete()); } catch (e) { /* offline or no access: the local change still stands */ } },
     flush() { clearTimeout(this.timer); this.q = this.q.then(() => this.push()).catch(e => { this.err = e && e.message || 'failed'; }); return this.q; },
   };
 
