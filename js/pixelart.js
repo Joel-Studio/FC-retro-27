@@ -945,6 +945,7 @@ window.RUT = window.RUT || {};
     const pyaw = yaw + S.pelvisYaw, tyaw = yaw + S.torsoYaw;
     cylinder(R, view(vadd(S.pelvis, vmul(S.up, -1.4))), view(vadd(S.pelvis, vmul(S.up, 2.6))), pyaw, 5.9 * L.bw, 5.9 * L.bw, 3.7, (bx, bz, tt) => {
       if (Math.abs(bz) < 0.9) return L.trim;
+      if (HD && tt > 0.86) return bz > 1.5 && Math.abs(bx) < 0.6 ? '#ece8e0' : shade(L.shorts, lum(L.shorts) > 0.5 ? -0.1 : 0.1);   // v264: waistband and drawstring knot
       if (bz > 1.5 && ds.length && digitAt(ds, (-2.0 - bx) * 1.0 + (ds.length === 1 ? 0.5 : 2.2), (0.75 - tt) * 4 * 1.0, 0.75)) return L.numCol;
       return L.shorts;
     }, ID.shorts, false);
@@ -966,6 +967,7 @@ window.RUT = window.RUT || {};
       if (front && v > 2.8 && v < 3.8 && bx < -2.6 && bx > -4.2) return L.trim;  // maker logo
       if (L.pattern === 'plain' && Math.abs(bz) < 0.8 && v > 2) return L.trim;   // side panel
       const base = L.pat(Math.floor(bx * 0.72), Math.floor(v * 0.62), 'body');
+      if (HD && v > tLen - 0.8) return shade(base, lum(base) > 0.5 ? -0.1 : 0.1);                // v264: the shirt hem
       if (HD && v > 4 && bz > -0.8 && ((Math.floor(bx * 1.4 + v * 0.8) % 9) === 0)) return shade(base, lum(base) > 0.5 ? -0.07 : 0.07);   // soft fabric folds
       return base;
     }, ID.body, true);
@@ -1029,6 +1031,7 @@ window.RUT = window.RUT || {};
     if (L.full) ellipsoid(R, vadd(hc, vmul(toView(V(0, -0.72, 0.5)), hr)), 4.4, 3.4, () => L.hairD, ID.hair);   // full beard
     [1, -1].forEach(sg => ellipsoid(R, vadd(hc, vmul(toView(V(sg * 0.98, -0.05, -0.08)), hr)), 1.25, 1.55, () => sk, ID.head));
     ellipsoid(R, vadd(hc, vmul(toView(V(0, -0.14, 1)), hr)), 1.0, 1.15, () => sk, ID.head);
+    if (HD && !(L.beard || L.full)) ellipsoid(R, vadd(J.neck, V(0, B.neck * 0.55, 0.35)), 2.0, 1.1, () => shade(sk, -0.2), ID.head);   // v264: the jaw's shadow on the neck
     if (HD) {                                                                                // v127 detail: jaw, shirt collar rib
       ellipsoid(R, vadd(hc, vmul(toView(V(0, -0.74, 0.5)), hr)), 2.9, 1.5, () => (L.beard ? L.hairD : sk), ID.head);
       ellipsoid(R, vadd(J.neck, V(0, 0.2, 0.3)), 3.5, 1.3, () => L.trim, ID.body);
@@ -1069,7 +1072,7 @@ window.RUT = window.RUT || {};
         const ex = sg * 0.36, ey = 0.04;
         area(ex - 0.2, ex + 0.2, ey + 0.06, ey + 0.16, (x, y) => (Math.abs(x - ex) < 0.19 ? skD : null));                                 // eye socket shadow
         area(ex - 0.17, ex + 0.17, ey - 0.07, ey + 0.07, (x, y) => { const u = (x - ex) / 0.17, v = (y - ey) / 0.07; if (u * u + v * v > 1) return null;
-          const r = Math.hypot((x - ex) / 0.075, (y - ey) / 0.075); return r < 0.45 ? '#0c0808' : r < 1 ? iris : '#f2efe8'; });                // white, iris, pupil
+          const r = Math.hypot((x - ex) / 0.075, (y - ey) / 0.075); return r < 0.45 ? '#0c0808' : r < 0.82 ? iris : r < 1 ? shade(iris, -0.4) : '#f2efe8'; });                // white, iris with a darker limbal ring, pupil
         area(ex - 0.18, ex + 0.18, ey + 0.06, ey + 0.1, (x, y) => (Math.abs(x - ex) < 0.18 ? '#20140f' : null));                          // upper lid line and lashes
         dot(ex - sg * 0.03, ey + 0.03, '#ffffff');                                                                                          // catch light
         area(ex - 0.24, ex + 0.24, 0.22, 0.36, (x, y) => { const u = (x - ex) / 0.24; const yc = 0.27 + 0.05 * (1 - u * u) + sg * (x - ex) * 0.08; return Math.abs(u) <= 1 && Math.abs(y - yc) < 0.045 + 0.02 * (1 - Math.abs(u)) ? browC : null; });   // eyebrow, thicker in the middle
@@ -1088,6 +1091,18 @@ window.RUT = window.RUT || {};
         area(-0.12, 0.12, -0.68, -0.6, (x, y) => (!beardOn && Math.abs(x) < 0.1 && y > -0.64 ? skD : null));                             // shadow under the lower lip
       }
       [1, -1].forEach(sg => area(-1, 1, -0.3, 0.2, (x, y) => (Math.abs(x - sg * 0.93) < 0.05 && y > -0.2 && y < 0.1 ? skDD : null)));  // ear inner shadow
+      // v264 (JODIO: "more like a 1:1 copy, same look, just add the details"): tear ducts, lower lash line, smile lines, temples, forehead and chin light, under-chin shadow, ear rim
+      [1, -1].forEach(sg => {
+        const ex = sg * 0.36, ey = 0.04;
+        dot(ex - sg * 0.185, ey - 0.005, dark ? shade(sk, 0.12) : '#d98a80');                                                              // tear duct
+        area(ex - 0.15, ex + 0.15, ey - 0.095, ey - 0.075, (x, y) => (Math.abs(x - ex) < 0.15 ? skC : null));                              // lower lid line
+        area(0.14, 0.3, -0.52, -0.26, (x, y) => (Math.abs((x - 0.14) - (-0.26 - y) * 0.55) < 0.018 ? skC : null));                         // smile line from nose to mouth corner (mirrored below)
+        area(0.62, 0.78, 0.05, 0.42, (x, y) => (x > 0.66 + (y - 0.05) * 0.08 ? skC : null));                                                // temple shading
+      });
+      [-1].forEach(sg => area(-0.3, -0.14, -0.52, -0.26, (x, y) => (Math.abs((-x - 0.14) - (-0.26 - y) * 0.55) < 0.018 ? skC : null)));
+      area(-0.45, 0.45, 0.5, 0.66, (x, y) => (y > 0.54 && Math.abs(x) < 0.4 * (1 - (y - 0.54) * 2) ? skL : null));                          // forehead light
+      area(-0.14, 0.14, -0.8, -0.72, (x, y) => (Math.abs(x) < 0.12 * (1 - (-0.72 - y) * 3) ? (beardOn ? null : skL) : null));               // chin light
+      [1, -1].forEach(sg => area(sg * 0.9, sg * 1.0, -0.22, 0.08, (x, y) => ((Math.abs(x) - 0.9) > 0.07 ? skL : null)));                    // ear rim light
     } else if (scale >= 0.45) {
       [1, -1].forEach(sg => { stamp(V(sg * 0.4, 0.04, 0.92), '#1a1010', 'white'); stamp(V(sg * 0.4, 0.3, 0.87), L.hairD, scale >= 0.9 ? 'brow' : null); });
       stamp(V(0, -0.47, 0.88), anim === 'up' ? '#5a1a18' : '#8a3a30', 'side');
