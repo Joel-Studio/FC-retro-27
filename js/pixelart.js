@@ -240,7 +240,7 @@ window.RUT = window.RUT || {};
   const rotY = (v, a) => { const c = Math.cos(a), s = Math.sin(a); return V(v.x * c + v.z * s, v.y, -v.x * s + v.z * c); };
 
   // body proportions, from JODIO's action sheet (v11): a big chunky head (~2/7 of the height), short torso, sturdy legs
-  const R6B = { torso: 16.0, shW: 9.6, upper: 6.6, fore: 6.4, headR: 5.9, neck: 1.2 };   // v265: Roblox R6 proportions (box torso, flush box arms, small square head)
+  const R6B = { torso: 16.0, shW: 9.6, upper: 6.6, fore: 6.4, neck: 1.8 };   // v265: Roblox R6 proportions (box torso, flush box arms, small square head)
   const B = { hipW: 3.3, thigh: 10.0, shin: 9.6, ankle: 1.7, hipH: 20.6, torso: 13.6, shW: 7.0, upper: 6.9, fore: 6.3, neck: 1.8, headR: 7.2 };
 
   /** Interpolate between keyframes [[u, {field: value}], ...] with ease-in-out. */
@@ -1046,60 +1046,51 @@ window.RUT = window.RUT || {};
     // ---- neck, head, hair shell, ears, nose, face
     capsule(R, J.neck, view(vadd(S.neck, V(0, B.neck + 0.9, 0))), 2.05, 2.05, () => sk, ID.head);
     const fr = rng(L.fseed || 1), FV = { ex: 0.30 + fr() * 0.12, ey: -0.02 + fr() * 0.1, ew: 0.14 + fr() * 0.06, eh: 0.06 + fr() * 0.025, by: 0.24 + fr() * 0.08, bt: fr() * 0.16, bw: 0.034 + fr() * 0.034, mw: 0.18 + fr() * 0.09, lu: 0.04 + fr() * 0.03, ll: 0.055 + fr() * 0.04, my: -0.47 - fr() * 0.07, nw: 0.045 + fr() * 0.04, nrx: 0.9 + fr() * 0.5, nry: 0.9 + fr() * 0.4, hw: fr(), hh: fr(), jaw: 0.64 + fr() * 0.18 };   // v268: every player gets his own face proportions
-    const hc = J.headC, hr = r6 ? 5.85 + FV.hw * 0.9 : B.headR, hry = r6 ? B.headR * (0.94 + FV.hh * 0.14) : hr * 1.06;
+    const hc = J.headC, hr = B.headR * (0.96 + FV.hw * 0.08), hry = hr * (1.02 + FV.hh * 0.08);   // v271 (JODIO): the old round head, with a little per-player width and height
     const hyaw = yaw + S.headYaw, hp = S.headPitch, ch = Math.cos(hyaw), sh = Math.sin(hyaw), cp = Math.cos(hp), sp = Math.sin(hp);
     const toLocal = n => { const lx = n.x * ch - n.z * sh, lz0 = n.x * sh + n.z * ch; return V(lx, n.y * cp + lz0 * sp, -n.y * sp + lz0 * cp); };
     const toView = l => { const y = l.y * cp - l.z * sp, z0 = l.y * sp + l.z * cp; return V(l.x * ch + z0 * sh, y, -l.x * sh + z0 * ch); };
     const style = L.style;
     const headCol = l => {
       if (style !== 'bald') {
-        const hl = hairline(style, l.z, l.x);
+        const hl = hairline(style, l.z);
         if (l.y > hl) return style === 'buzz' ? L.hairD : L.hair;
         if ((style === 'fade' || style === 'curlfade') && l.y > hl - 0.4 && l.z < 0.35) return l.y > hl - 0.2 ? L.hairD : L.skinD;   // v195: the fade goes from hair to skin
       }
       if (L.beard && l.z > 0.05 && l.y < -0.34 && !(l.y > -0.62 && Math.abs(l.x) < 0.28 && l.z > 0.6)) return L.hairD;
       return sk;
     };
-    smoothL = r6;   // v269: the round head is lit smoothly, no light bands across the face
-    if (r6) cylinder(R, vadd(hc, V(0, -hry, 0)), vadd(hc, V(0, hry, 0)), hyaw, hr * FV.jaw, hr, hr, (bx, bz, tt) => headCol({ x: bx / hr, y: tt * 2 - 1, z: bz / hr }), ID.head, 2);   // v266: the round Roblox head
+    if (false) cylinder(R, vadd(hc, V(0, -hry, 0)), vadd(hc, V(0, hry, 0)), hyaw, hr * FV.jaw, hr, hr, (bx, bz, tt) => headCol({ x: bx / hr, y: tt * 2 - 1, z: bz / hr }), ID.head, 2);   // v266: the round Roblox head
     else ellipsoid(R, hc, hr, hry, n => headCol(toLocal(n)), ID.head);
-    smoothL = false;
     const hairVol = true;   // v267: hair keeps its volume on the round R6 head
     if (style !== 'bald') {                                                                  // hair volume above the scalp
-      const grow = style === 'afro' ? 3.6 : style === 'curly' ? 1.8 : style === 'curlfade' ? 1.5 : style === 'dreads' ? 1.4 : style === 'buzz' ? 0.3 : style === 'fade' ? 0.5 : style === 'slick' ? 0.9 : 1.3;
-      const c2 = style === 'afro' ? vadd(hc, V(0, 1.2, -0.2)) : style === 'curly' ? vadd(hc, V(0, 0.8, 0)) : hc;
-      smoothL = style === 'curly' || style === 'afro' || style === 'curlfade';   // v269: curly hair is lit softly so the curls read as curls, not stones
+      const grow = style === 'afro' ? 3.6 : style === 'curly' ? 1.8 : style === 'curlfade' ? 1.5 : style === 'dreads' ? 1.4 : style === 'buzz' ? 0.3 : style === 'fade' ? 0.5 : style === 'slick' ? 0.7 : 0.9;
+      const c2 = style === 'afro' ? vadd(hc, V(0, 1.4, -0.3)) : style === 'curly' ? vadd(hc, V(0, 0.8, 0)) : hc;
       if (hairVol) ellipsoid(R, c2, hr + grow, hry + grow, n => {
         const l = toLocal(n);
-        if (l.y <= hairline(style, l.z, l.x) + 0.08) return null;
+        if (l.y <= hairline(style, l.z) + 0.08) return null;
         if (style === 'mohawk' && Math.abs(l.x) > 0.34) return null;
-        // v268 (JODIO: "natural texture, see the strands, see the curls, no ball spots"): curls are rows of round locks with a lit rim and a dark gap, straight hair has fine strands that fan out from the crown or comb back
-        const low = l.y < hairline(style, l.z, l.x) + 0.3, hi = lum(L.hair) < 0.3 ? (lum(L.hair) < 0.12 ? '#6c6874' : '#7a7480') : shade(L.hair, 0.5);
-        if (style === 'curly' || style === 'afro' || style === 'curlfade') { const k = style === 'afro' ? 5.5 : 7, vv = n.y * k, row = Math.floor(vv), uu = n.x * k + (row & 1 ? 0.5 : 0), gx = uu - Math.floor(uu) - 0.5, gy = vv - row - 0.5, d = Math.hypot(gx, gy);   // v269: many small curls, soft contrast
-          const lit = -gx * 0.7 + gy * 0.7;
-          return low ? (d > 0.4 ? L.hairD : L.hair) : d > 0.42 ? L.hairD : lit > 0.12 ? L.hairL : lit < -0.14 ? L.hairD : L.hair; }
-        if (style === 'dreads') { const a = Math.atan2(l.x, l.z), q = Math.sin(a * 11 + l.y * 2); return q > 0.55 ? hi : q < -0.5 || low ? L.hairD : L.hair; }   // locs run down from the crown
-        if (style === 'slick') { const a = Math.atan2(l.x, l.z + 1.7), q = Math.sin(a * 30 + Math.sin(l.y * 5) * 0.8); return low ? L.hairD : q > 0.6 ? L.hairL : q < -0.55 ? L.hairD : L.hair; }   // combed straight back, fine strands
-        if (style === 'short' || style === 'long' || style === 'bun') { const a = Math.atan2(l.x, l.z + 0.15), q = Math.sin(a * 18 + l.y * 3); return low ? L.hairD : q > 0.62 ? L.hairL : q < -0.55 ? L.hairD : L.hair; }
-        if (style === 'fade') { const a = Math.atan2(l.x, l.z + 0.3), q = Math.sin(a * 24 + l.y * 4); return low ? L.hairD : q > 0.65 ? L.hairL : q < -0.5 ? L.hairD : L.hair; }
-        if (style === 'buzz') return L.hairD;
-        return low ? L.hairD : L.hair;
+        // v195: organic hair: curls are small round clumps (light top, dark underside), straight hair has strands that follow the comb direction, everything is darker low down and shinier on top
+        const low = l.y < hairline(style, l.z) + 0.3;
+        if (style === 'curly' || style === 'afro' || style === 'curlfade') { const k = style === 'afro' ? 9 : 13, cx = n.x * k, cy = n.y * k, cz = n.z * k;
+          const v = Math.sin(cx + Math.sin(cy * 1.3)) * Math.sin(cy + Math.sin(cz * 1.7)) * Math.sin(cz + Math.sin(cx * 1.1));
+          return v > 0.32 ? L.hairL : v < -0.3 || low ? L.hairD : L.hair; }
+        if (style === 'dreads') { const a = Math.atan2(l.x, l.z), q = Math.sin(a * 11 + l.y * 2); return q > 0.55 ? L.hairL : q < -0.5 || low ? L.hairD : L.hair; }   // locs run down from the crown
+        if (style === 'short' || style === 'long' || style === 'bun' || style === 'slick') { const q = Math.sin((style === 'slick' || style === 'bun' ? l.x * 3 + l.z * 18 : l.x * 22 + l.z * 4)); return l.y > 0.55 && q > 0.6 ? L.hairL : low || q < -0.75 ? L.hairD : L.hair; }   // strands
+        return style === 'buzz' ? L.hairD : low ? L.hairD : L.hair;
       }, ID.hair);
-      if (style === 'curly' || style === 'afro' || style === 'curlfade') for (let i = 0; i < 11; i++) { const a = (i / 10 - 0.5) * 2.5, gx = grow * 0.55, rr = style === 'afro' ? 3.4 : 2.5;   // v269: curls break the outline
-        ellipsoid(R, vadd(c2, V(Math.sin(a) * (hr + gx), Math.cos(a) * (hry + gx) - 0.5, 0.6)), rr, rr, () => (i & 1 ? L.hair : L.hairD), ID.hair); }
-      smoothL = false;
       if (style === 'bun') { ellipsoid(R, vadd(hc, vmul(toView(V(0, 0.95, -0.45)), hr)), 3.4, 3.1, () => L.hair, ID.hair); ellipsoid(R, vadd(hc, vmul(toView(V(0, 1.05, -0.4)), hr)), 2.0, 1.6, () => L.hairL, ID.hair); }   // top knot, seen from the front too
       if (style === 'mohawk') capsule(R, vadd(hc, vmul(toView(V(0, 0.95, 0.5)), hr)), vadd(hc, vmul(toView(V(0, 0.8, -0.7)), hr)), 1.7, 1.5, () => L.hairL, ID.hair);
       if (style === 'dreads') [-0.7, -0.35, 0, 0.35, 0.7].forEach(x => capsule(R, vadd(hc, vmul(toView(V(x, 0.2, -0.78)), hr)), vadd(hc, vmul(toView(V(x * 1.15, -1.1, -0.72)), hr)), 1.5, 1.2, () => L.hair, ID.hair));
       if (style === 'long') capsule(R, vadd(hc, vmul(toView(V(0, -0.1, -0.8)), hr)), vadd(hc, vmul(toView(V(0, -1.25, -0.6)), hr)), 4.0, 3.4, () => L.hair, ID.hair);
     }
-    if (L.band) [-0.78, -0.4, 0, 0.4, 0.78].forEach(x => ellipsoid(R, vadd(hc, vmul(toView(V(x, 0.5 - Math.abs(x) * 0.12, (r6 ? Math.sqrt(Math.max(0.05, 1 - x * x)) : Math.sqrt(Math.max(0.05, 1 - x * x - 0.25))))), hr * 1.01)), 1.5, 1.3, () => L.band, ID.hair));   // headband
+    if (L.band) [-0.78, -0.4, 0, 0.4, 0.78].forEach(x => ellipsoid(R, vadd(hc, vmul(toView(V(x, 0.5 - Math.abs(x) * 0.12, Math.sqrt(Math.max(0.05, 1 - x * x - 0.25)))), hr * 1.01)), 1.5, 1.3, () => L.band, ID.hair));   // headband
     if (L.full) ellipsoid(R, vadd(hc, vmul(toView(V(0, -0.72, 0.5)), hr)), 4.4, 3.4, () => L.hairD, ID.hair);   // full beard
     [1, -1].forEach(sg => ellipsoid(R, vadd(hc, vmul(toView(V(sg * 0.98, -0.05, -0.08)), hr)), 1.25, 1.55, () => sk, ID.head));
     ellipsoid(R, vadd(hc, vmul(toView(V(0, -0.14, 1)), hr)), FV.nrx, FV.nry * 1.15, () => sk, ID.head);
     if (HD && !(L.beard || L.full)) ellipsoid(R, vadd(J.neck, V(0, B.neck * 0.55, 0.35)), 2.0, 1.1, () => shade(sk, -0.2), ID.head);   // v264: the jaw's shadow on the neck
     if (HD) {                                                                                // v127 detail: jaw, shirt collar rib
-      if (!r6) ellipsoid(R, vadd(hc, vmul(toView(V(0, -0.74, 0.5)), hr)), 2.9, 1.5, () => (L.beard ? L.hairD : sk), ID.head);
+      ellipsoid(R, vadd(hc, vmul(toView(V(0, -0.74, 0.5)), hr)), 2.9, 1.5, () => (L.beard ? L.hairD : sk), ID.head);
       ellipsoid(R, vadd(J.neck, V(0, 0.2, 0.3)), 3.5, 1.3, () => L.trim, ID.body);
     }
 
@@ -1107,7 +1098,7 @@ window.RUT = window.RUT || {};
     const fc = toView(V(0, 0, 1));
     const put = (i, hex) => { const c = rgb(hex), o = i * 4; R.col[o] = c[0]; R.col[o + 1] = c[1]; R.col[o + 2] = c[2]; };
     const stamp = (l, hex, out) => {
-      const n = toView(r6 ? V(l.x, l.y, Math.sqrt(Math.max(0.01, 1 - l.x * l.x))) : vnorm(l));
+      const n = toView(vnorm(l));
       if (n.z < 0.2) return;
       const px = Math.floor(R.ox + (hc.x + n.x * hr) * scale), py = Math.floor(R.oy - (hc.y + n.y * hry) * scale);
       if (px < 1 || px >= R.W - 1 || py < 0 || py >= R.H) return;
@@ -1123,7 +1114,7 @@ window.RUT = window.RUT || {};
     const fpx = hr * scale;                                                   // head radius in pixels: big heads (cards, close-ups) get a full face
     if (fpx >= 7) {
       // v194 (JODIO: "more realistic faces with a mouth and details"): every feature is painted pixel by pixel on the visible face surface
-      const dot = (lx, ly, hex) => { const lz2 = r6 ? 1 - lx * lx : 1 - lx * lx - ly * ly; if (lz2 <= 0.05) return; const n = toView(V(lx, ly, Math.sqrt(lz2)));
+      const dot = (lx, ly, hex) => { const lz2 = 1 - lx * lx - ly * ly; if (lz2 <= 0.05) return; const n = toView(V(lx, ly, Math.sqrt(lz2)));
         if (n.z < 0.12) return; const px = Math.floor(R.ox + (hc.x + n.x * hr) * scale), py = Math.floor(R.oy - (hc.y + n.y * hry) * scale);
         if (px < 0 || px >= R.W || py < 0 || py >= R.H) return; const i = py * R.W + px; if (R.id[i] === ID.head) put(i, hex); };
       const st = 0.6 / fpx, area = (x0, x1, y0, y1, fn) => { for (let y = y0; y <= y1; y += st) for (let x = x0; x <= x1; x += st) { const c = fn(x, y); if (c) dot(x, y, c); } };
