@@ -1055,7 +1055,7 @@ window.RUT = window.RUT || {};
       if (L.beard && l.z > 0.05 && l.y < -0.34 && !(l.y > -0.62 && Math.abs(l.x) < 0.28 && l.z > 0.6)) return L.hairD;
       return sk;
     };
-    if (r6) boxy(R, vadd(hc, V(0, -hry, 0)), vadd(hc, V(0, hry, 0)), hyaw, hr, hr, (bx, bz, tt) => headCol({ x: bx / hr, y: tt * 2 - 1, z: bz / hr }), ID.head, 2.4);
+    if (r6) cylinder(R, vadd(hc, V(0, -hry, 0)), vadd(hc, V(0, hry, 0)), hyaw, hr, hr, hr, (bx, bz, tt) => headCol({ x: bx / hr, y: tt * 2 - 1, z: bz / hr }), ID.head, true);   // v266: the round Roblox head
     else ellipsoid(R, hc, hr, hry, n => headCol(toLocal(n)), ID.head);
     const hairVol = !r6 || /afro|curly|curlfade|mohawk/.test(style);
     if (style !== 'bald') {                                                                  // hair volume above the scalp
@@ -1079,7 +1079,7 @@ window.RUT = window.RUT || {};
       if (style === 'dreads') [-0.7, -0.35, 0, 0.35, 0.7].forEach(x => capsule(R, vadd(hc, vmul(toView(V(x, 0.2, -0.78)), hr)), vadd(hc, vmul(toView(V(x * 1.15, -1.1, -0.72)), hr)), 1.5, 1.2, () => L.hair, ID.hair));
       if (style === 'long') capsule(R, vadd(hc, vmul(toView(V(0, -0.1, -0.8)), hr)), vadd(hc, vmul(toView(V(0, -1.25, -0.6)), hr)), 4.0, 3.4, () => L.hair, ID.hair);
     }
-    if (L.band) [-0.78, -0.4, 0, 0.4, 0.78].forEach(x => ellipsoid(R, vadd(hc, vmul(toView(V(x, 0.5 - Math.abs(x) * 0.12, (r6 ? 1 : Math.sqrt(Math.max(0.05, 1 - x * x - 0.25))))), hr * 1.01)), 1.5, 1.3, () => L.band, ID.hair));   // headband
+    if (L.band) [-0.78, -0.4, 0, 0.4, 0.78].forEach(x => ellipsoid(R, vadd(hc, vmul(toView(V(x, 0.5 - Math.abs(x) * 0.12, (r6 ? Math.sqrt(Math.max(0.05, 1 - x * x)) : Math.sqrt(Math.max(0.05, 1 - x * x - 0.25))))), hr * 1.01)), 1.5, 1.3, () => L.band, ID.hair));   // headband
     if (L.full) ellipsoid(R, vadd(hc, vmul(toView(V(0, -0.72, 0.5)), hr)), 4.4, 3.4, () => L.hairD, ID.hair);   // full beard
     [1, -1].forEach(sg => ellipsoid(R, vadd(hc, vmul(toView(V(sg * 0.98, -0.05, -0.08)), hr)), 1.25, 1.55, () => sk, ID.head));
     ellipsoid(R, vadd(hc, vmul(toView(V(0, -0.14, 1)), hr)), 1.0, 1.15, () => sk, ID.head);
@@ -1093,7 +1093,7 @@ window.RUT = window.RUT || {};
     const fc = toView(V(0, 0, 1));
     const put = (i, hex) => { const c = rgb(hex), o = i * 4; R.col[o] = c[0]; R.col[o + 1] = c[1]; R.col[o + 2] = c[2]; };
     const stamp = (l, hex, out) => {
-      const n = toView(r6 ? V(l.x, l.y, 1) : vnorm(l));
+      const n = toView(r6 ? V(l.x, l.y, Math.sqrt(Math.max(0.01, 1 - l.x * l.x))) : vnorm(l));
       if (n.z < 0.2) return;
       const px = Math.floor(R.ox + (hc.x + n.x * hr) * scale), py = Math.floor(R.oy - (hc.y + n.y * hry) * scale);
       if (px < 1 || px >= R.W - 1 || py < 0 || py >= R.H) return;
@@ -1109,7 +1109,7 @@ window.RUT = window.RUT || {};
     const fpx = hr * scale;                                                   // head radius in pixels: big heads (cards, close-ups) get a full face
     if (fpx >= 7) {
       // v194 (JODIO: "more realistic faces with a mouth and details"): every feature is painted pixel by pixel on the visible face surface
-      const dot = (lx, ly, hex) => { const lz2 = r6 ? 1 : 1 - lx * lx - ly * ly; if (lz2 <= 0.05) return; const n = toView(V(lx, ly, r6 ? 1 : Math.sqrt(lz2)));
+      const dot = (lx, ly, hex) => { const lz2 = r6 ? 1 - lx * lx : 1 - lx * lx - ly * ly; if (lz2 <= 0.05) return; const n = toView(V(lx, ly, Math.sqrt(lz2)));
         if (n.z < 0.12) return; const px = Math.floor(R.ox + (hc.x + n.x * hr) * scale), py = Math.floor(R.oy - (hc.y + n.y * hry) * scale);
         if (px < 0 || px >= R.W || py < 0 || py >= R.H) return; const i = py * R.W + px; if (R.id[i] === ID.head) put(i, hex); };
       const st = 0.6 / fpx, area = (x0, x1, y0, y1, fn) => { for (let y = y0; y <= y1; y += st) for (let x = x0; x <= x1; x += st) { const c = fn(x, y); if (c) dot(x, y, c); } };
