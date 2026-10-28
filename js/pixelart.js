@@ -884,6 +884,7 @@ window.RUT = window.RUT || {};
       if (t < 0 || t > 1) continue;
       let a = mix(aB, aT, ease(Math.min(1, t * 1.6)));
       if (round && t > 0.84) a *= Math.sqrt(1 - Math.pow((t - 0.84) / 0.16, 2) * 0.55);   // rounded shoulders
+      if (round === 2 && t < 0.16) a *= Math.sqrt(1 - Math.pow((0.16 - t) / 0.16, 2) * 0.55);   // v267: the round head is rounded at the chin too
       const sx = (qx * px_ + qy * py_) / s;
       const Rp = Math.sqrt(a * a * c * c + b * b * sn * sn);
       if (Math.abs(sx) > Rp) continue;
@@ -923,7 +924,8 @@ window.RUT = window.RUT || {};
       }
       if (best < -1e8) continue;
       const n = vnorm(V(nx * c + nz * sn, t > 0.94 ? 0.6 : (t < 0.04 ? -0.3 : 0), -nx * sn + nz * c));
-      plot(R, py * W + px, mix(base.z, top.z, t) + best, colorAt(bx, bz, t), band(n), id);
+      const lat = Math.min(1, Math.abs(bx) / (ea || 1));   // v267: soft light like the Roblox render: lighter up high, darker toward the sides and the bottom
+      plot(R, py * W + px, mix(base.z, top.z, t) + best, colorAt(bx, bz, t), band(n) * (0.95 + 0.1 * t - (nx ? 0.04 : 0) * lat), id);
     }
   }
 
@@ -967,7 +969,7 @@ window.RUT = window.RUT || {};
         const lyaw = yaw + S.pelvisYaw, kd = vnorm(vsub(knee, hip)), ad = vnorm(vsub(ank, knee)), fold6 = shade(L.socks, -0.2);
         boxy(R, hip, vadd(knee, vmul(kd, 0.9)), lyaw, 3.2, 3.1, (bx, bz, tt) => tt < 0.5 ? (tt > 0.36 && Math.abs(bx) > 2.6 ? L.trim : L.shorts) : sk, id, 1.2);
         boxy(R, vsub(knee, vmul(ad, 0.5)), vadd(ank, vmul(ad, 0.6)), lyaw, 2.95, 2.9, (bx, bz, tt) => tt < 0.1 ? sk : tt < 0.19 ? fold6 : (tt < 0.24 || (tt > 0.28 && tt < 0.32)) ? L.trim : L.socks, id, 1.0);
-        capsule(R, J['heel' + sd], J['toe' + sd], 2.2, 1.8, (tt, n) => n.y < -0.35 ? sole : (tt > 0.45 && tt < 0.75 && n.y > 0.55 ? '#f0f0f0' : (tt > 0.3 && tt < 0.5 && Math.abs(n.x) > 0.5 ? L.bootsL : L.boots)), id);
+        capsule(R, vadd(J['heel' + sd], vmul(vsub(J['heel' + sd], J['toe' + sd]), 0.08)), vadd(J['toe' + sd], vmul(vsub(J['toe' + sd], J['heel' + sd]), 0.18)), 3.1, 2.6, (tt, n) => n.y < -0.35 ? sole : (tt > 0.45 && tt < 0.75 && n.y > 0.55 ? '#f0f0f0' : (tt > 0.3 && tt < 0.5 && Math.abs(n.x) > 0.5 ? L.bootsL : L.boots)), id);
         return;
       }
       capsule(R, hip, knee, 3.2, 2.6, tt => tt < 0.42 ? L.shorts : sk, id);
@@ -1055,9 +1057,9 @@ window.RUT = window.RUT || {};
       if (L.beard && l.z > 0.05 && l.y < -0.34 && !(l.y > -0.62 && Math.abs(l.x) < 0.28 && l.z > 0.6)) return L.hairD;
       return sk;
     };
-    if (r6) cylinder(R, vadd(hc, V(0, -hry, 0)), vadd(hc, V(0, hry, 0)), hyaw, hr, hr, hr, (bx, bz, tt) => headCol({ x: bx / hr, y: tt * 2 - 1, z: bz / hr }), ID.head, true);   // v266: the round Roblox head
+    if (r6) cylinder(R, vadd(hc, V(0, -hry, 0)), vadd(hc, V(0, hry, 0)), hyaw, hr, hr, hr, (bx, bz, tt) => headCol({ x: bx / hr, y: tt * 2 - 1, z: bz / hr }), ID.head, 2);   // v266: the round Roblox head
     else ellipsoid(R, hc, hr, hry, n => headCol(toLocal(n)), ID.head);
-    const hairVol = !r6 || /afro|curly|curlfade|mohawk/.test(style);
+    const hairVol = true;   // v267: hair keeps its volume on the round R6 head
     if (style !== 'bald') {                                                                  // hair volume above the scalp
       const grow = style === 'afro' ? 3.6 : style === 'curly' ? 1.8 : style === 'curlfade' ? 1.5 : style === 'dreads' ? 1.4 : style === 'buzz' ? 0.3 : style === 'fade' ? 0.5 : style === 'slick' ? 0.7 : 0.9;
       const c2 = style === 'afro' ? vadd(hc, V(0, 1.4, -0.3)) : style === 'curly' ? vadd(hc, V(0, 0.8, 0)) : hc;
