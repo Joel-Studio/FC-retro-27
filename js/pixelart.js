@@ -904,31 +904,40 @@ window.RUT = window.RUT || {};
    * v265 (JODIO: Roblox R6 body): a straight box between base and top, half width a, half depth b, turned by yaw.
    * colorAt(bx, bz, t) gets the body-space point on the visible face (front or a side). bev rounds the ends a little.
    */
-  function boxy(R, base, top, yaw, a, b, colorAt, id, bev, tap) {
+  function boxy(R, base, top, yaw, a, b, colorAt, id, bev) {
     const { W, H, s } = R;
     const ax = R.ox + base.x * s, ay = R.oy - base.y * s, tx = R.ox + top.x * s, ty = R.oy - top.y * s;
     const dx = tx - ax, dy = ty - ay, dd = dx * dx + dy * dy || 1e-6, dl = Math.sqrt(dd), len = dl / s;
     const px_ = -dy / dl, py_ = dx / dl, c = Math.cos(yaw), sn = Math.sin(yaw), r = (a + b + 1) * s;
     const x0 = Math.max(0, Math.floor(Math.min(ax, tx) - r)), x1 = Math.min(W - 1, Math.ceil(Math.max(ax, tx) + r));
     const y0 = Math.max(0, Math.floor(Math.min(ay, ty) - r)), y1 = Math.min(H - 1, Math.ceil(Math.max(ay, ty) + r));
+    // v272 (JODIO: "don't make the model blocky"): the cross-section is a rounded rectangle; its visible depth, surface point and normal are tabled once per lateral position
+    const rr = Math.min(a, b) * 0.42, A = a - rr, Bz = b - rr, K = Math.max(1, s * 2), span = a + b + 1, N = Math.ceil(span * 2 * K) + 2;
+    const lutD = new Float32Array(N).fill(-1e9), lutX = new Float32Array(N), lutZ = new Float32Array(N), lutNx = new Float32Array(N), lutNz = new Float32Array(N);
+    const poly = [];
+    [[1, 1, 0], [-1, 1, 1], [-1, -1, 2], [1, -1, 3]].forEach(([sx_, sz_, q]) => { for (let k = 0; k <= 6; k++) { const th = (q + k / 6) * Math.PI / 2; poly.push([sx_ * A + rr * Math.cos(th), sz_ * Bz + rr * Math.sin(th), Math.cos(th), Math.sin(th)]); } });
+    for (let i = 0; i < poly.length; i++) {
+      const p0 = poly[i], p1 = poly[(i + 1) % poly.length], l0 = p0[0] * c + p0[1] * sn, l1 = p1[0] * c + p1[1] * sn;
+      const i0 = Math.floor((Math.min(l0, l1) + span) * K), i1 = Math.ceil((Math.max(l0, l1) + span) * K);
+      for (let j = Math.max(0, i0); j <= Math.min(N - 1, i1); j++) {
+        const lat = j / K - span, u = Math.abs(l1 - l0) < 1e-6 ? 0.5 : (lat - l0) / (l1 - l0);
+        if (u < -0.001 || u > 1.001) continue;
+        const x = p0[0] + (p1[0] - p0[0]) * u, z = p0[1] + (p1[1] - p0[1]) * u, d = -x * sn + z * c;
+        if (d > lutD[j]) { lutD[j] = d; lutX[j] = x; lutZ[j] = z; lutNx[j] = p0[2] + (p1[2] - p0[2]) * u; lutNz[j] = p0[3] + (p1[3] - p0[3]) * u; }
+      }
+    }
+    const sm = smoothL; smoothL = true;
     for (let py = y0; py <= y1; py++) for (let px = x0; px <= x1; px++) {
       const qx = px + 0.5 - ax, qy = py + 0.5 - ay, t = (qx * dx + qy * dy) / dd;
       if (t < 0 || t > 1) continue;
-      let ea = tap ? a * (tap + (1 - tap) * clamp(t * 1.5, 0, 1)) : a, eb = b;   // v274: tap narrows the bottom (chest wide, waist narrow)
-      if (bev) { const e = Math.min(t, 1 - t) * len, k = 1 - clamp((bev - e) / bev, 0, 1) * 0.2; ea *= k; eb *= k; }
-      const sx = (qx * px_ + qy * py_) / s;
-      let best = -1e9, bx = 0, bz = 0, nx = 0, nz = 1;
-      if (c > 0.02) { const x = (sx - eb * sn) / c; if (Math.abs(x) <= ea) { const d = -x * sn + eb * c; if (d > best) { best = d; bx = x; bz = eb; nx = 0; nz = 1; } } }
-      if (Math.abs(sn) > 0.02) for (const sg of [1, -1]) {
-        if (-sg * sn <= 0) continue;
-        const z = (sx - sg * ea * c) / sn;
-        if (Math.abs(z) <= eb) { const d = -sg * ea * sn + z * c; if (d > best) { best = d; bx = sg * ea; bz = z; nx = sg; nz = 0; } }
-      }
-      if (best < -1e8) continue;
-      const n = vnorm(V(nx * c + nz * sn, t > 0.94 ? 0.6 : (t < 0.04 ? -0.3 : 0), -nx * sn + nz * c));
-      const lat = Math.min(1, Math.abs(bx) / (ea || 1));   // v267: soft light like the Roblox render: lighter up high, darker toward the sides and the bottom
-      plot(R, py * W + px, mix(base.z, top.z, t) + best, colorAt(bx, bz, t), band(n) * (0.95 + 0.1 * t - (nx ? 0.04 : 0) * lat), id);
+      const sx = (qx * px_ + qy * py_) / s, j = Math.round((sx + span) * K);
+      if (j < 0 || j >= N || lutD[j] < -1e8) continue;
+      let sh = 1;
+      if (bev) { const e = Math.min(t, 1 - t) * len; if (e < bev) { const k = (bev - e) / bev; if (Math.abs(sx) / (a + 0.001) > Math.sqrt(1 - k * k * 0.6)) continue; sh = 1 - k * 0.12; } }
+      const nx = lutNx[j], nz = lutNz[j], n = vnorm(V(nx * c + nz * sn, t > 0.94 ? 0.5 : (t < 0.06 ? -0.35 : 0), -nx * sn + nz * c));
+      plot(R, py * W + px, mix(base.z, top.z, t) + lutD[j], colorAt(lutX[j], lutZ[j], t), band(n) * sh * (0.95 + 0.1 * t), id);
     }
+    smoothL = sm;
   }
 
   /** Hair coverage: the scalp is hair above this height (local unit sphere), by how far round the head we are. */
@@ -958,7 +967,7 @@ window.RUT = window.RUT || {};
     const view = v => rotY(v, yaw);
     const J = {}; for (const k in S) if (S[k] && S[k].x !== undefined) J[k] = view(S[k]);
     const sk = L.skin, hand = L.gloves || L.skin, isGK = !!L.gloves;
-    const tube = r6 ? (R_, base, top, yw, aB, aT, b, colorAt, id, round) => boxy(R_, base, top, yw, Math.max(aB, aT) * (aB === aT ? 1.08 : 0.95), b * 0.86, colorAt, id, round ? 3.4 : 0, aB === aT ? 0 : Math.min(aB, aT) / Math.max(aB, aT) * 0.85) : cylinder;
+    const tube = r6 ? (R_, base, top, yw, aB, aT, b, colorAt, id, round) => boxy(R_, round ? base : vadd(base, V(0, 0, 1.4)), round ? top : vadd(top, V(0, 0, 1.4)), yw, Math.max(aB, aT) * (aB === aT ? 1.12 : 0.9), b * 0.86, colorAt, id, round ? 2.6 : 0) : cylinder;
     const sole = lum(L.boots) > 0.55 ? '#3a3a3a' : '#e8e8e8';
     const ds = L.number ? L.number.split('').map(Number) : [];
     const seed = hashStr(L.shirt + L.pattern + L.trim);
@@ -969,7 +978,7 @@ window.RUT = window.RUT || {};
       const hip = J['hip' + sd], knee = J['knee' + sd], ank = J['ankle' + sd];
       if (r6) {
         const lyaw = yaw + S.pelvisYaw, kd = vnorm(vsub(knee, hip)), ad = vnorm(vsub(ank, knee)), fold6 = shade(L.socks, -0.2);
-        boxy(R, vsub(hip, vmul(kd, 1.6)), vadd(knee, vmul(kd, 1.8)), lyaw, 3.3, 3.2, (bx, bz, tt) => tt < 0.5 ? (tt > 0.36 && Math.abs(bx) > 2.6 ? L.trim : L.shorts) : sk, id, 1.2);
+        boxy(R, vadd(vsub(hip, vmul(kd, 1.6)), V(0, 0, 0.9)), vadd(vadd(knee, vmul(kd, 1.8)), V(0, 0, 0.9)), lyaw, 3.3, 3.2, (bx, bz, tt) => tt < 0.5 ? (tt > 0.36 && Math.abs(bx) > 2.6 ? L.trim : L.shorts) : sk, id, 1.2);
         boxy(R, vsub(knee, vmul(ad, 1.5)), vadd(ank, vmul(ad, 1.4)), lyaw, 3.05, 3.0, (bx, bz, tt) => tt < 0.1 ? sk : tt < 0.19 ? fold6 : (tt < 0.24 || (tt > 0.28 && tt < 0.32)) ? L.trim : L.socks, id, 1.0);
         capsule(R, vadd(J['heel' + sd], vmul(vsub(J['heel' + sd], J['toe' + sd]), 0.08)), vadd(J['toe' + sd], vmul(vsub(J['toe' + sd], J['heel' + sd]), 0.18)), 2.8, 2.35, (tt, n) => n.y < -0.35 ? sole : (tt > 0.45 && tt < 0.75 && n.y > 0.55 ? '#f0f0f0' : (tt > 0.3 && tt < 0.5 && Math.abs(n.x) > 0.5 ? L.bootsL : L.boots)), id);
         return;
@@ -1026,10 +1035,8 @@ window.RUT = window.RUT || {};
       const id = sd === 'L' ? ID.armL : ID.armR;
       if (r6) {
         const eb = J['elbow' + sd], ha = J['hand' + sd], fd6 = vnorm(vsub(ha, eb)), ud6 = vnorm(vsub(eb, J['sh' + sd]));
-        boxy(R, vadd(J['sh' + sd], V(sd === 'L' ? -1.2 : 1.2, 3.0, 0)), vadd(eb, vmul(ud6, 1.6)), tyaw, 3.3, 3.2, (bx, bz, tt) => isGK ? sleeve[k] : tt < 0.58 ? sleeve[k] : tt < 0.68 ? L.trim : sk, id, 1.5);
+        boxy(R, vadd(J['sh' + sd], V(sd === 'L' ? -1.2 : 1.2, 3.0, 0.7)), vadd(vadd(eb, vmul(ud6, 1.6)), V(0, 0, 0.7)), tyaw, 3.3, 3.2, (bx, bz, tt) => isGK ? sleeve[k] : tt < 0.58 ? sleeve[k] : tt < 0.68 ? L.trim : sk, id, 1.5);
         boxy(R, vsub(eb, vmul(fd6, 1.4)), vadd(ha, vmul(fd6, 3.0)), tyaw, 3.1, 3.0, (bx, bz, tt) => isGK ? (tt > 0.74 ? hand : tt > 0.66 ? L.trim : sleeve[k]) : (tt > 0.86 ? hand : sk), id, 1.2);
-        ellipsoid(R, J['sh' + sd], 3.7, 3.7, () => (isGK ? sleeve[k] : sleeve[k]), id);   // v273: shoulder cap so the arm stays joined to the torso
-        ellipsoid(R, eb, 3.2, 3.2, () => (isGK ? sleeve[k] : sk), id);   // elbow joint
         return;
       }
       capsule(R, J['sh' + sd], J['elbow' + sd], 2.25, 1.95, tt => isGK ? sleeve[k] : tt < 0.46 ? sleeve[k] : tt < 0.56 ? L.trim : sk, id);
