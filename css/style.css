@@ -1613,3 +1613,28 @@ h1, h2 { color: #fff4d6; } h2 { color: #f4c542; } .dim { color: #c9b27a; }
 @keyframes mmInL { from { opacity: 0; transform: translateX(-160px); } to { opacity: 1; transform: none; } }
 @keyframes mmInR { from { opacity: 0; transform: translateX(160px); } to { opacity: 1; transform: none; } }
 @media (max-width: 600px) { .mm-crest { width: 58px; height: 68px; } .mm-crest.q span { height: 68px; line-height: 68px; } .mm-roll { animation-name: mmRollS; } .mm-vs { font-size: 26px; } .mm-pair { gap: 12px; } .mm-vs.big { font-size: 40px; } }
+
+/* v249 (JODIO): FC 27-style Player of the Week (black + gold in-form) and Player of the Month (league colours) */
+.card.r-lpotw, .card.fc.r-lpotw { --c1: #2b2b2b; --c2: #0a0a0a; --c3: #000; --ct: #f5d76e; animation: shimmer 2.4s steps(6) infinite; }
+.card.pxc.r-lpotw, .c3d.r-lpotw { --frame: #f5d76e; --frame2: #111; }
+.card.r-lpotm, .card.fc.r-lpotm { --c1: #6a3cff; --c2: #2a0f7a; --c3: #150648; --ct: #fff; animation: shimmer 2.4s steps(6) infinite; }
+.card.pxc.r-lpotm, .c3d.r-lpotm { --frame: #b49bff; --frame2: #2a0f7a; }
+.r-lpotm.pot-EPL { --c1: #8a3cff; --c2: #38003c; --c3: #1d0020; --frame: #00ff85; --frame2: #38003c; }
+.r-lpotm.pot-LAL { --c1: #ff5a3c; --c2: #8a1010; --c3: #400808; --frame: #ffb000; --frame2: #8a1010; }
+.r-lpotm.pot-SEA { --c1: #2a7bff; --c2: #0a2a7a; --c3: #051540; --frame: #4ad8ff; --frame2: #0a2a7a; }
+.r-lpotm.pot-BUN { --c1: #e2001a; --c2: #5a000a; --c3: #2a0005; --frame: #ffffff; --frame2: #5a000a; }
+.r-lpotm.pot-L1  { --c1: #1d3a8a; --c2: #0a1a3a; --c3: #050a1a; --frame: #dafc5a; --frame2: #0a1a3a; }
+.card.pxc.r-lpotw::after, .card.pxc.r-lpotm::after, .c3d.r-lpotw::after, .c3d.r-lpotm::after { position: absolute; left: 0; right: 0; bottom: 3px; text-align: center; font-size: 3.6px; letter-spacing: .6px; color: #fff; opacity: .9; z-index: 2; pointer-events: none; }
+.card.pxc.r-lpotw::after, .c3d.r-lpotw::after { content: 'PLAYER OF THE WEEK'; color: #f5d76e; }
+.card.pxc.r-lpotm::after, .c3d.r-lpotm::after { content: 'PLAYER OF THE MONTH'; }
+.card.pxc.mini.r-lpotw::after, .card.pxc.mini.r-lpotm::after, .c3d.mini.r-lpotw::after, .c3d.mini.r-lpotm::after { display: none; }
+.card.r-lpotm .c-ovr, .card.r-lpotw .c-ovr { color: var(--ct, #fff); }
+.card.r-lpotw, .card.fc.r-lpotw, .card.pxc.r-lpotw {
+  background: linear-gradient(135deg, transparent 0 38%, rgba(245,215,110,.22) 40%, transparent 43% 60%, rgba(245,215,110,.14) 62%, transparent 65%),
+    radial-gradient(ellipse 80% 60% at 50% 25%, #3a3a3a 0%, #121212 50%, #000 100%); --txt: #f5d76e; }
+.card.r-lpotm, .card.fc.r-lpotm, .card.pxc.r-lpotm {
+  background: radial-gradient(circle at 50% 30%, rgba(255,255,255,.18) 0 9%, transparent 10%),
+    repeating-linear-gradient(120deg, rgba(255,255,255,.06) 0 6px, transparent 6px 14px),
+    radial-gradient(ellipse 80% 60% at 50% 25%, var(--c1) 0%, var(--c2) 50%, var(--c3) 100%); --txt: #fff; }
+
+.card.pxc.r-lpotw, .card.pxc.r-lpotm { box-shadow: inset 0 0 0 3px var(--frame), inset 0 0 0 5px var(--frame2), inset 0 0 0 6px rgba(0,0,0,.4); }

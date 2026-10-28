@@ -21,7 +21,7 @@
   const fmt = n => Math.round(n).toLocaleString('en-US');
   const D = () => State.data;
   const shortName = n => { const p = n.split(' '); return (p.length > 1 && n.length > 13 ? p.slice(-1)[0] : n).toUpperCase(); };
-  const frameOf = c => (c.rarity === 'evo' ? 'evo' : c.promo ? c.promo : c.cl ? 'cl' : c.rarity);
+  const frameOf = c => (c.rarity === 'evo' ? 'evo' : c.promo ? c.promo + (c.potLg ? ' pot-' + c.potLg : '') : c.cl ? 'cl' : c.rarity);
 
   function toast(msg, kind) {
     const el = document.createElement('div');
@@ -2890,7 +2890,7 @@
       <p class="dim" style="font-size:8px;margin:6px 0 0">Packs won from SBCs have weaker odds for high-rated players and are opened first. SBCs that reward a 91+ card cost coins to validate.</p></div>`;
     return head + Object.entries(groups).map(([g, list]) => `<h2>${esc(g)}</h2><div class="grid cols-3 mb">${list.map(s => {
       const done = D().sbcDone[s.id] || 0, avail = SBC.isAvailable(s);
-      const rc = s.reward.type === 'card' ? (s.reward.promo === 'nlpofm' || s.reward.promo === 'clpromo' ? DB.registerPromo(s.reward.baseId, s.reward.promo, s.reward.boost) : DB.get(s.reward.baseId)) : null;
+      const rc = s.reward.type === 'card' ? (s.reward.promo === 'nlpofm' || s.reward.promo === 'clpromo' || s.reward.promo === 'lpotm' || s.reward.promo === 'lpotw' ? DB.registerPromo(s.reward.baseId, s.reward.promo, s.reward.boost) : DB.get(s.reward.baseId)) : null;
       return `<div class="px"><div class="row between"><h3>${esc(s.name)}</h3>${done ? `<span class="good" style="font-size:8px">✓ ${s.repeatable || (avail && s.reward.type === 'pack') ? '×' + done : s.reward.type === 'pack' ? 'DONE · again after the daily refresh or a reset' : 'DONE'}</span>` : ''}</div>
         <p class="dim" style="font-size:8px">${esc(s.desc)}</p>
         <div class="row">${rc ? cardHTML(rc, { mini: true }) : `<div class="pack ${Packs.PACKS[s.reward.packId].tier}" style="width:70px;height:96px;margin:0;font-size:7px"><div class="stripe"></div>${esc(Packs.PACKS[s.reward.packId].name)}</div>`}
@@ -2972,7 +2972,7 @@
   /* ======================= v109: PROMO SHOP ======================= */
   /* Buy any Nations League / Champions League promo player straight from the shop at his current market value; handing in his plain gold card as an add-on takes 90% of that card's market value off the price. Not a sale, so it does not use the daily sell limit. */
   const PSHOP = { type: 'all', name: '', sort: 'rating', open: false };
-  const PSHOP_TYPES = { nlpofm: ['NL Player of the Month', 5], nlstar: ['NL Star', 3], clpromo: ['Champions League', 4] };
+  const PSHOP_TYPES = { nlpofm: ['NL Player of the Month', 5], nlstar: ['NL Star', 3], clpromo: ['Champions League', 4], lpotw: ['Player of the Week', 1], lpotm: ['Player of the Month', 2] };
   const PSHOP_TRADE = 0.9;
   const shopPrice = c => DB.roundToIncrement(Market.currentPrice(c.id));
   function shopTradeItem(c) {   // an owned, free, plain copy of the promo player's gold card

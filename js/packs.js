@@ -153,8 +153,10 @@ window.RUT = window.RUT || {};
     if (def.nlpofmChance && r() < def.nlpofmChance) { const ids = Object.keys(RUT.DB.NLPOFM); nlBase = ids[Math.floor(r() * ids.length)]; nlIdx = 0; cards.forEach((c, i) => { if (c.rating < cards[nlIdx].rating) nlIdx = i; }); }   // an NLPOFM card takes the place of the weakest pull
     let nsIdx = -1, nsBase = null;
     if (def.nlstarChance && r() < def.nlstarChance) { const ids = RUT.DB.NLSTAR_IDS; nsBase = ids[Math.floor(r() * ids.length)]; cards.forEach((c, i) => { if (i !== nlIdx && (nsIdx < 0 || c.rating < cards[nsIdx].rating)) nsIdx = i; }); }
+    let pwIdx = -1, pwBase = null;   // v249 (JODIO): a Player of the Week card (half the NL Star chance) takes the weakest free slot
+    if (def.nlstarChance && RUT.DB.POTW_IDS && RUT.DB.POTW_IDS.length && r() < Math.min(0.5, def.nlstarChance * 0.5)) { const ids = RUT.DB.POTW_IDS; pwBase = ids[Math.floor(r() * ids.length)]; cards.forEach((c, i) => { if (i !== nlIdx && i !== nsIdx && (pwIdx < 0 || c.rating < cards[pwIdx].rating)) pwIdx = i; }); }
     let clIdx = -1, clBase = null;     // a Champions League promo card takes the place of the weakest pull that is not already a promo
-    if (def.clChance && RUT.CL && RUT.CL.promoBase.length && r() < def.clChance) { clBase = clPick(r, def.id === 'cl' ? 6 : 2.5); cards.forEach((c, i) => { if (i !== nlIdx && i !== nsIdx && (clIdx < 0 || c.rating < cards[clIdx].rating)) clIdx = i; }); }
+    if (def.clChance && RUT.CL && RUT.CL.promoBase.length && r() < def.clChance) { clBase = clPick(r, def.id === 'cl' ? 6 : 2.5); cards.forEach((c, i) => { if (i !== nlIdx && i !== nsIdx && i !== pwIdx && (clIdx < 0 || c.rating < cards[clIdx].rating)) clIdx = i; }); }
     let bdIdx = -1, bdRank = 0;   // a Ballon d'Or card takes the place of the weakest pull
     if (def.bdorChance && RUT.DB.BDOR_IDS) {
       const x = r(), bc = def.bdorChance, c3 = bc[0], c10 = c3 + bc[1], c14 = bc.length > 3 ? c10 + bc[2] : c10, call = c14 + (bc.length > 3 ? bc[3] : bc[2]);
@@ -167,6 +169,7 @@ window.RUT = window.RUT || {};
       if (i === awIdx) { const baseId = RUT.DB.AWARD_IDS[awN - 1], card = RUT.DB.registerPromo(baseId, 'award', awN); return RUT.State.newItem(card.id, { promo: { baseId, type: 'award', boost: awN }, untradeable: true }); }
       if (i === bdIdx) { const baseId = RUT.DB.BDOR_IDS[bdRank - 1], card = RUT.DB.registerPromo(baseId, 'bdor', bdRank); return RUT.State.newItem(card.id, { promo: { baseId, type: 'bdor', boost: bdRank  }, untradeable: ut || !!def.bdorUntradeable }); }
       if (i === clIdx) { const card = RUT.DB.registerPromo(clBase, 'clpromo', 4); return RUT.State.newItem(card.id, { promo: { baseId: clBase, type: 'clpromo', boost: 4  }, untradeable: ut }); }
+      if (i === pwIdx) { const card = RUT.DB.registerPromo(pwBase, 'lpotw', 1); return RUT.State.newItem(card.id, { promo: { baseId: pwBase, type: 'lpotw', boost: 1 }, untradeable: ut }); }
       if (i === nsIdx) { const card = RUT.DB.registerPromo(nsBase, 'nlstar', 3); return RUT.State.newItem(card.id, { promo: { baseId: nsBase, type: 'nlstar', boost: 3  }, untradeable: ut }); }
       if (i === nlIdx) { const card = RUT.DB.registerPromo(nlBase, 'nlpofm', 5); return RUT.State.newItem(card.id, { promo: { baseId: nlBase, type: 'nlpofm', boost: 5  }, untradeable: ut }); }
       if (i === promoIdx) {

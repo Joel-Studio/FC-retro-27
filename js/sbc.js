@@ -218,6 +218,11 @@ window.RUT = window.RUT || {};
     });
   } catch (e) { /* the Champions League data is optional */ }
 
+  // v249 (JODIO): every Player of the Month card is an SBC: squad rating = card rating - 3 (80 to 88), three players 2 below that
+  try { (RUT.DB.POTM_IDS || []).forEach(id => { const c = RUT.DB.registerPromo(id, 'lpotm', 2), i = c && c.potInfo; if (!c) return; const need = Math.max(80, Math.min(88, c.rating - 3));
+    SBCS.push({ id: 'potm_' + id, name: 'Player of the Month: ' + c.name, group: 'Player of the Month', repeatable: false, desc: (i ? i.period + ': ' + i.why : '') + '. +2% on every stat (max 93).',
+      reqs: [{ type: 'minRating', value: need }, { type: 'minPlayerRating', value: need - 2, count: 3 }, { type: 'maxSameNation', count: 3 }], reward: { type: 'card', baseId: id, promo: 'lpotm', boost: 2 } }); }); } catch (e) { /* optional */ }
+
   // v145 (JODIO): reward cards rated 91+ are harder: the squad rating is one higher (cap 90) and four players need to be rated 2 below that
   try {
     SBCS.forEach(sbc => {
@@ -279,7 +284,7 @@ window.RUT = window.RUT || {};
   /** The reward card of an SBC (promo versions where they exist). */
   function rewardCard(sbc) {
     const r = sbc.reward; if (!r || r.type !== 'card') return null;
-    try { return (r.promo === 'nlpofm' || r.promo === 'clpromo') ? RUT.DB.registerPromo(r.baseId, r.promo, r.boost) : RUT.DB.get(r.baseId); } catch (e) { return null; }
+    try { return (r.promo === 'nlpofm' || r.promo === 'clpromo' || r.promo === 'lpotm' || r.promo === 'lpotw') ? RUT.DB.registerPromo(r.baseId, r.promo, r.boost) : RUT.DB.get(r.baseId); } catch (e) { return null; }
   }
   function feeOf(sbc) { const c = rewardCard(sbc); return c && c.rating >= 91 ? 400000 + 55000 * (c.rating - 91) : 0; }   // v192 (JODIO): fee 400,000 (+55,000 per point above 91)
 
@@ -317,7 +322,7 @@ window.RUT = window.RUT || {};
       st.sbcPacks = st.sbcPacks || {}; st.sbcPacks[reward.packId] = (st.sbcPacks[reward.packId] || 0) + 1;      // opened first, with weaker odds for high-rated players
     } else if (reward.type === 'card') {
       let it;
-      if (reward.promo === 'nlpofm' || reward.promo === 'clpromo') { const card = RUT.DB.registerPromo(reward.baseId, reward.promo, reward.boost); it = RUT.State.newItem(card.id, { promo: { baseId: reward.baseId, type: reward.promo, boost: reward.boost } }); }
+      if (reward.promo === 'nlpofm' || reward.promo === 'clpromo' || reward.promo === 'lpotm' || reward.promo === 'lpotw') { const card = RUT.DB.registerPromo(reward.baseId, reward.promo, reward.boost); it = RUT.State.newItem(card.id, { promo: { baseId: reward.baseId, type: reward.promo, boost: reward.boost } }); }
       else it = RUT.State.newItem(reward.baseId, {});      // the old promos (TOTW, POTM...) are gone: the reward is the player's basic gold card
       st.unassigned.push(it.id);
       reward.itemId = it.id;

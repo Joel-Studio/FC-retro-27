@@ -1196,6 +1196,14 @@ window.RUT = window.RUT || {};
       card.value = roundToIncrement(valuation(card.rating, face, card.playStyles, card.position, true) * 1.8);
       byId[id] = card; all.push(card); return card;
     }
+    if (promo === 'lpotw' || promo === 'lpotm') {   // v249 (JODIO): Player of the Week +1% (max 92), Player of the Month +2% (max 93)
+      const k = promo === 'lpotw' ? 1.01 : 1.02, up = v => clamp(Math.round(v * k), 1, 99), face = {}, sub = {};
+      Object.keys(base.face).forEach(x => { face[x] = up(base.face[x]); }); Object.keys(base.sub).forEach(x => { sub[x] = up(base.sub[x]); });
+      const rating = Math.min(promo === 'lpotw' ? 92 : 93, Math.max(base.rating + 1, up(base.rating)));
+      const card = Object.assign({}, base, { id, rating, rarity: 'promo', promo, face, sub, rare: true, baseId, potLg: base.league, playStyles: psGate(rating, sub, base.playStyles, base.playStyles, 2) });
+      card.value = roundToIncrement(valuation(card.rating, face, card.playStyles, card.position, true) * 1.4);
+      byId[id] = card; all.push(card); return card;
+    }
     if (promo === 'nlstar') {
       const up = v => clamp(Math.round(v * 1.03), 1, 99), face = {}, sub = {};
       Object.keys(base.face).forEach(k => { face[k] = up(base.face[k]); }); Object.keys(base.sub).forEach(k => { sub[k] = up(base.sub[k]); });
@@ -1286,6 +1294,11 @@ window.RUT = window.RUT || {};
   // the Nations League cards exist from the start so packs, the market and saves can all find them
   Object.keys(NLPOFM).forEach(id => registerPromo(id, 'nlpofm', 5));
   NLSTAR_IDS.forEach(id => registerPromo(id, 'nlstar', 3));
+  // v249: Player of the Week / Month cards from potw_data.js, one of each type per player at most
+  const POTW_IDS = [], POTM_IDS = [], POT_INFO = {};
+  try { const P = window.RUT && RUT.POTW_DATA, find = n => all.find(c => !c.promo && c.name === n);
+    [['weeks', 'lpotw', POTW_IDS, 1], ['months', 'lpotm', POTM_IDS, 2]].forEach(([k, pr, out, b]) => ((P && P[k]) || []).forEach(per => per.picks.forEach(p => { const c = find(p.name); if (!c || out.includes(c.id)) return; out.push(c.id); const card = registerPromo(c.id, pr, b); if (card) { card.potInfo = { period: per.label, why: p.why, lg: p.lg }; POT_INFO[card.id] = card.potInfo; } }))); } catch (e) { /* optional data */ }
+  Object.assign(RUT.DB, { POTW_IDS, POTM_IDS, POT_INFO });
   BDOR_IDS.forEach((id, i) => registerPromo(id, 'bdor', i + 1));
   AWARD_IDS.forEach((id, i) => { if (id) registerPromo(id, 'award', i + 1); });
 })();
