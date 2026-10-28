@@ -2887,7 +2887,7 @@
     return head + Object.entries(groups).map(([g, list]) => `<h2>${esc(g)}</h2><div class="grid cols-3 mb">${list.map(s => {
       const done = D().sbcDone[s.id] || 0, avail = SBC.isAvailable(s);
       const rc = s.reward.type === 'card' ? (s.reward.promo === 'nlpofm' || s.reward.promo === 'clpromo' ? DB.registerPromo(s.reward.baseId, s.reward.promo, s.reward.boost) : DB.get(s.reward.baseId)) : null;
-      return `<div class="px"><div class="row between"><h3>${esc(s.name)}</h3>${done ? `<span class="good" style="font-size:8px">✓ ${s.repeatable ? '×' + done : 'DONE'}</span>` : ''}</div>
+      return `<div class="px"><div class="row between"><h3>${esc(s.name)}</h3>${done ? `<span class="good" style="font-size:8px">✓ ${s.repeatable || (avail && s.reward.type === 'pack') ? '×' + done : s.reward.type === 'pack' ? 'DONE · again after the daily refresh or a reset' : 'DONE'}</span>` : ''}</div>
         <p class="dim" style="font-size:8px">${esc(s.desc)}</p>
         <div class="row">${rc ? cardHTML(rc, { mini: true }) : `<div class="pack ${Packs.PACKS[s.reward.packId].tier}" style="width:70px;height:96px;margin:0;font-size:7px"><div class="stripe"></div>${esc(Packs.PACKS[s.reward.packId].name)}</div>`}
           <div style="flex:1;font-size:7px">${s.reqs.map(r => `<div>• ${esc(SBC.RULES[r.type]([], { rating: 0, chem: 0 }, r).label)}</div>`).join('')}</div></div>

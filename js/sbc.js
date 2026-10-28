@@ -273,7 +273,7 @@ window.RUT = window.RUT || {};
     const st = RUT.State.data, dl = daily();
     if (!dl.n) return { ok: false, msg: 'Nothing to reset: you have not completed an SBC today.' };
     if (st.coins < RESET_COST) return { ok: false, msg: 'A reset costs ' + RESET_COST.toLocaleString() + ' coins.' };
-    RUT.State.addCoins(-RESET_COST, 'SBC daily limit reset'); st.sbcDay.n = 0; RUT.State.save();
+    RUT.State.addCoins(-RESET_COST, 'SBC daily limit reset'); st.sbcDay.n = 0; st.sbcDay.r = (st.sbcDay.r || 0) + 1; RUT.State.save();
     return { ok: true, msg: 'SBC limit reset: ' + DAILY_LIMIT + ' more SBCs today (-' + RESET_COST.toLocaleString() + ' coins).' };
   }
   /** The reward card of an SBC (promo versions where they exist). */
@@ -283,7 +283,10 @@ window.RUT = window.RUT || {};
   }
   function feeOf(sbc) { const c = rewardCard(sbc); return c && c.rating >= 91 ? 400000 + 55000 * (c.rating - 91) : 0; }   // v192 (JODIO): fee 400,000 (+55,000 per point above 91)
 
-  function isAvailable(sbc) { const done = RUT.State.data.sbcDone[sbc.id] || 0; return sbc.repeatable || done === 0; }
+  /* v241 (JODIO): pack SBCs can be done again after each daily refresh or paid reset (once per period) */
+  const period = () => { daily(); const d = RUT.State.data.sbcDay; return d.d + '#' + (d.r || 0); };
+  const packOnce = sbc => !sbc.repeatable && sbc.reward && sbc.reward.type === 'pack';
+  function isAvailable(sbc) { const st = RUT.State.data, done = st.sbcDone[sbc.id] || 0; if (packOnce(sbc)) return !done || ((st.sbcPer || {})[sbc.id] || '') !== period(); return sbc.repeatable || done === 0; }
 
   /**
    * Submit: re-validates, checks ownership, consumes cards, grants reward.
@@ -305,7 +308,7 @@ window.RUT = window.RUT || {};
     st.sbcDay.n++;
 
     itemIds.forEach(id => RUT.State.destroy(id));   // card burning: permanently removed
-    st.sbcDone[sbc.id] = (st.sbcDone[sbc.id] || 0) + 1;
+    st.sbcDone[sbc.id] = (st.sbcDone[sbc.id] || 0) + 1; if (packOnce(sbc)) { st.sbcPer = st.sbcPer || {}; st.sbcPer[sbc.id] = period(); }
     try { RUT.Quests && RUT.Quests.event('sbc', { id: sbc.id }); } catch (e) { /* quests are optional */ }
 
     let reward = Object.assign({}, sbc.reward);
