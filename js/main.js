@@ -248,6 +248,7 @@
      cannot read a link, so the code is copied as well and one paste on its login screen ("Paste my club") brings the club in. */
   const SITES = [
     { k: 'vercel', name: 'Vercel', url: 'https://fc-retro-27.vercel.app/', here: () => /vercel\.app$/.test(location.hostname) },     // v237 (JODIO): Vercel replaces Netlify as the transfer site
+    { k: 'wix', name: 'Wix', url: 'https://headless-eeuplubgmqh-yimtchijoel-140b.wix-site-host.com/', here: () => /wix-site-host\.com$/.test(location.hostname) },     // v238 (JODIO): Wix site (loads the game from jsDelivr)
   ];
   /* v222 (JODIO): the transfer button is a plain link that already carries the club (#rut=...), so the browser opens it like any link:
      no pop-up blocker, no "allow pop-ups" message. The code is refreshed after each render, every 10 s and when the pointer reaches the button. */
