@@ -2788,6 +2788,9 @@ window.RUT = window.RUT || {};
         let open = 1e9; this.players.forEach(q2 => { if (q2.team !== p.team) open = Math.min(open, dist(q2, o)); });
         const prog = (o.x - p.x) * dir, called = this.t - o.callT < 0.9;
         const runs = ((o.vx * dir) > 3 && o.slot >= FC.fwdFrom - 1) || (o.run && o.run.until > this.t && (o.run.x - o.x) * dir > 4);
+        // v296 (JODIO): every AI side passes the ball about and plays fewer long balls, except a direct ball to a striker who is close to the box and open (he then shoots)
+        const aiK = !this.ctlOf(p) && !p.isGK, dirBall = aiK && (o.card.position === 'ST' || o.card.position === 'CF' || o.slot >= FC.fwdFrom) && Math.abs(gx - o.x) < 32 && Math.abs(o.y - PH2) < 24 && open > 4.5 && prog > 8;
+        const longAdj = aiK ? (dirBall ? 8 : (d > 26 ? -(d - 26) * 0.4 : 0) + (d < 22 && prog > -4 ? 1.5 : 0) + (d < 24 && open > 6 && !this.laneBlocked(p, o) ? 3.5 : 0)) : 0;   // v296: and more simple passes to a free man
         const raw = prog * 0.45 * TK.vert + Math.min(open, 9) * (tr.has('sfe') ? 1.5 : 1.1) - this.laneBlocked(p, o) * laneW * (TK.vert > 1.5 ? 0.6 : 1) * (tr.has('sfe') ? 1.3 : 1) - d * 0.2 * TK.shortW - (o.isGK ? 14 : 0) + (runs ? 4 * iq + (o.run && o.run.until > this.t ? 5 * iq : 0) : 0) + (o.slot >= FC.fwdFrom ? TK.targetMan : 0) + (TK.counter && quickWin ? prog * 0.3 * TK.counter : 0) + (called ? 2.5 + 3.5 * o.callQ : 0)
           + (tr.has('vis') && runs ? 3 : 0) + (tr.has('swi') && d > 24 && Math.abs(o.y - p.y) > 14 ? 4 : 0) + (tr.has('vrt') ? prog * 0.15 : 0) + (tr.has('bpl') && p.slot <= FC.nDef ? prog * 0.1 : 0)
           + (o.tr.has('tgt') && Math.abs(gx - o.x) < 40 ? 3 : 0) + (o.tr.has('run') && prog > 5 ? 1.5 : 0)
@@ -2801,7 +2804,7 @@ window.RUT = window.RUT || {};
           + gm * prog * 0.12
           + (TK.vert < 1.4 && (p.x - ownG) * dir < PW2 * 1.15 ? ((o.slot > FC.nDef && o.slot < FC.fwdFrom ? 3 : 0) - (p.slot >= 1 && p.slot <= FC.nDef && o.slot >= FC.fwdFrom && d > 25 ? 3 : 0)) : 0)               // build through the midfield: defenders look for the midfielders, not the long ball
           + (fwdAI && dGoal >= 24 && o.slot > FC.nDef && o.slot < FC.fwdFrom ? 5 : 0)                                                               // v110: a striker with his back to goal plays it to the midfield, they build the attack
-          + (LA && isST && (o.card.position === 'LW' || o.card.position === 'RW' || o.card.position === 'CAM' || o.card.position === 'LM' || o.card.position === 'RM') ? 4 : 0);   // and the striker lays it off to the wingers / CAM for help
+          + (LA && isST && (o.card.position === 'LW' || o.card.position === 'RW' || o.card.position === 'CAM' || o.card.position === 'LM' || o.card.position === 'RM') ? 4 : 0) + longAdj;   // and the striker lays it off to the wingers / CAM for help
         const sc = raw + this.gauss() * noise * (called ? 0.55 : 1);                    // the noise changes WHICH option he sees, not how keen he is to pass
         if (sc > bs) { bs = sc; best = o; braw = raw; through = runs && open > 4 && prog > 0; }
       });
