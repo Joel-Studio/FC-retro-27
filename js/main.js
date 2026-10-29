@@ -283,6 +283,12 @@
     const s = st.stats;
     const stars = DB.players.filter(c => DB.signatureFor(c));
     const feat = stars[Math.floor(Date.now() / 8000) % stars.length];
+    if (RUT.Menu2 && RUT.Menu2.on()) {   // v284: the new FC 26/27 style menu (set by js/menu2.js)
+      const xiC = cards, spot = (c, i) => c ? `<div class="m2-pl" style="left:${[50,12,30,70,88,22,50,78,15,50,85][i] || 50}%;top:${[8,28,28,28,28,50,50,50,74,78,74][i] || 50}%"><b>${c.rating}</b><small>${esc((c.name || '').split(' ').slice(-1)[0])}</small></div>` : '';
+      let fig = ''; try { fig = RUT.PixelArt.cardFigure(feat, 'up'); } catch (e) { /* optional */ }
+      let bdFeat = '', bdTop = ''; try { const bd = (DB.BDOR_IDS || []).slice(0, 10).map((id, i) => DB.all.find(c => c.promo === 'bdor' && c.baseId === id)).filter(Boolean); if (bd.length) { const f = bd[Math.floor(Date.now() / 9000) % bd.length]; bdFeat = cardHTML(f, { attrs: `data-act="price" data-card="${f.id}"` }); bdTop = bd.map(c => cardHTML(c, { mini: true, attrs: `data-act="price" data-card="${c.id}"` })).join(''); } } catch (e) { /* optional */ }
+      return RUT.Menu2.home({ st, rating, chem, figure: fig, feat: bdFeat, top10: bdTop, sbc: 5, packs: packs.reduce((a, [, k]) => a + k, 0), club: st.clubName, pos: 'Starting XI', rec: s.wins + 'W ' + s.draws + 'D ' + s.losses + 'L', goals: s.goalsFor + ':' + s.goalsAgainst, wins: s.wins, coins: (st.coins || 0).toLocaleString(), xi: xiC.map(spot).join(''), bench: st.unassigned.slice(0, 7).map(id => { const c = State.card(id); return c ? `<span class="m2-bn"><b>${c.rating}</b>${esc(c.name.split(' ').slice(-1)[0])}</span>` : ''; }).join('') });
+    }
     return `<section class="hero">
       <div class="hero-txt"><div class="eyebrow">FC 27 · ULTIMATE TEAM</div><h1 class="hero-h">Build your club.<br>Play it in 1999.</h1>
         <p class="dim">Open packs, trade on a live market, complete SBCs and take your XI onto a pixel pitch where every rule counts.</p>
