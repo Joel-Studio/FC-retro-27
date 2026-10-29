@@ -1280,10 +1280,10 @@ window.RUT = window.RUT || {};
     const key = card.name + '|' + card.club + '|' + card.position + '|' + (pose || 'idle');
     if (figCache[key]) return figCache[key];
     const L0 = lookFor(card.name, kit, card.position === 'GK', 0, { club: card.club, number: card.details && card.details.number, strength: card.sub && card.sub.strength });
-    const L = Object.assign({}, L0, { r6: true, flat: true, key: L0.key + '|r6flat' });   // v265 (JODIO): card figures use the Roblox R6 body
+    const L = Object.assign({}, L0, { r6: false, flat: true, key: L0.key + '|oldflat' });   // v281 (JODIO): card figures are a flat 2D drawing of the old v260 body
     let anim = pose === 'up' ? 'up' : pose === 'cross' ? 'cross' : idleFor(card.position), t = anim === 'up' ? 0.25 : 0.1, yaw = -0.45;
     if (!pose || pose === 'idle') { const pz = cardPose(card); anim = pz[0]; t = pz[1]; yaw = pz[2]; }
-    yaw *= 0.15;   // v276 (JODIO): the card figure is a flat 2D drawing, seen from the front   // v259 (JODIO): every player strikes his own pose on his card
+    yaw *= 0.5;   // v281: nearly front view   // v259 (JODIO): every player strikes his own pose on his card
     return (figCache[key] = sprite(L, anim, t, yaw, 77 * 2.5 / BASE).toDataURL());   // v164: drawn at 2.5x so the card shows a smooth figure, not big pixels
   }
 
