@@ -3008,7 +3008,7 @@
   /* ======================= v109: PROMO SHOP ======================= */
   /* Buy any Nations League / Champions League promo player straight from the shop at his current market value; handing in his plain gold card as an add-on takes 90% of that card's market value off the price. Not a sale, so it does not use the daily sell limit. */
   const PSHOP = { type: 'all', name: '', sort: 'rating', open: false };
-  const PSHOP_TYPES = { nlpofm: ['NL Player of the Month', 5], nlstar: ['NL Star', 3], clpromo: ['Champions League', 4], lpotw: ['Player of the Week', 1], lpotm: ['Player of the Month', 2], toty: ['Team of the Year', 0], tots: ['Team of the Season', 0] };
+  const PSHOP_TYPES = { nlpofm: ['NL Player of the Month', 5], nlstar: ['NL Star', 3], clpromo: ['Champions League', 4], lpotw: ['Player of the Week', 1], lpotm: ['Player of the Month', 2], toty: ['Team of the Year', 0], tots: ['Team of the Season', 0], fstar: ['Future Star', 1] };
   const PSHOP_TRADE = 0.9;
   const shopPrice = c => DB.roundToIncrement(Market.currentPrice(c.id));
   function shopTradeItem(c) {   // an owned, free, plain copy of the promo player's gold card
@@ -3065,7 +3065,7 @@
   /* ------------------------------- STORE -------------------------------- */
   VIEWS.store = function () {
     const st = D();
-    return `<h2>Store</h2><div class="grid cols-3">${Object.values(Packs.PACKS).filter(p => !p.storeHidden || st.packsOwned[p.id]).map(p => {
+    return `<h2>Store</h2><div class="grid cols-3">${Object.values(Packs.PACKS).filter(p => (!p.storeHidden || st.packsOwned[p.id]) && (p.tier !== "bdor" || !RUT.bdorPackable || RUT.bdorPackable())).map(p => {
       const owned = st.packsOwned[p.id] || 0;
       const odds = p.odds ? p.odds.join(' · ') : p.bands.map(b => `${b[0]}${b[1] >= 99 ? '+' : '-' + b[1]}: ${Math.round(b[2] / p.bands.reduce((a, x) => a + x[2], 0) * 1000) / 10}%`).join(' · ');
       return `<div class="px${p.tier === 'bdor' ? ' st-bdor' : ''}" style="text-align:center">${p.tier === 'bdor' ? `<div class="st-bdtitle">&#9733; ${p.id === 'bdorg' ? 'GUARANTEED' : "BALLON D'OR 2026"} &#9733;</div><div class="st-ball"></div>` : ''}<div class="pack ${p.tier}"><div class="stripe"></div><div style="position:relative">${esc(p.name.toUpperCase())}<br><br>${p.count} ITEMS</div></div>

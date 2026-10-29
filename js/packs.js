@@ -158,12 +158,12 @@ window.RUT = window.RUT || {};
     let clIdx = -1, clBase = null;     // a Champions League promo card takes the place of the weakest pull that is not already a promo
     if (def.clChance && RUT.CL && RUT.CL.promoBase.length && r() < def.clChance) { clBase = clPick(r, def.id === 'cl' ? 6 : 2.5); cards.forEach((c, i) => { if (i !== nlIdx && i !== nsIdx && i !== pwIdx && (clIdx < 0 || c.rating < cards[clIdx].rating)) clIdx = i; }); }
     let bdIdx = -1, bdRank = 0;   // a Ballon d'Or card takes the place of the weakest pull
-    if (def.bdorChance && RUT.DB.BDOR_IDS) {
+    if (def.bdorChance && RUT.DB.BDOR_IDS && (!RUT.bdorPackable || RUT.bdorPackable())) {   // v282: from 2 Nov 2026 no new Ballon d'Or cards come out of packs
       const x = r(), bc = def.bdorChance, c3 = bc[0], c10 = c3 + bc[1], c14 = bc.length > 3 ? c10 + bc[2] : c10, call = c14 + (bc.length > 3 ? bc[3] : bc[2]);
       if (x < call) { bdRank = x < c3 ? 1 + Math.floor(r() * 3) : x < c10 ? 4 + Math.floor(r() * 7) : x < c14 ? 11 + Math.floor(r() * 4) : (bc.length > 3 ? 15 : 11) + Math.floor(r() * (RUT.DB.BDOR_IDS.length - (bc.length > 3 ? 14 : 10))); bdIdx = 0; cards.forEach((c, i) => { if (c.rating < cards[bdIdx].rating) bdIdx = i; }); }
     }
     let awIdx = -1, awN = 0;   // v197: an award winner card (Gerd Müller, Kopa, Yashin) takes the place of the weakest other pull
-    if (def.awardChance && RUT.DB.AWARD_IDS && r() < def.awardChance) { const ids = RUT.DB.AWARD_IDS; awN = 1 + Math.floor(r() * ids.length); if (ids[awN - 1]) cards.forEach((c, i) => { if (i !== bdIdx && (awIdx < 0 || c.rating < cards[awIdx].rating)) awIdx = i; }); }
+    if (def.awardChance && RUT.DB.AWARD_IDS && (!RUT.bdorPackable || RUT.bdorPackable()) && r() < def.awardChance) { const ids = RUT.DB.AWARD_IDS; awN = 1 + Math.floor(r() * ids.length); if (ids[awN - 1]) cards.forEach((c, i) => { if (i !== bdIdx && (awIdx < 0 || c.rating < cards[awIdx].rating)) awIdx = i; }); }
     const ut = !!def.untradeable;
     const items = cards.map((c, i) => {
       if (i === awIdx) { const baseId = RUT.DB.AWARD_IDS[awN - 1], card = RUT.DB.registerPromo(baseId, 'award', awN); return RUT.State.newItem(card.id, { promo: { baseId, type: 'award', boost: awN }, untradeable: true }); }
