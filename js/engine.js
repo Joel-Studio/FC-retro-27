@@ -340,7 +340,7 @@ window.RUT = window.RUT || {};
     let seed = cfg.seed != null ? cfg.seed : (Math.random() * 1e9) | 0;
     this.rng = RUT.DB.rng(seed);
     this.seed0 = seed; this.tk = 0; this.rs = [mkRS(), mkRS()]; this._po = -1; this._ls = [null, null]; this.rec = null; this.reel = null;     // v108: recorder / reel state
-    this.halfSeconds = cfg.halfSeconds || 90;
+    this.halfSeconds = ((cfg.humans && cfg.humans.length) || cfg.humanTeam === 0 || cfg.humanTeam === 1) && !cfg.train ? 90 : (cfg.halfSeconds || 90);   // v302 (JODIO): every match a person plays is 90 seconds a half (Testing Ground keeps its own clock)
     this.brain = cfg.brain === 'ultra' ? 1 : 0;                           // Ultra mode: the computer players read the game faster and better (same on both sides, so it is part of the match setup)
     this.brainR = this.brain ? 0.6 : 1;
     this.surf = SURF[cfg.surface] || SURF.dry;                            // pitch condition and match ball: part of the match setup (same on both sides online)
