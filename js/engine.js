@@ -347,6 +347,13 @@ window.RUT = window.RUT || {};
     this.ballM = BALLS[cfg.ballModel] || BALLS.match;
     this.assist = ASSIST[cfg.assist] ? cfg.assist : 'semi';
     if (cfg.duel) [cfg.home, cfg.away].forEach(t => { const c = t.cards, k = [c[0]]; k[9] = c[1]; t.cards = k; });   // 1v1 duel: a keeper (slot 0) and one outfield player (slot 9) each
+    {   // v300 (JODIO): AI sides of Top 5 level or higher (smart >= 4: Top 5 Leagues, Champions League) play like players 3-10 overall better, never above 96; the lower the rating the bigger the lift
+      const hs0 = cfg.humans || (cfg.humanTeam === 0 || cfg.humanTeam === 1 ? [cfg.humanTeam] : []);
+      [cfg.home, cfg.away].forEach((t, ti) => { if (!t || t._eb || t.smart < 4 || hs0.includes(ti) || !t.cards) return; t._eb = true;
+        t.cards = t.cards.map(c => { if (!c || c.rating >= 96) return c; const add = clamp(10 - (c.rating - 70) * 0.35, 3, 10), nr = Math.min(96, Math.round(c.rating + add)), k = nr / c.rating, up = v => clamp(Math.round(v * k), 1, 99), face = {}, sub = {};
+          Object.keys(c.face || {}).forEach(x => { face[x] = up(c.face[x]); }); Object.keys(c.sub || {}).forEach(x => { sub[x] = up(c.sub[x]); });
+          return Object.assign({}, c, { rating: nr, face, sub }); }); });
+    }
     this.teams = [cfg.home, cfg.away].map((t, i) => ({
       name: t.name, label: String(t.name || '').replace(/[^\w .'&-]/g, '').trim().slice(0, 9).toUpperCase(), short: (t.short || t.name).replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase(),
       kit: t.kit || kitFor(t.cards), club: t.club || mainClub(t.cards), dir: i === 0 ? 1 : -1,
