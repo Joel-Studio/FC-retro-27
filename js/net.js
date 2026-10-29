@@ -209,12 +209,12 @@
     this.o.onEvent({ type: 'start', cfg: { delay: num(c.delay, 4, 30, 8), seed: c.seed, half: c.half, pitch: c.pitch === 'colossal' ? 'colossal' : 'huge', brain: c.brain, phys: cleanPhys(c.phys), duel: !!c.duel, styles: c.styles, me: host ? 0 : 1,
       home: { name: host ? this.club : this.theirClub, cards: host ? mine : theirs }, away: { name: host ? this.theirClub : this.club, cards: host ? theirs : mine } } });
   };
-  /** Input delay in 60 Hz ticks, from the measured round trip: half of it plus twice the jitter and a small margin (6 ticks = 100 ms is the floor). */
+  /** Input delay in 60 Hz ticks, from the measured round trip: half of it plus twice the jitter and a small margin (v293: 3 ticks = 50 ms is the floor on direct links, 6 on the relay). */
   S.inputDelay = function () {
     const r = this.rtt || 100, j = Math.min(this.rttVar || 0, r * 0.35), d = Math.ceil((r / 2 + 1.5 * j) / 16.7) + 3;   // v219: jitter counts 1.5x and is capped, so slow links get a smaller, snappier buffer
     let q = 'auto'; try { q = (JSON.parse(localStorage.getItem('rut_settings') || '{}') || {}).netq || 'auto'; } catch (e) { /* default */ }
     // v203 Settings > Online: Smooth = a bigger buffer so slow or far links never stutter; Fast = the smallest buffer for players on the same Wi-Fi
-    return q === 'smooth' ? Math.max(9, Math.min(30, d + 4)) : q === 'fast' ? Math.max(4, Math.min(20, d - 2)) : Math.max(6, Math.min(this.room && this.room.db ? 36 : 20, d));   // v234: the database relay is slower, so it may use a bigger buffer
+    return q === 'smooth' ? Math.max(9, Math.min(30, d + 4)) : q === 'fast' ? Math.max(3, Math.min(20, d - 2)) : Math.max(this.room && this.room.db ? 6 : 3, Math.min(this.room && this.room.db ? 36 : 20, d));   // v234: the database relay is slower, so it may use a bigger buffer
   };
   /** After a match: ask for a rematch. When both want one the host starts it with a fresh seed. */
   S.wantRematch = function () {

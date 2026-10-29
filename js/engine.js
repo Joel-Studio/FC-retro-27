@@ -1080,7 +1080,7 @@ window.RUT = window.RUT || {};
       const fin0 = nrm(d > 20 ? s.longShots : s.finishing);
       let off = ty - PH2;
       if (Math.abs(off) < 1.5 && gk && Math.abs(gk.y - PH2) > 0.5) off = gk.y > PH2 ? -1 : 1;                           // straight at the keeper: the open side
-      const wide = (GOAL_HALF - 0.9) * (finesse ? 0.72 + 0.2 * fin0 : 0.72 + 0.22 * fin0);
+      const wide = (GOAL_HALF - 0.9) * (finesse ? 0.5 + 0.15 * fin0 : 0.72 + 0.22 * fin0);
       ty = PH2 + (Math.sign(off) || 1) * clamp(Math.max(Math.abs(off), wide), 0, GOAL_HALF - 0.6);
     }
     const ps0 = p.card.position, elite = (!!this.tac[p.team].elite || ps0 === 'ST' || ps0 === 'CF' || ps0 === 'RW' || ps0 === 'LW') && !this.ctlOf(p) && !p.isGK;   // A1 teams, and every AI striker / winger in any league: shots always on frame
@@ -1179,12 +1179,12 @@ window.RUT = window.RUT || {};
       let side = aim === 0 ? (Math.abs(PH2 - p.y) > 2 ? Math.sign(PH2 - p.y) : (this.rng() < 0.5 ? -1 : 1)) : Math.sign(aim);     // with no aim given the curler goes for the far post
       if (fkC && (fkC.spCurve || 1) < 0) side = -side;                              // v187: outside of the boot, it bends away instead
       var dbK = fkC ? (p.pf['Dead Ball'] || 0) : 0;                                 // v188: Dead Ball (+) = a bigger, truer bend from a free kick
-      spin = -side * dir * (finesse ? 0.8 * (1 + (ff || 0.8)) : 0.8) * (0.85 + 0.3 * nrm(s.curve));     // Finesse Shot+: +100% curve (silver +55%); the curve stat decides how much it bends
+      spin = -side * dir * (finesse ? 0.8 * (1 + 0.45 * (ff || 0.8)) : 0.8) * (0.85 + 0.3 * nrm(s.curve));     // Finesse Shot+: +100% curve (silver +55%); the curve stat decides how much it bends
       tspin = 0.25;
       if (finesse) speed *= 1 + 0.08 * (ff || 0.8);
       const T = d / speed;
       spin *= 1 + 0.45 * (dbK || 0);
-      let comp = spin * this.ballM.magnus * T * 0.5; const lim = (finesse ? 0.4 + 0.3 * (ff || 0.8) : 0.4) + 0.2 * (dbK || 0);       // the run-up angle is capped (gold 0.64 rad, silver 0.56): a longer shot bends a little less instead
+      let comp = spin * this.ballM.magnus * T * 0.5; const lim = (finesse ? 0.4 + 0.12 * (ff || 0.8) : 0.4) + 0.2 * (dbK || 0);       // the run-up angle is capped (gold 0.64 rad, silver 0.56): a longer shot bends a little less instead
       if (Math.abs(comp) > lim) { spin *= lim / Math.abs(comp); comp = Math.sign(comp) * lim; }
       curlComp = comp;
       err *= finesse ? 1 - 0.3 * (ff || 0.8) : 1;
@@ -1215,7 +1215,7 @@ window.RUT = window.RUT || {};
     if (scuff) vz *= 0.5;
     if (finesse && curlComp && !chip && !isPen && Math.abs(p.y - PH2) > 2 && Math.abs(gx - p.x) > 4) {   // v223 (JODIO): a finesse shot to the far post finishes at the far post: aim error may push it wide, not back into the middle
       const dx = gx - p.x, ay = p.y + Math.tan(ang) * dx, fs = Math.sign(PH2 - p.y);
-      if (Math.sign(ay - PH2) === fs || Math.abs(ay - PH2) < 1) { const minOff = GOAL_HALF - 1.2 - 1.0 * (1 - fin); if ((ay - PH2) * fs < minOff) ang = Math.atan2(PH2 + fs * minOff - p.y, dx); }
+      if (Math.sign(ay - PH2) === fs || Math.abs(ay - PH2) < 1) { const minOff = GOAL_HALF - 2.5 - 1.0 * (1 - fin); if ((ay - PH2) * fs < minOff) ang = Math.atan2(PH2 + fs * minOff - p.y, dx); }
     }
     const curlAimY = curlComp && !chip ? p.y + Math.tan(ang) * (gx - p.x) : null;                               // v149: where the curler is meant to cross the line (the keeper reads the swerve from this)
     if (curlComp && !chip) ang -= curlComp;                                          // v148: the bend is added to the launch angle last, after the aim, the error and the keep-on-frame pull-back, so an assisted curler still starts wide and bends back in
@@ -5470,7 +5470,8 @@ void main(){
       // v105: the simulation runs at 60 Hz, so drawing more often than 60 times a second on a 90 / 120 / 144 Hz screen only repeats the same picture:
       // draw at most ~60 fps (a 120 Hz screen draws every 2nd frame, 144 Hz about every 2.4th). Half the drawing work there, same look.
       if (this.reel && this.reel.mode === 'ff') { this.raf = requestAnimationFrame(frame); return; }                   // v108: cueing the next highlight: simulate without drawing
-      const FT = window.RUT_LITE ? 33.333 : 16.667;                                                     // v200 Lite mode draws at 30 fps (the simulation stays 60 Hz)
+      const FT = window.RUT_LITE && this._lite30 ? 33.333 : 16.667;   // v293 (JODIO): Lite aims for 60 fps and only drops to 30 when frames stay slower than ~24 ms for a second or two
+                                                           // v200 Lite mode draws at 30 fps (the simulation stays 60 Hz)
       this._ra = Math.min((this._ra || 0) + dt * 1000, FT * 3.6);
       if (this._ra < FT - 5.7) { this.raf = requestAnimationFrame(frame); return; }
       this._ra = Math.max(-6, this._ra - FT);
@@ -5479,6 +5480,7 @@ void main(){
       // adaptive resolution: if frames keep taking too long, step the canvas down (1440 -> 1080 -> 720 wide), never below 3/4 of that
       this._ft = (this._ft || 16.7) * 0.9 + dtR * 1000 * 0.1; this._fn = (this._fn || 0) + 1;
       if (this.gfx === 'auto' && this._fn > 40 && this._ft > 22 && this._q > 0.34) { const i0 = Q_STEPS.findIndex(v => v < this._q - 0.001); this._q = Q_STEPS[Math.min(Q_STEPS.length - 1, i0 + (this._ft > 36 ? 1 : 0))]; this._fn = 0; this._ft = 16.7; }
+      if (window.RUT_LITE && !this._lite30 && this._fn > 90 && this._ft > 24) this._lite30 = true;
       this.raf = requestAnimationFrame(frame);
     };
     this.raf = requestAnimationFrame(frame);
@@ -5657,7 +5659,7 @@ void main(){
       if (fw && this.gtGo(p, 'perfp', 11 - 2 * lv)) { this.gtPop(p, 'perfp'); this.pass(p, fw, true, { power: 0.75 }); b.sure = this.rng() < GTP(lv); return; }
     }
     if ((lv = gtLv(p, 'switch')) && press < 7 && age > 0.2) {
-      const far = mates.filter(o => o.y > 6 && o.y < PITCH_H - 6 && o.x > 5 && o.x < PITCH_W - 5 && Math.abs(o.y - p.y) > 24 && dist(o, p) > 26 && !opps.some(q => dist(q, o) < 7)).sort((a, c) => dist(a, p) - dist(c, p))[0];
+      const far = mates.filter(o => o.y > 6 && o.y < PITCH_H - 6 && o.x > 5 && o.x < PITCH_W - 5 && (o.x - p.x) * dir > 3 && Math.abs(o.y - p.y) > 24 && dist(o, p) > 26 && !opps.some(q => dist(q, o) < 7)).sort((a, c) => dist(a, p) - dist(c, p))[0];
       if (far && this.gtGo(p, 'switch', 12 - 2 * lv)) { this.gtPop(p, 'switch'); this.pass(p, far, false, { power: 0.9, lob: true }); b.sure = this.rng() < GTP(lv); return; }
     }
     if ((lv = gtLv(p, 'escape')) && press < 2.8 && age > 0.1 && p.cool.skillcd <= 0 && this.gtGo(p, 'escape', 4 - lv)) {
