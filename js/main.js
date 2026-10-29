@@ -549,6 +549,7 @@
       <div class="row"><button class="btn g" data-act="unassigned-all-club">Send all to Club</button>
       <button class="btn r" data-act="unassigned-qs-bronze">Quick sell all < 65</button>
       <button class="btn y" data-act="mq-open">Market quick sell (65%)</button>
+      <button class="btn p" data-act="stor-open">To SBC Storage</button>
       <button class="btn r" data-act="bs-open">Bulk sell (25%)</button></div></div>
       <p class="dim" style="font-size:8px">Click a card to store it, quick sell it, or list it on the Transfer Market.</p>
       <div class="cards mt">${st.unassigned.map(id => cardHTML(State.card(id), { attrs: `data-act="player" data-item="${id}"`, tag: itemTag(id) })).join('') || '<p class="dim">Empty.</p>'}</div></div>`;
@@ -3294,6 +3295,20 @@
       toast(r.msg, r.isValid ? 'good' : 'bad'); if (r.ok) { closeModal(); render(); }
     },
     'unassigned-all-club': () => { let dup = 0; D().unassigned.slice().forEach(id => { if (!State.moveToClub(id).isValid) dup++; }); closeModal(); toast(dup ? dup + ' duplicate(s) stayed in Unassigned (list, store or quick sell them)' : 'All items sent to club', dup ? '' : 'good'); render(); },
+    'stor-open': () => {   // v290 (JODIO): send all (or a chosen number of) Unassigned players to SBC Storage
+      const n = D().unassigned.length, room = Math.max(0, 100 - (D().sbcStorage || []).length);
+      if (!n) { toast('Unassigned is empty', 'bad'); return; }
+      modal(`<h2>To SBC Storage</h2><p class="dim" style="font-size:8px;line-height:1.8">Moves Unassigned players (lowest rated first) into SBC Storage, where SBCs can use them. Storage holds 100 and has ${room} free.</p>
+        <div class="row mt"><label>How many <input id="st-n" type="number" min="1" max="100" value="${Math.min(n, room)}" style="width:70px"></label><button class="btn p" data-act="stor-go">Move them</button><button class="btn" data-act="stor-all">All</button></div>`);
+    },
+    'stor-all': () => { const el = $('#st-n'); if (el) el.value = Math.min(D().unassigned.length, 100); ACTIONS['stor-go'](); },
+    'stor-go': () => {
+      const st = D(), room = 100 - (st.sbcStorage || []).length, want = Math.max(0, +($('#st-n') || {}).value || 0), k = Math.min(want, room, st.unassigned.length);
+      if (!k) { toast(room <= 0 ? 'SBC Storage is full (100)' : 'Nothing to move', 'bad'); return; }
+      const ids = st.unassigned.slice().sort((a, b) => State.card(a).rating - State.card(b).rating).slice(0, k);
+      ids.forEach(id => { State.detach(id); st.sbcStorage.push(id); }); State.save(); closeModal();
+      toast('Moved ' + k + ' to SBC Storage' + (want > k ? ' (storage full or fewer players)' : ''), 'good'); render();
+    },
     'mq-open': () => mqOpen(),
     'bs-open': () => bsOpen(),
     'bs-go': () => {

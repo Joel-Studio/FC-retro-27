@@ -157,9 +157,11 @@ window.RUT = window.RUT || {};
     if (def.nlstarChance && RUT.DB.POTW_IDS && RUT.DB.POTW_IDS.length && r() < Math.min(0.5, def.nlstarChance * 0.5)) { const ids = RUT.DB.POTW_IDS; pwBase = ids[Math.floor(r() * ids.length)]; cards.forEach((c, i) => { if (i !== nlIdx && i !== nsIdx && (pwIdx < 0 || c.rating < cards[pwIdx].rating)) pwIdx = i; }); }
     let clIdx = -1, clBase = null;     // a Champions League promo card takes the place of the weakest pull that is not already a promo
     if (def.clChance && RUT.CL && RUT.CL.promoBase.length && r() < def.clChance) { clBase = clPick(r, def.id === 'cl' ? 6 : 2.5); cards.forEach((c, i) => { if (i !== nlIdx && i !== nsIdx && i !== pwIdx && (clIdx < 0 || c.rating < cards[clIdx].rating)) clIdx = i; }); }
+    // v291 (JODIO): from 29 Oct 2026 the chance of a top-10 Ballon d'Or card grows 1 point a day (0.4 top 3, 0.6 ranks 4-10), taken from the lowest band, so the total chance stays the same
+    const bdBoost = bc => { const d = Math.max(0, Math.floor((Date.now() - Date.parse('2026-10-29T00:00:00')) / 864e5) + 1) * 0.01, n = bc.length, take = Math.min(d, bc[n - 1] * 0.9); return bc.map((v, i) => i === 0 ? v + take * 0.4 : i === 1 ? v + take * 0.6 : i === n - 1 ? v - take : v); };
     let bdIdx = -1, bdRank = 0;   // a Ballon d'Or card takes the place of the weakest pull
     if (def.bdorChance && RUT.DB.BDOR_IDS && (!RUT.bdorPackable || RUT.bdorPackable())) {   // v282: from 2 Nov 2026 no new Ballon d'Or cards come out of packs
-      const x = r(), bc = def.bdorChance, c3 = bc[0], c10 = c3 + bc[1], c14 = bc.length > 3 ? c10 + bc[2] : c10, call = c14 + (bc.length > 3 ? bc[3] : bc[2]);
+      const x = r(), bc = bdBoost(def.bdorChance), c3 = bc[0], c10 = c3 + bc[1], c14 = bc.length > 3 ? c10 + bc[2] : c10, call = c14 + (bc.length > 3 ? bc[3] : bc[2]);
       if (x < call) { bdRank = x < c3 ? 1 + Math.floor(r() * 3) : x < c10 ? 4 + Math.floor(r() * 7) : x < c14 ? 11 + Math.floor(r() * 4) : (bc.length > 3 ? 15 : 11) + Math.floor(r() * (RUT.DB.BDOR_IDS.length - (bc.length > 3 ? 14 : 10))); bdIdx = 0; cards.forEach((c, i) => { if (c.rating < cards[bdIdx].rating) bdIdx = i; }); }
     }
     let awIdx = -1, awN = 0;   // v197: an award winner card (Gerd Müller, Kopa, Yashin) takes the place of the weakest other pull
