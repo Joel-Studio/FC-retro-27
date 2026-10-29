@@ -1,7 +1,7 @@
 /* v284 (JODIO): five FC 26 + FC 27 style menu skins. Only active with <html data-menu="1..5">. */
 html[data-menu] body { background: var(--m2bg) fixed; color: #eaf6f2; }
 html[data-menu] body::before { display: none; }
-html[data-menu] header.top { background: transparent; border: 0; box-shadow: none; position: relative; z-index: 500; }
+html[data-menu] header.top { background: transparent; border: 0; box-shadow: none; position: relative; z-index: 90; }
 html[data-menu] .site-bar { max-width: none; padding: 14px 36px 0; gap: 22px; }
 html[data-menu] .site-bar .logo { font-size: 0; width: 46px; height: 46px; border: 2px solid #fff; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.08); padding: 0; flex: none; }
 html[data-menu] .site-bar .logo::before { content: 'FC'; font: 800 17px 'Barlow Condensed', sans-serif; color: #fff; letter-spacing: 1px; }

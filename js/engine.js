@@ -3572,7 +3572,8 @@ window.RUT = window.RUT || {};
     const s = gk.card.sub;
     const diving = gk.dive && gk.dive.t > gk.dive.react, weak = this.gkWeak(gk);
     const reach = -0.4 * weak + (gk.tr.has('stk') ? 0.25 : 0) + 1.5 + 1.5 * nrm(s.gkDiving) + 0.55 * (gk.pf['Far Reach'] || 0) + (diving ? (1.0 + 0.8 * nrm(s.gkDiving)) * 1.3 : 0) + (b.shot && b.shot.fk ? 1.8 : 0) + (diving && b.z > 1.6 ? 0.6 : 0) + (clamp(((s.gkDiving || 0) + (s.gkReflexes || 0) + (s.gkPositioning || 0) + (s.gkHandling || 0)) / 4 - 89, 0, 10) / 10) * (0.8 + (diving ? 0.5 : 0));   // v251: a 90+ keeper reaches further and higher. v220 (JODIO): a high dive stretches further up into the top corners. v207: a free kick, set on his line: a fuller stretch. a full-stretch dive adds a body length
-    if (dist(gk, b) > reach || b.z > GOAL_H + 0.4 + 0.5 * clamp(((s.gkDiving || 0) + (s.gkReflexes || 0)) / 2 - 89, 0, 10) / 10) return;
+    const sh0 = b.shot.by.card, shoK = Math.max(sh0.face && sh0.face.sho || 0, sh0.sub.finishing || 0), k70 = gk.card.rating >= 92 && shoK >= gk.card.rating + 2;   // v286 (JODIO): a 92+ keeper against a shooter 2+ above him saves 70% and concedes 30%, vs anyone, under any rule
+    if (dist(gk, b) > reach + (k70 ? 3 : 0) || b.z > GOAL_H + 0.4 + (k70 ? 0.9 : 0.5 * clamp(((s.gkDiving || 0) + (s.gkReflexes || 0)) / 2 - 89, 0, 10) / 10)) return;
     b.shot.saveChecked = true;
     const sp = len(b.vx, b.vy);
     const shooterDist = dist(b.shot.by, gk);
@@ -3610,6 +3611,7 @@ window.RUT = window.RUT || {};
     { const fx = b.shot.fx != null ? b.shot.fx : b.shot.by.x, gxl = this.teams[b.shot.team].dir > 0 ? PITCH_W : 0;      // v188 (JODIO): a low drive from far outside the box is saved
       if (lowBall && Math.abs(fx - gxl) > 22 && shoS < 90) p = Math.max(p, 0.97); }
     p = clamp(p, this.tac[b.shot.team].gb > 1 ? 0.01 : 0.1, eg > 0 && shoS < 80 ? 0.995 : 0.98);
+    if (k70) p = 0.7;
     this.stats.onTarget[b.shot.team]++;
     this.ev('sot', b.shot.by, { team: b.shot.team });
     const saved = this.rng() < p; if (!saved) b.shot.beat = true;   // v197: a beaten keeper can't then just gather it with his body
