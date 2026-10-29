@@ -2692,7 +2692,7 @@ window.RUT = window.RUT || {};
   // a team's outside-the-box attempts stay near 30% of its shots (0.43 outside per inside); traits decide WHO takes them (outsideK)
   P.outsideAllowed = function (p) {
     const q = this.shotQ || (this.shotQ = [[0, 0], [0, 0]]), t = q[p.team];
-    return t[1] < 0.2 * t[0] + 0.2;                                           // v94: from outside the box at most about one shot in five
+    return t[1] < (this.humSides && this.humSides.length && !this.humSides.includes(p.team) ? 0.36 : 0.2) * t[0] + 0.3;                                           // v94: from outside the box at most about one shot in five
   };
   /** The danger zone: the box and the edge of it (19 m deep, 23 m either side of the goal's centre). Shots from here count as close-range shots. */
   P.inZone = function (p) { const gx = this.teams[p.team].dir > 0 ? PITCH_W : 0; return this.inBox(p, 1 - p.team) || (Math.abs(p.x - gx) < 17.5 && Math.abs(p.y - PH2) < 21); };
@@ -2732,7 +2732,7 @@ window.RUT = window.RUT || {};
       let shootP = weakP + (smartP - weakP) * iq;
       if (nearOpp < 2.5) shootP *= q > 0.2 ? 1.5 : 1.15;                     // get it off before the tackle comes in
       if (!this.inZone(p) && !clear) shootP *= this.outsideAllowed(p) ? this.outsideK(p) : 0;                       // from outside the box only shooters try it (about 30% of a team's shots)
-      shootP = Math.min(0.97, shootP * (TK.gb > 1 ? 1 + 0.3 * (TK.gb - 1) : 1) * (LA && isST ? 1.35 : 1) * AI_SHOOT * (1 + SH_PSC * (PSC - 1) * (this.inBox(p, 1 - p.team) ? 3 : 1)) * TK.shoot * (tr.has('gun') ? tx2(1.35) : 1) * (tr.has('sel') ? tx2(0.8) : 1) * (tr.has('box') && dGoal < 22 ? tx2(1.2) : 1) * (this.boxKiller(p) ? 1.25 : 1) * (tr.has('inv') && dGoal > 14 && dGoal < 28 && Math.abs(p.y - PH2) < 18 ? tx2(1.5) : 1) * (this.elite85(p) ? 1.3 : 1) * (gm > 0 ? 1.25 : gm < 0 ? 0.8 : 1));
+      shootP = Math.min(0.97, shootP * (TK.gb > 1 ? 1 + 0.3 * (TK.gb - 1) : 1) * (LA && isST ? 1.35 : 1) * AI_SHOOT * (1 + SH_PSC * (PSC - 1) * (this.inBox(p, 1 - p.team) ? 3 : 1)) * TK.shoot * (tr.has('gun') ? tx2(1.35) : 1) * (tr.has('sel') ? tx2(0.8) : 1) * (tr.has('box') && dGoal < 22 ? tx2(1.2) : 1) * (this.boxKiller(p) ? 1.25 : 1) * (tr.has('inv') && dGoal > 14 && dGoal < 28 && Math.abs(p.y - PH2) < 18 ? tx2(1.5) : 1) * (this.elite85(p) ? 1.3 : 1) * (gm > 0 ? 1.25 : gm < 0 ? 0.8 : 1) * (this.humSides && this.humSides.length && !this.humSides.includes(p.team) ? 1.45 : 1));   // v297 (JODIO): every AI side shoots more against a real player
       if (clear) shootP = dGoal < 16 ? Math.max(shootP, 0.7) : Math.min(shootP, 0.04 + 0.1 * nrm(s.longShots));   // v94: a free run on goal: he keeps running into the box and shoots from close (only the long-shot specialists try it from 20 m+)
       const stThrough = clear && isST && !p.isGK && !this.ctlOf(p);                 // a striker through on goal runs into the box first, then finishes
       if (stThrough) shootP = dGoal > 15 ? 0 : 0.95;
