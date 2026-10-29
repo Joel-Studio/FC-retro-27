@@ -83,9 +83,10 @@ window.RUT = window.RUT || {};
     return bands[bands.length - 1];
   }
 
+  let PACK_CAP = 99;   // v304 (JODIO): no pack except the Ballon d'Or packs can give a card above 90
   function drawCard(bands, r, pos) {
     for (let tries = 0; tries < 10; tries++) {
-      const b = pickBand(bands, r);
+      const b0 = pickBand(bands, r), b = [Math.min(b0[0], PACK_CAP - 2), Math.min(b0[1], PACK_CAP)];
       const pool = RUT.DB.all.filter(c => !c.promo && c.rating >= b[0] && c.rating <= b[1] && (!pos || pos.includes(c.position)));
       if (pool.length) return pool[Math.floor(r() * pool.length)];
     }
@@ -104,9 +105,20 @@ window.RUT = window.RUT || {};
     return o;
   }
 
+  /** v304: a base id for a promo card that stays within the pack cap; in the Promo Pack cards rated 89-90 are favoured. */
+  function pickOk(ids, type, boost, r, def) {
+    let last = ids[Math.floor(r() * ids.length)];
+    for (let t = 0; t < 14; t++) {
+      const id = ids[Math.floor(r() * ids.length)], c = RUT.DB.registerPromo(id, type, boost);
+      if (!c || c.rating > PACK_CAP) continue; last = id;
+      if (def.id !== 'promo' || c.rating >= 89 || t >= 8 || r() > 0.6) return id;
+    }
+    return last;
+  }
+
   /** v160 (JODIO): Champions League cards rated 89+ are likelier: their weight is x6 in the Champions League pack and x2.5 in every other pack that can hold one (88+ was 28% of the CL cards). */
   function clPick(r, mult) {
-    const L = RUT.CL.promoBase, w = L.map(id => { const c = RUT.DB.registerPromo(id, 'clpromo', 4); return c && c.rating >= 89 ? mult : 1; });
+    const L = RUT.CL.promoBase, w = L.map(id => { const c = RUT.DB.registerPromo(id, 'clpromo', 4); return c && c.rating > PACK_CAP ? 0 : c && c.rating >= 89 ? mult : 1; });
     let x = r() * w.reduce((a, b) => a + b, 0);
     for (let i = 0; i < L.length; i++) { if ((x -= w[i]) <= 0) return L[i]; }
     return L[L.length - 1];
@@ -120,6 +132,7 @@ window.RUT = window.RUT || {};
   function open(packId, opts) {
     opts = opts || {};
     const st = RUT.State.data; let def = PACKS[packId];
+    PACK_CAP = PACKS[packId] && PACKS[packId].tier === 'bdor' ? 99 : 90;
     if (!def) return { ok: false, isValid: false, msg: 'Pack Failed: unknown pack.' };
     // v193 (JODIO): after 7 packs opened in a day (any pack, bought or owned) each further one costs a 200,000 fee
     const dk = (d => d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate())(new Date());
@@ -150,18 +163,18 @@ window.RUT = window.RUT || {};
     let promoIdx = -1;
     if (def.promoChance && r() < def.promoChance) { promoIdx = 0; cards.forEach((c, i) => { if (c.rating > cards[promoIdx].rating) promoIdx = i; }); }
     let nlIdx = -1, nlBase = null;
-    if (def.nlpofmChance && r() < def.nlpofmChance) { const ids = Object.keys(RUT.DB.NLPOFM); nlBase = ids[Math.floor(r() * ids.length)]; nlIdx = 0; cards.forEach((c, i) => { if (c.rating < cards[nlIdx].rating) nlIdx = i; }); }   // an NLPOFM card takes the place of the weakest pull
+    if (def.nlpofmChance && r() < def.nlpofmChance) { nlBase = pickOk(Object.keys(RUT.DB.NLPOFM), 'nlpofm', 5, r, def); nlIdx = 0; cards.forEach((c, i) => { if (c.rating < cards[nlIdx].rating) nlIdx = i; }); }   // an NLPOFM card takes the place of the weakest pull
     let nsIdx = -1, nsBase = null;
-    if (def.nlstarChance && r() < def.nlstarChance) { const ids = RUT.DB.NLSTAR_IDS; nsBase = ids[Math.floor(r() * ids.length)]; cards.forEach((c, i) => { if (i !== nlIdx && (nsIdx < 0 || c.rating < cards[nsIdx].rating)) nsIdx = i; }); }
+    if (def.nlstarChance && r() < def.nlstarChance) { nsBase = pickOk(RUT.DB.NLSTAR_IDS, 'nlstar', 3, r, def); cards.forEach((c, i) => { if (i !== nlIdx && (nsIdx < 0 || c.rating < cards[nsIdx].rating)) nsIdx = i; }); }
     let pwIdx = -1, pwBase = null;   // v249 (JODIO): a Player of the Week card (half the NL Star chance) takes the weakest free slot
-    if (def.nlstarChance && RUT.DB.POTW_IDS && RUT.DB.POTW_IDS.length && r() < Math.min(0.5, def.nlstarChance * 0.5)) { const ids = RUT.DB.POTW_IDS; pwBase = ids[Math.floor(r() * ids.length)]; cards.forEach((c, i) => { if (i !== nlIdx && i !== nsIdx && (pwIdx < 0 || c.rating < cards[pwIdx].rating)) pwIdx = i; }); }
+    if (def.nlstarChance && RUT.DB.POTW_IDS && RUT.DB.POTW_IDS.length && r() < Math.min(0.5, def.nlstarChance * 0.5)) { pwBase = pickOk(RUT.DB.POTW_IDS, 'lpotw', 1, r, def); cards.forEach((c, i) => { if (i !== nlIdx && i !== nsIdx && (pwIdx < 0 || c.rating < cards[pwIdx].rating)) pwIdx = i; }); }
     let clIdx = -1, clBase = null;     // a Champions League promo card takes the place of the weakest pull that is not already a promo
-    if (def.clChance && RUT.CL && RUT.CL.promoBase.length && r() < def.clChance) { clBase = clPick(r, def.id === 'cl' ? 6 : 2.5); cards.forEach((c, i) => { if (i !== nlIdx && i !== nsIdx && i !== pwIdx && (clIdx < 0 || c.rating < cards[clIdx].rating)) clIdx = i; }); }
+    if (def.clChance && RUT.CL && RUT.CL.promoBase.length && r() < def.clChance) { clBase = clPick(r, def.id === 'cl' || def.id === 'promo' ? 6 : 2.5); cards.forEach((c, i) => { if (i !== nlIdx && i !== nsIdx && i !== pwIdx && (clIdx < 0 || c.rating < cards[clIdx].rating)) clIdx = i; }); }
     if (def.promoGuarantee && nlIdx < 0 && nsIdx < 0 && pwIdx < 0 && clIdx < 0) {   // v303 (JODIO): a Promo Pack always holds at least one promo card (NL Star, Champions League or NLPOFM)
       const weakest = () => { let w = 0; cards.forEach((c, i) => { if (c.rating < cards[w].rating) w = i; }); return w; }, x = r();
-      if (x < 0.45 && RUT.DB.NLSTAR_IDS && RUT.DB.NLSTAR_IDS.length) { const ids = RUT.DB.NLSTAR_IDS; nsBase = ids[Math.floor(r() * ids.length)]; nsIdx = weakest(); }
-      else if (x < 0.9 && RUT.CL && RUT.CL.promoBase.length) { clBase = clPick(r, 2.5); clIdx = weakest(); }
-      else { const ids = Object.keys(RUT.DB.NLPOFM); nlBase = ids[Math.floor(r() * ids.length)]; nlIdx = weakest(); }
+      if (x < 0.45 && RUT.DB.NLSTAR_IDS && RUT.DB.NLSTAR_IDS.length) { nsBase = pickOk(RUT.DB.NLSTAR_IDS, 'nlstar', 3, r, def); nsIdx = weakest(); }
+      else if (x < 0.9 && RUT.CL && RUT.CL.promoBase.length) { clBase = clPick(r, 6); clIdx = weakest(); }
+      else { nlBase = pickOk(Object.keys(RUT.DB.NLPOFM), 'nlpofm', 5, r, def); nlIdx = weakest(); }
     }
     // v291 (JODIO): from 29 Oct 2026 the chance of a top-10 Ballon d'Or card grows 1 point a day (0.4 top 3, 0.6 ranks 4-10), taken from the lowest band, so the total chance stays the same
     const bdBoost = bc => { const d = Math.max(0, Math.floor((Date.now() - Date.parse('2026-10-29T00:00:00')) / 864e5) + 1) * 0.01, n = bc.length, take = Math.min(d, bc[n - 1] * 0.9); return bc.map((v, i) => i === 0 ? v + take * 0.4 : i === 1 ? v + take * 0.6 : i === n - 1 ? v - take : v); };
@@ -176,13 +189,13 @@ window.RUT = window.RUT || {};
     const items = cards.map((c, i) => {
       if (i === awIdx) { const baseId = RUT.DB.AWARD_IDS[awN - 1], card = RUT.DB.registerPromo(baseId, 'award', awN); return RUT.State.newItem(card.id, { promo: { baseId, type: 'award', boost: awN }, untradeable: true }); }
       if (i === bdIdx) { const baseId = RUT.DB.BDOR_IDS[bdRank - 1], card = RUT.DB.registerPromo(baseId, 'bdor', bdRank); return RUT.State.newItem(card.id, { promo: { baseId, type: 'bdor', boost: bdRank  }, untradeable: ut || !!def.bdorUntradeable }); }
-      if (i === clIdx) { const card = RUT.DB.registerPromo(clBase, 'clpromo', 4); return RUT.State.newItem(card.id, { promo: { baseId: clBase, type: 'clpromo', boost: 4  }, untradeable: ut }); }
-      if (i === pwIdx) { const card = RUT.DB.registerPromo(pwBase, 'lpotw', 1); return RUT.State.newItem(card.id, { promo: { baseId: pwBase, type: 'lpotw', boost: 1 }, untradeable: ut }); }
-      if (i === nsIdx) { const card = RUT.DB.registerPromo(nsBase, 'nlstar', 3); return RUT.State.newItem(card.id, { promo: { baseId: nsBase, type: 'nlstar', boost: 3  }, untradeable: ut }); }
-      if (i === nlIdx) { const card = RUT.DB.registerPromo(nlBase, 'nlpofm', 5); return RUT.State.newItem(card.id, { promo: { baseId: nlBase, type: 'nlpofm', boost: 5  }, untradeable: ut }); }
+      if (i === clIdx) { const card = RUT.DB.registerPromo(clBase, 'clpromo', 4); if (card.rating <= PACK_CAP) return RUT.State.newItem(card.id, { promo: { baseId: clBase, type: 'clpromo', boost: 4  }, untradeable: ut }); }
+      if (i === pwIdx) { const card = RUT.DB.registerPromo(pwBase, 'lpotw', 1); if (card.rating <= PACK_CAP) return RUT.State.newItem(card.id, { promo: { baseId: pwBase, type: 'lpotw', boost: 1 }, untradeable: ut }); }
+      if (i === nsIdx) { const card = RUT.DB.registerPromo(nsBase, 'nlstar', 3); if (card.rating <= PACK_CAP) return RUT.State.newItem(card.id, { promo: { baseId: nsBase, type: 'nlstar', boost: 3  }, untradeable: ut }); }
+      if (i === nlIdx) { const card = RUT.DB.registerPromo(nlBase, 'nlpofm', 5); if (card.rating <= PACK_CAP) return RUT.State.newItem(card.id, { promo: { baseId: nlBase, type: 'nlpofm', boost: 5  }, untradeable: ut }); }
       if (i === promoIdx) {
         const promo = RUT.DB.registerPromo(c.id, 'totw', 2);
-        return RUT.State.newItem(promo.id, { promo: { baseId: c.id, type: 'totw', boost: 2 }, untradeable: true });
+        if (promo.rating <= PACK_CAP) return RUT.State.newItem(promo.id, { promo: { baseId: c.id, type: 'totw', boost: 2 }, untradeable: true });
       }
       return RUT.State.newItem(c.id, { untradeable: ut });
     });
