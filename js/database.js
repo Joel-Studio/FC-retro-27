@@ -1181,9 +1181,9 @@ window.RUT = window.RUT || {};
   /** v255 (JODIO): Nations League boost and rating cap by the country's finish (js/nl_data.js). A nation without a rank keeps the old +3% (+5% for the Player of the Month) and cap 92. */
   function nlTier(nat, extra) {
     const N = RUT.NL_DATA || {}, fin = /final/i.test(N.stage || '') && !/league phase|knockout|quarter|semi/i.test(N.stage || '');
-    let r = N.rank && N.rank[nat]; if (!r) return { pct: 3 + extra, cap: 92 };
+    let r = N.rank && N.rank[nat]; if (!r) return { pct: 3 + extra, cap: 93 };
     if (r === 1 && !fin) r = 2;
-    const t = r === 1 ? [7, 97] : r === 2 ? [6, 95] : r === 3 ? [5.5, 94] : r === 4 ? [5, 93] : r <= 8 ? [4, 92] : r <= 12 ? [3, 91] : [2.5, 90];
+    const t = r === 1 ? [7, 97] : r === 2 ? [6, 95] : r === 3 ? [5.5, 94] : r === 4 ? [5, 93] : r <= 8 ? [4, 93] : r <= 12 ? [3, 93] : [2.5, 93];   // v305 (JODIO): no Nations League card is capped below 93; better finishes still reach 94-97
     return { pct: t[0] + extra, cap: t[1] };
   }
   function registerPromoRaw(baseId, promo, boost, newId) {
