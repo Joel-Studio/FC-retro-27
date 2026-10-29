@@ -77,3 +77,8 @@ html[data-menu] main#view { position: relative; z-index: 1; }
 html[data-menu="5"][data-ev="bdor"] .dd-menu { background: rgba(16,12,4,.97); border-color: rgba(244,197,66,.55); }
 html[data-menu] .dd-menu { background: #0c0e1e !important; opacity: 1 !important; backdrop-filter: none; }
 html[data-menu="5"][data-ev="bdor"] .dd-menu { background: #140f04 !important; }
+/* v287 (JODIO): nothing from the menu shows in the match preview or during a game */
+body:has(.match-wrap) header.top, body:has(.match-wrap) #mnav, body:has(.match-wrap) .m2-hints, body:has(.match-wrap) .m2-foot, body:has(.match-wrap) .site-foot { visibility: hidden !important; }
+@media (max-width: 800px) { .match-bar { flex-wrap: wrap; gap: 4px; } .match-bar .btn { font-size: 10px; padding: 4px 7px; min-height: 0; } }
+@media (max-width: 800px) { .match-bar.mb-top { flex-direction: column; align-items: flex-start; flex-wrap: nowrap; } .match-bar.mb-top > span:empty { display: none; } .match-bar.mb-top .mb-right { display: flex; flex-wrap: wrap; gap: 4px; max-width: 100%; } }
+@media (max-width: 800px) { .match-bar.mb-top { top: 34px; } }
