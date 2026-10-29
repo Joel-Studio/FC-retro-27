@@ -2094,10 +2094,12 @@
     const own = !o.online && !o.training && !o.duel && o.home && o.home.name === D().clubName;
     const recOn = !!(RUT.Rec && hu && humans.length === 1 && !o.online && !o.training && !o.duel);       // v108: your local matches are recorded (set-up + your inputs), so highlights can be replayed exactly
     const mcfg = {
+      balance: (hu && humans.length === 1 && !o.online) ? (lv => [humans[0] === 0 ? 0 : lv, humans[0] === 1 ? 0 : lv])(Engine.AIBal ? Engine.AIBal.level(D().aiBal) : (RUT.AIBal ? RUT.AIBal.level(D().aiBal) : 0)) : undefined,   // v306 (JODIO): AI balancer
       home: sm(o.home), away: sm(o.away), tacGain: own ? [CLUB_GAIN, 0] : undefined, coach: own ? [coachK(), null] : undefined, train: own ? [trainBoost(), null] : undefined, autoCoach: false ? [humans[0] === 0, humans[0] === 1] : undefined, plays: (own && !humans.length && !o.online && !o.training && !o.duel && (D().plays || []).some(pl => pl.on)) ? [playsCfg(), null] : undefined, humans, halfSeconds: o.halfSeconds || App.halfSeconds, setPieces: (!o.online && !o.training && !o.duel && humans.length === 1 && humans[0] === 0) ? [spCfg(), null] : undefined, knockout: o.knockout, extraTime: !!o.extraTime, camera: App.camMode || 'tv', seed: o.seed,
       penAsk: (humans.length === 1 && !o.online && !o.training) ? (mm, cb) => askPens(mm, wrap, humans[0], cb) : undefined,
       training: o.training || null, duel: !!o.duel, pitch: o.pitch || App.pitch || 'huge', surface: (o.phys || physCfg()).surface, ballModel: (o.phys || physCfg()).ballModel, assist: (o.phys || physCfg()).assist, styles: o.styles, brain: o.brain || (gfxPref() === 'ultra' ? 'ultra' : 'std'),
-      onEnd: res => { if (own) recordPlayerStats(res, o.away); if (recOn) saveRec(m, o); playsLive(m); setTimeout(() => { m.stop(); wrap.remove(); App.match = null; o.onEnd(res); }, 1800); },
+      onEnd: res => { if (hu && humans.length === 1 && !o.online && RUT.AIBal) { const hw = humans[0] === 0 ? res.won : (!res.won && !res.draw); D().aiBal = RUT.AIBal.push(D().aiBal, hw ? 1 : res.draw ? 0.5 : 0); State.save(); }   // v306: the balancer remembers how you did
+        if (own) recordPlayerStats(res, o.away); if (recOn) saveRec(m, o); playsLive(m); setTimeout(() => { m.stop(); wrap.remove(); App.match = null; o.onEnd(res); }, 1800); },
     };
     const snap = recOn ? RUT.Rec.snapshot(mcfg) : null;
     const m = new Engine.Match(mcfg); m.spView = SET.spView || "behind";

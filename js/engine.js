@@ -237,6 +237,18 @@ window.RUT = window.RUT || {};
   }
   const PS = n => n; // readability helper for PlayStyle names
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  /** v306 (JODIO): AI balancer. The last 10 results against the AI set a level from -1 (you keep losing: the AI eases off, down to 4 overall) to +1 (you keep winning: the AI gets up to 7 overall stronger).
+   *  A history of 0.6 (win = 1, draw = 0.5, loss = 0) is the target: a win in about 3 of 5. Fewer than 3 results: no change. */
+  const AIBal = {
+    TARGET: 0.6, WINDOW: 10,
+    level(hist) { const h = (hist || []).slice(-this.WINDOW); if (h.length < 3) return 0; const avg = h.reduce((x, y) => x + y, 0) / h.length; return clamp((avg - this.TARGET) * 3.5, -1, 1); },
+    add(level) { return level > 0 ? 7 * level : 4 * level; },
+    push(hist, r) { const h = (hist || []).concat([r]); return h.slice(-this.WINDOW); },
+    lift(cards, add) { return cards.map(c => { if (!c || !add) return c; const nr = clamp(Math.round(c.rating + add), 40, 99); if (nr === c.rating) return c; const k = nr / c.rating, up = v => clamp(Math.round(v * k), 1, 99), face = {}, sub = {};
+      Object.keys(c.face || {}).forEach(x => { face[x] = up(c.face[x]); }); Object.keys(c.sub || {}).forEach(x => { sub[x] = up(c.sub[x]); }); return Object.assign({}, c, { rating: nr, face, sub }); }); },
+  };
+  RUT.AIBal = AIBal;
   const len = (x, y) => Math.sqrt(x * x + y * y);
   const dist = (a, b) => len(a.x - b.x, a.y - b.y);
   /** Any attribute → 0..1 (35 → 0, 99 → 1). Every stat drives the engine through this curve, so a 91 is far better than a 60. */
@@ -347,6 +359,9 @@ window.RUT = window.RUT || {};
     this.ballM = BALLS[cfg.ballModel] || BALLS.match;
     this.assist = ASSIST[cfg.assist] ? cfg.assist : 'semi';
     if (cfg.duel) [cfg.home, cfg.away].forEach(t => { const c = t.cards, k = [c[0]]; k[9] = c[1]; t.cards = k; });   // 1v1 duel: a keeper (slot 0) and one outfield player (slot 9) each
+    if (Array.isArray(cfg.balance)) {   // v306: the balancer's lift for the AI sides (levels from AIBal.level, 0 for a human side)
+      const b0 = cfg.balance; cfg.home = Object.assign({}, cfg.home, { cards: AIBal.lift(cfg.home.cards, AIBal.add(b0[0] || 0)) }); cfg.away = Object.assign({}, cfg.away, { cards: AIBal.lift(cfg.away.cards, AIBal.add(b0[1] || 0)) });
+    }
     {   // v300 (JODIO): AI sides of Top 5 level or higher (smart >= 4: Top 5 Leagues, Champions League) play like players 3-10 overall better, never above 96; the lower the rating the bigger the lift
       const hs0 = cfg.humans || (cfg.humanTeam === 0 || cfg.humanTeam === 1 ? [cfg.humanTeam] : []);
       [cfg.home, cfg.away].forEach((t, ti) => { if (!t || t._eb || t.smart < 4 || hs0.includes(ti) || !t.cards) return; t._eb = true;
