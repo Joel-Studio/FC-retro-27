@@ -1266,7 +1266,7 @@ window.RUT = window.RUT || {};
 
   /** v259: a card pose picked from the player's name: [animation, time 0..1, view angle]. Keepers get keeper poses. */
   const CARD_POSES_OUT = [['idle_st', 0.1, -0.45], ['idle_cm', 0.1, -0.45], ['idle_w', 0.1, -0.45], ['idle_fb', 0.1, -0.45], ['idle_dm', 0.1, -0.45], ['feint', 0.5, -0.45], ['step', 0.55, -0.45],
-    ['shield', 0.5, -0.5], ['up', 0.25, -0.45], ['cross', 0.5, -0.45], ['celeb_med', 0.5, -0.4], ['jog', 0.3, -0.5], ['dribble', 0.3, -0.5], ['idle_cb', 0.1, -0.5]];   // v259: no straight-arms (T-pose) ones: not wide, shot, header, chest, trap, pass, volley, dance
+    ['shield', 0.5, -0.5], ['up', 0.25, -0.45], ['cross', 0.5, -0.45], ['jog', 0.3, -0.5], ['dribble', 0.3, -0.5], ['idle_cb', 0.1, -0.5]];   // v259: no straight-arms (T-pose) ones: not wide, shot, header, chest, trap, pass, volley, dance
   const CARD_POSES_GK = [['gkready', 0.1, -0.45], ['save', 0.5, -0.45], ['cross', 0.5, -0.45], ['gkready', 0.6, -0.55]];
   function cardPose(card) {
     let h = 7; for (let i = 0; i < card.name.length; i++) h = (h * 31 + card.name.charCodeAt(i)) >>> 0;
