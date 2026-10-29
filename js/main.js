@@ -3120,7 +3120,7 @@
   function packGL(el, kind, opts) {
     opts = opts || {};
     const T = window.THREE, cv = el.querySelector('canvas.pfx-gl'), W = innerWidth, H = innerHeight, gold = kind === 'bdor', cl = kind === 'cl';
-    const renderer = new T.WebGLRenderer({ canvas: cv, alpha: true, antialias: !window.RUT_LITE }); renderer.setPixelRatio(window.RUT_LITE ? 1 : Math.min(devicePixelRatio || 1, 1.5));   // v204: Lite mode keeps the 3D pack scenes, at lighter settings renderer.setSize(W, H, false);
+    const renderer = new T.WebGLRenderer({ canvas: cv, alpha: true, antialias: !window.RUT_LITE }); renderer.setPixelRatio(window.RUT_LITE ? 1 : Math.min(devicePixelRatio || 1, 1.5)); renderer.setSize(W, H, false);   // v204: Lite mode keeps the 3D pack scenes, at lighter settings
     const scene = new T.Scene(), cam = new T.PerspectiveCamera(42, W / H, 0.1, 100); cam.position.set(0, 1.2, 8.5); cam.lookAt(0, 0.6, 0);
     const P = gold ? { amb: 0xffe6a8, key: 0xffd27a, rim: 0xff9a2a, metal: 0xf4c542, emis: 0x6b4300, ring: 0xffd34a, spark: 0xffdf8a } : cl ? { amb: 0xbfd2ff, key: 0xdbe7ff, rim: 0x3a64ff, metal: 0xe3ebff, emis: 0x0a1c5a, ring: 0x9fc0ff, spark: 0xcfe0ff } : { amb: 0xbfc8ff, key: 0xffffff, rim: 0x7a8cff, metal: 0x9fb4ff, emis: 0x1a2a6a, ring: 0xaab8ff, spark: 0xdfe6ff };
     scene.add(new T.AmbientLight(P.amb, 0.5));
