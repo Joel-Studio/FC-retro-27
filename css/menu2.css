@@ -1,7 +1,7 @@
 /* v284 (JODIO): five FC 26 + FC 27 style menu skins. Only active with <html data-menu="1..5">. */
 html[data-menu] body { background: var(--m2bg) fixed; color: #eaf6f2; }
 html[data-menu] body::before { display: none; }
-html[data-menu] header.top { background: transparent; border: 0; box-shadow: none; position: static; }
+html[data-menu] header.top { background: transparent; border: 0; box-shadow: none; position: relative; z-index: 500; }
 html[data-menu] .site-bar { max-width: none; padding: 14px 36px 0; gap: 22px; }
 html[data-menu] .site-bar .logo { font-size: 0; width: 46px; height: 46px; border: 2px solid #fff; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.08); padding: 0; flex: none; }
 html[data-menu] .site-bar .logo::before { content: 'FC'; font: 800 17px 'Barlow Condensed', sans-serif; color: #fff; letter-spacing: 1px; }
@@ -71,3 +71,9 @@ html[data-menu="5"][data-ev="bdor"] .m2-sub button.on { border-bottom-color: #f4
 html[data-menu="5"][data-ev="bdor"] .site-bar .logo { border-color: #f4c542; } html[data-menu="5"][data-ev="bdor"] .site-bar .logo::before { color: #ffe08a; }
 html[data-menu="5"][data-ev="bdor"] .coins { border-color: rgba(244,197,66,.5); color: #ffe08a; }
 @media (max-width: 800px) { .m2-showcard { position: static; transform: none; margin: 10px auto; } .m2-top10 { grid-template-columns: repeat(3, 1fr); } }
+/* v285: the dropdowns (Play > Testing Ground and the rest) open in front of the page */
+html[data-menu] .dd { position: relative; } html[data-menu] .dd-menu { z-index: 1000; background: rgba(10,12,28,.97); border: 1px solid rgba(255,255,255,.28); box-shadow: 0 18px 40px rgba(0,0,0,.65); border-radius: 10px; }
+html[data-menu] main#view { position: relative; z-index: 1; }
+html[data-menu="5"][data-ev="bdor"] .dd-menu { background: rgba(16,12,4,.97); border-color: rgba(244,197,66,.55); }
+html[data-menu] .dd-menu { background: #0c0e1e !important; opacity: 1 !important; backdrop-filter: none; }
+html[data-menu="5"][data-ev="bdor"] .dd-menu { background: #140f04 !important; }
