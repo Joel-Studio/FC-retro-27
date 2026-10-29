@@ -503,7 +503,7 @@
   };
 
   /* v128: sell up to 30 unassigned players at 50% of their market price for a 200,000 fee (does not use the daily sell limit) */
-  const MQ_MAX = 30, MQ_FEE = 120000, MQ_PCT = 0.65;   // v143 (JODIO): the market quick sell pays 65% with a 120,000 fee (was 50% / 200,000)
+  const MQ_MAX = 30, MQ_FEE = 120000, MQ_PCT = 0.4875;   // v143 (JODIO): the market quick sell pays 65% with a 120,000 fee (was 50% / 200,000)
   function mqValue(id) {
     const c = State.card(id), ps = Market.priceStats(c.baseId && c.promo ? c.baseId : c.id);
     return Math.round((ps ? ps.current : c.value) * MQ_PCT);
@@ -522,7 +522,7 @@
     document.querySelectorAll('.mq-ck').forEach(e => e.addEventListener('change', upd));
   }
   /* v143 (JODIO): bulk sell. Type how many players and the highest rating: that many of the lowest-rated players up to it are sold at 25% of market value, from the club (squad and bench too) or Unassigned. No fee, outside the daily sell limit. */
-  const BS_PCT = 0.25;
+  const BS_PCT = 0.1875;
   const bsValue = id => { const c = State.card(id), ps = Market.priceStats(c.baseId && c.promo ? c.baseId : c.id); return Math.round((ps ? ps.current : c.value) * BS_PCT); };
   const bsScope = () => (($('#bs-s') || {}).value) || 'un';
   function bsPick(n, maxOvr, scope) {
@@ -531,7 +531,7 @@
       .sort((a, b) => State.card(a).rating - State.card(b).rating || bsValue(a) - bsValue(b)).slice(0, n);
   }
   function bsOpen() {
-    modal(`<h2>Bulk sell (25%)</h2><p class="dim" style="font-size:8px;line-height:1.8">Pick where to sell from (Unassigned, Assigned or both), then type how many and the highest rating: the lowest-rated players up to that rating go first, each for 25% of its market value. No fee.</p>
+    modal(`<h2>Bulk sell (19%)</h2><p class="dim" style="font-size:8px;line-height:1.8">Pick where to sell from (Unassigned, Assigned or both), then type how many and the highest rating: the lowest-rated players up to that rating go first, each for 19% of its market value. No fee.</p>
       <div class="row mt"><label>How many <input id="bs-n" type="number" min="1" max="500" value="10" style="width:70px"></label>
       <label>Max rating <input id="bs-r" type="number" min="1" max="99" value="75" style="width:70px"></label>
       <label>Sell from <select id="bs-s"><option value="un">Unassigned only</option><option value="club">Assigned only (club, squad, bench)</option><option value="all">Both</option></select></label></div>
@@ -548,9 +548,9 @@
     return `<div class="px"><div class="row between"><h2>Unassigned (${st.unassigned.length})</h2>
       <div class="row"><button class="btn g" data-act="unassigned-all-club">Send all to Club</button>
       <button class="btn r" data-act="unassigned-qs-bronze">Quick sell all < 65</button>
-      <button class="btn y" data-act="mq-open">Market quick sell (65%)</button>
+      <button class="btn y" data-act="mq-open">Market quick sell (49%)</button>
       <button class="btn p" data-act="stor-open">To SBC Storage</button>
-      <button class="btn r" data-act="bs-open">Bulk sell (25%)</button></div></div>
+      <button class="btn r" data-act="bs-open">Bulk sell (19%)</button></div></div>
       <p class="dim" style="font-size:8px">Click a card to store it, quick sell it, or list it on the Transfer Market.</p>
       <div class="cards mt">${st.unassigned.map(id => cardHTML(State.card(id), { attrs: `data-act="player" data-item="${id}"`, tag: itemTag(id) })).join('') || '<p class="dim">Empty.</p>'}</div></div>`;
   };
@@ -570,7 +570,7 @@
         <select id="cf-pos">${pos.map(p => `<option value="${p}" ${f.pos === p ? 'selected' : ''}>${p || 'Any pos'}</option>`).join('')}</select>
         <select id="cf-rarity">${['', 'bronze', 'silver', 'gold', 'special'].map(p => `<option value="${p}" ${f.rarity === p ? 'selected' : ''}>${p || 'Any rarity'}</option>`).join('')}</select>
         <select id="cf-sort">${['rating', 'value', 'name'].map(p => `<option value="${p}" ${f.sort === p ? 'selected' : ''}>Sort: ${p}</option>`).join('')}</select>
-        <button class="btn r" data-act="bs-open">Bulk sell (25%)</button>
+        <button class="btn r" data-act="bs-open">Bulk sell (19%)</button>
       </div></div>
       <div class="cards mt">${list.map(x => cardHTML(x.c, { attrs: `data-act="player" data-item="${x.id}"`, tag: itemTag(x.id) })).join('') || '<p class="dim">No players match.</p>'}</div></div>`;
   };

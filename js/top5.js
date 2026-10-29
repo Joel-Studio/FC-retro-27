@@ -387,8 +387,8 @@ window.RUT = window.RUT || {};
    * (single matches, a draw goes to penalties). 300 s halves on the biggest pitch, at most 4 of your matches a day, and the
    * clubs play with a brain 50% smarter than in the Top 5 leagues.
    * ---------------------------------------------------------------------------------------- */
-  const UCL = { half: 300, perDay: 4, smart: T5.smart, teamIQ: 1.5, win: 40000, draw: 12000, goal: 10000,
-    stage: { po: 60000, r16: 120000, qf: 220000, sf: 380000, f: 600000, win: 1200000 } };
+  const UCL = { half: 300, perDay: 4, smart: T5.smart, teamIQ: 1.5, win: 40000, draw: 12000, goal: 14000,
+    stage: { po: 84000, r16: 168000, qf: 308000, sf: 532000, f: 840000, win: 1680000 } };   // v298 (JODIO): 40% more than Top 5: goals 1.4x, stage bonuses +40%
   const STAGES = ['po', 'r16', 'qf', 'sf', 'f'], STAGE_NAME = { lp: 'League phase', po: 'Knockout play-off', r16: 'Round of 16', qf: 'Quarter-final', sf: 'Semi-final', f: 'Final' };
   const today = () => new Date().toISOString().slice(0, 10);
   function uclClubs() {

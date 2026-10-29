@@ -50,13 +50,13 @@ window.RUT = window.RUT || {};
   }
 
   /** Tax calculator: what the seller actually receives. */
-  const MAX_PRICE = 15000000;                                       // v152 (JODIO): no card can cost more than 15 million
+  const MAX_PRICE = 20000000;                                       // v152 (JODIO): no card can cost more than 15 million
   /** v152: the market price a card tends towards. Up to 200,000 it is value x PRICE_K; above that the price climbs steeply so the dearest card (Mbappe, value about 800,000) sits at 15,000,000 and the other 92s at 4-10 million. */
-  function mval(card) { const x = card.value * PRICE_K; return x <= 200000 ? x : Math.min(MAX_PRICE, 200000 * Math.pow(x / 200000, 2.735)); }
+  function mval(card) { const x = card.value * PRICE_K; return x <= 200000 ? x : Math.min(MAX_PRICE, 200000 * Math.pow(x / 200000, 2.935)); }
   const PRICE_K = 1.2;                                              // v85: every player costs 20% more on the market
   function tax(price) {
-    const fee = Math.floor(price * TAX_RATE);
-    return { gross: price, fee, net: price - fee };
+    const net = Math.floor((price - Math.floor(price * TAX_RATE)) * 0.75);   // v298 (JODIO): what you receive for a sale is cut by another 25%
+    return { gross: price, fee: price - net, net };
   }
 
   /** EA-style price range bounds per card. */

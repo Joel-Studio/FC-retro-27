@@ -280,9 +280,9 @@ window.RUT = window.RUT || {};
     /** Quick-sell price (instant coins, like FUT's discard value). */
     quickSellValue(card, item) {
       if (item && item.untradeable) return 0; // FC rule: untradeables quick sell for 0
-      if (card.rating < 65) return 50 + (card.rating - 50) * 5;
-      if (card.rating < 75) return 150 + (card.rating - 65) * 15;
-      return Math.min(5000, 400 + Math.pow(card.rating - 74, 2) * 25);
+      if (card.rating < 65) return Math.round((50 + (card.rating - 50) * 5) * 0.75);   // v298 (JODIO): sell values cut by 25%
+      if (card.rating < 75) return Math.round((150 + (card.rating - 65) * 15) * 0.75);
+      return Math.round(Math.min(5000, 400 + Math.pow(card.rating - 74, 2) * 25) * 0.75);
     },
 
     squadCards() { return this.data.squad.slots.map(id => (id ? this.card(id) : null)); },
