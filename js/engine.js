@@ -3033,7 +3033,7 @@ window.RUT = window.RUT || {};
       const tk = (p.x - b.x) / b.vx, tl = (gx + dir * 0.4 - b.x) / b.vx;
       if (tl > 0 && tl < 3.4) {                                                                        // even a ball that has already got past him: he turns and throws himself at it
         const sh = b.shot, curly = sh.curl > 0.12 && sh.aimY != null;
-        if (curly && sh.fool == null) sh.fool = this.rng() < 0.95 - 0.4 * nrm(((s.gkReflexes || 60) + (s.gkPositioning || 60)) / 2) - 0.1 * (p.pf['Far Reach'] || 0) - (sh.fk ? 0.35 : 0);   // v207: from his line at a free kick he reads the bend better   // v149: a finesse shot starts wide; the keeper goes with where it looks headed and is sometimes wrong-footed when it bends
+        if (curly && sh.fool == null) sh.fool = (sh.fk || b.trailType === 'finesse') && this.rng() < 0.95 - 0.4 * nrm(((s.gkReflexes || 60) + (s.gkPositioning || 60)) / 2) - 0.1 * (p.pf['Far Reach'] || 0) - (sh.fk ? 0.35 : 0);   // v207: from his line at a free kick he reads the bend better   // v149: a finesse shot starts wide; the keeper goes with where it looks headed and is sometimes wrong-footed when it bends
         const tk2 = Math.max(tk, Math.min(0.12, tl)), cy = b.y + b.vy * tk2, zt = Math.max(0, b.z + b.vz * tk2 - 4.9 * tk2 * tk2), zl = b.z + b.vz * tl - 4.9 * tl * tl;
         const endY = curly ? sh.aimY : b.y + b.vy * tl, onTarget = Math.abs(endY - PH2) < GOAL_HALF + 0.15 && zl < GOAL_H + 0.1 && zl > -0.5;        // inside the posts and under the bar, or he stays on his feet
         if (onTarget) {
@@ -5575,7 +5575,7 @@ void main(){
   // v254 (JODIO):   // v254 (JODIO): a Gametrait does what it promises 98% of the time
   P.gtPop = function (p, k) { if (this.headless || !p.gt) return; const lv = gtLv(p, k); if (lv && (!p.gtOn || p.gtOn.k !== k || this.t - p.gtOn.t0 > 1.6)) p.gtOn = { k, lv, t0: this.t }; };
   /** cooldown gate: true when the trait may fire now, and starts its cooldown */
-  P.gtGo = function (p, k, cd) { const c = p._gtc || (p._gtc = {}); if ((c[k] || 0) > this.t) return false; c[k] = this.t + cd * 2 / (gtLv(p, k) > 1 ? 1.3 : 1);   // v289 (JODIO): Gametraits fire half as often;   // v278 (JODIO): Gametrait+ 30% stronger, comes round 30% sooner
+  P.gtGo = function (p, k, cd) { const c = p._gtc || (p._gtc = {}); if ((c[k] || 0) > this.t) return false; c[k] = this.t + cd / (gtLv(p, k) > 1 ? 0.3 : 0.2);   // v289 (JODIO): Gametraits fire half as often;   // v278 (JODIO): Gametrait+ 30% stronger, comes round 30% sooner
        return true; };
   /** after a Gametrait tackle: if he did not get the ball, the trait still wins it 98% of the time */
   P.gtWin = function (p, car, lv) { const b = this.ball; if (b.owner === car && dist(p, car) < 3.8 && this.rng() < GTP(lv)) { car.cool.stun = Math.max(car.cool.stun, 0.4); this.giveBall(p); } };
@@ -5645,7 +5645,7 @@ void main(){
     if ((lv = gtLv(p, 'timef')) && this.inBox(p, 1 - p.team) && age < 0.5 + 0.2 * lv && Math.abs(p.x - gx) < 14 && this.gtGo(p, 'timef', 2.5)) {
       this.gtPop(p, 'timef'); this.shoot(p, 0, (lv > 1 ? 0.9 : 0.84) + this.rng() * 0.1, null, { auto: true, assist: 'full' }); if (b.shot && b.shot.by === p) b.shot.gte = lv; return;
     }
-    if ((lv = gtLv(p, 'range')) && dg > 18 && dg < 25 + 3 * lv && Math.abs(p.y - PH2) < 16 && !this.laneBlocked(p, { x: gx, y: PH2 }, true) && press > 3 && age > 0.15 && this.gtGo(p, 'range', 7 - lv)) {
+    if ((lv = gtLv(p, 'range')) && this.inBox(p, 1 - p.team) && dg > 8 && Math.abs(p.y - PH2) < 16 && !this.laneBlocked(p, { x: gx, y: PH2 }, true) && press > 3 && age > 0.15 && this.gtGo(p, 'range', 7 - lv)) {
       this.gtPop(p, 'range'); this.shoot(p, 0, 0.88 + 0.08 * lv, null, { auto: true, assist: 'full', long: false }); if (b.shot && b.shot.by === p) b.shot.gte = lv; return;
     }
     const mates = this.players.filter(o => o.team === p.team && o !== p && !o.isGK && !o.dummy);
