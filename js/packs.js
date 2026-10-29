@@ -21,8 +21,8 @@ window.RUT = window.RUT || {};
     gold:    { id: 'gold', name: 'Gold Pack', price: 60000, count: 6, tier: 'gold', nlpofmChance: 0.0025, clChance: 0.015, nlstarChance: 0.02, bands: [[75, 79, 62], [80, 82, 26], [83, 85, 9], [86, 87, 2.3], [88, 99, 0.12]] },
     premium: { id: 'premium', name: 'Premium Gold Pack', price: 80000, count: 12, tier: 'gold', guaranteeMin: 82, nlpofmChance: 0.006, clChance: 0.04, nlstarChance: 0.05, bands: [[75, 79, 52], [80, 82, 30], [83, 85, 13], [86, 87, 4.2], [88, 99, 0.25]] },
     // Published odds: 84+ player 100% · 88+ player 18.5% (promo cards were removed from the game)
-    elite:   { id: 'elite', name: 'Elite Gold Pack', price: 100000, count: 12, tier: 'gold', guaranteeMin: 86, nlpofmChance: 0.018, clChance: 0.09, nlstarChance: 0.1, bands: [[83, 85, 52], [86, 87, 45], [88, 99, 3]] },   // the best Gold pack
-    promo:   { id: 'promo', name: 'Promo Pack', price: 300000, count: 5, tier: 'promo', guaranteeMin: 85, topChance: 0.08, nlpofmChance: 0.07, clChance: 0.25, nlstarChance: 0.3, bands: [[84, 85, 42], [86, 87, 52], [88, 99, 6]],   // v193 (JODIO): 88+ nerfed (was topChance 0.185, band 15)
+    elite:   { id: 'elite', name: 'Elite Gold Pack', price: 100000, count: 12, tier: 'gold', guaranteeMin: 86, nlpofmChance: 0.03, clChance: 0.14, nlstarChance: 0.15, bands: [[83, 85, 50], [86, 87, 45], [88, 99, 5]] },   // v303 (JODIO): better luck   // the best Gold pack
+    promo:   { id: 'promo', name: 'Promo Pack', price: 300000, count: 5, tier: 'promo', guaranteeMin: 85, topChance: 0.12, nlpofmChance: 0.1, clChance: 0.3, nlstarChance: 0.35, promoGuarantee: true, bands: [[84, 85, 40], [86, 87, 51], [88, 99, 9]],   // v303 (JODIO): better luck and always a promo card   // v193 (JODIO): 88+ nerfed (was topChance 0.185, band 15)
                odds: ['85+ player: 100%', '88+ player: 8%', 'NLPOFM card: 7%', 'Nations League Star card: 30%', 'CL promo card: 25%'] },
     // v99: more packs. `pos` limits the pack to those positions.
     jumbo:   { id: 'jumbo', name: 'Jumbo Gold Pack', price: 190000, count: 20, tier: 'gold', guaranteeMin: 87, nlpofmChance: 0.03, clChance: 0.14, nlstarChance: 0.15, bands: [[83, 85, 26], [86, 87, 65], [88, 99, 9]],
@@ -157,6 +157,12 @@ window.RUT = window.RUT || {};
     if (def.nlstarChance && RUT.DB.POTW_IDS && RUT.DB.POTW_IDS.length && r() < Math.min(0.5, def.nlstarChance * 0.5)) { const ids = RUT.DB.POTW_IDS; pwBase = ids[Math.floor(r() * ids.length)]; cards.forEach((c, i) => { if (i !== nlIdx && i !== nsIdx && (pwIdx < 0 || c.rating < cards[pwIdx].rating)) pwIdx = i; }); }
     let clIdx = -1, clBase = null;     // a Champions League promo card takes the place of the weakest pull that is not already a promo
     if (def.clChance && RUT.CL && RUT.CL.promoBase.length && r() < def.clChance) { clBase = clPick(r, def.id === 'cl' ? 6 : 2.5); cards.forEach((c, i) => { if (i !== nlIdx && i !== nsIdx && i !== pwIdx && (clIdx < 0 || c.rating < cards[clIdx].rating)) clIdx = i; }); }
+    if (def.promoGuarantee && nlIdx < 0 && nsIdx < 0 && pwIdx < 0 && clIdx < 0) {   // v303 (JODIO): a Promo Pack always holds at least one promo card (NL Star, Champions League or NLPOFM)
+      const weakest = () => { let w = 0; cards.forEach((c, i) => { if (c.rating < cards[w].rating) w = i; }); return w; }, x = r();
+      if (x < 0.45 && RUT.DB.NLSTAR_IDS && RUT.DB.NLSTAR_IDS.length) { const ids = RUT.DB.NLSTAR_IDS; nsBase = ids[Math.floor(r() * ids.length)]; nsIdx = weakest(); }
+      else if (x < 0.9 && RUT.CL && RUT.CL.promoBase.length) { clBase = clPick(r, 2.5); clIdx = weakest(); }
+      else { const ids = Object.keys(RUT.DB.NLPOFM); nlBase = ids[Math.floor(r() * ids.length)]; nlIdx = weakest(); }
+    }
     // v291 (JODIO): from 29 Oct 2026 the chance of a top-10 Ballon d'Or card grows 1 point a day (0.4 top 3, 0.6 ranks 4-10), taken from the lowest band, so the total chance stays the same
     const bdBoost = bc => { const d = Math.max(0, Math.floor((Date.now() - Date.parse('2026-10-29T00:00:00')) / 864e5) + 1) * 0.01, n = bc.length, take = Math.min(d, bc[n - 1] * 0.9); return bc.map((v, i) => i === 0 ? v + take * 0.4 : i === 1 ? v + take * 0.6 : i === n - 1 ? v - take : v); };
     let bdIdx = -1, bdRank = 0;   // a Ballon d'Or card takes the place of the weakest pull
