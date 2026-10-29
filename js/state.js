@@ -15,6 +15,7 @@ window.RUT = window.RUT || {};
   'use strict';
   let KEY = 'retro_ut_99_save';                       // per account once logged in (RUT.Auth)
   const VERSION = 1;
+  const LIMITED_PROMOS = ['bdor', 'award', 'toty', 'tots', 'fstar', 'lpotw', 'lpotm'];   // v299: these can never be listed or sold
   const BASE_FORMATION = ['GK', 'LB', 'CB', 'CB', 'RB', 'CDM', 'CM', 'CAM', 'LW', 'ST', 'RW']; // 4-3-3 (attack): the formation every AI side's cards are picked for
   const FORMATION = BASE_FORMATION.slice();            // the club's own XI layout: the same array object always, rewritten in place when the player changes formation
   // v97: formations the player can pick. Slot order follows the engine's FORMATIONS table (keeper, back line left to right, midfield, forwards).
@@ -101,7 +102,7 @@ window.RUT = window.RUT || {};
       if (!d.coinCap350) { d.coinCap350 = true; if (d.coins > 1000000) { this.log('Coins over 1,000,000 set back to 350,000 (the quests paid too much): was ' + d.coins.toLocaleString()); d.coins = 350000; } }
       // (v162: the old line that made every owned card tradeable on each load is gone: packs now decide, see Packs.PACKS[id].untradeable)
       if (!d.tradeFix162) { d.tradeFix162 = true; Object.values(d.items).forEach(it => { it.untradeable = false; }); }   // one-off: every card owned before v162 stays tradeable
-      Object.values(d.items).forEach(it => { if (it.promo && (it.promo.type === 'bdor' || it.promo.type === 'award' || it.promo.type === 'toty' || it.promo.type === 'tots')) it.untradeable = true; });   // v188 (JODIO): Ballon d'Or cards are untradeable
+      Object.values(d.items).forEach(it => { const c1 = RUT.DB.get(it.cardId); if (LIMITED_PROMOS.includes((it.promo && it.promo.type) || (c1 && c1.promo))) it.untradeable = true; });   // v299 (JODIO): Ballon d'Or and the other limited edition cards (award, TOTY, TOTS, Future Star, POTW, POTM)   // v188 (JODIO): Ballon d'Or cards are untradeable
       // promo cards (TOTW, TOTS, POTM, flashback...) no longer exist: every owned one becomes that player's basic gold card
       { let n = 0; Object.values(d.items).forEach(it => { if (it.promo && (it.promo.type === 'nlpofm' || it.promo.type === 'nlstar' || it.promo.type === 'clpromo' || it.promo.type === 'lpotw' || it.promo.type === 'lpotm' || it.promo.type === 'bdor' || it.promo.type === 'award')) { if (!RUT.DB.get(it.cardId)) RUT.DB.registerPromo(it.promo.baseId, it.promo.type, it.promo.boost, it.cardId); } else if (it.promo) { if (RUT.DB.get(it.promo.baseId)) { it.cardId = it.promo.baseId; n++; } delete it.promo; } });
         if (n) this.log('Promo cards removed: ' + n + ' card(s) swapped for their basic gold versions'); }
@@ -160,6 +161,7 @@ window.RUT = window.RUT || {};
       const it = { id, cardId, untradeable: false, evo: null, obtained: Date.now(), chemStyle: c0 && c0.position === 'GK' ? 'wall' : 'basic' };
       if (opts.promo) it.promo = opts.promo;
       if (opts.untradeable) it.untradeable = true;
+      if (LIMITED_PROMOS.includes((opts.promo && opts.promo.type) || (c0 && c0.promo))) it.untradeable = true;   // v299 (JODIO): Ballon d'Or and the other limited edition cards can never be sold
       this.data.items[id] = it;
       return it;
     },
