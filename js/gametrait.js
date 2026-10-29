@@ -42,8 +42,8 @@
     const skip = new Set(); for (let v = 0; v < (c.gtVar || 0); v++) of(Object.assign({}, c, { gtVar: v, _gt: null })).forEach(o => skip.add(o.k));
     const cand = LIST.filter(t => t.pos.indexOf(pos) >= 0 && !skip.has(t.k)).map(t => ({ t, sc: avg(c.sub, t.stat) + (BIAS[t.k] || 0) + (c.id ? ((c.id.length * 7 + t.k.length * 3) % 5) * 0.3 : 0) })).sort((a, b) => b.sc - a.sc);
     const out = [];
-    for (const x of cand) { if (out.length >= cnt) break; if (x.sc < 60) continue; if (out.some(o => BY[o.k].cat === x.t.cat && out.length < 2 && BY[o.k].cat !== 'gk')) { /* spread over categories first */ continue; } out.push({ k: x.t.k, lv: x.sc >= 86 || c.rating >= 91 ? 2 : 1 }); }
-    for (const x of cand) { if (out.length >= cnt) break; if (x.sc >= 60 && !out.some(o => o.k === x.t.k)) out.push({ k: x.t.k, lv: x.sc >= 86 || c.rating >= 91 ? 2 : 1 }); }
+    for (const x of cand) { if (out.length >= cnt) break; if (x.sc < 60) continue; if (out.some(o => BY[o.k].cat === x.t.cat && out.length < 2 && BY[o.k].cat !== 'gk')) { /* spread over categories first */ continue; } out.push({ k: x.t.k, lv: c.rating >= 92 ? 2 : 1 }); }
+    for (const x of cand) { if (out.length >= cnt) break; if (x.sc >= 60 && !out.some(o => o.k === x.t.k)) out.push({ k: x.t.k, lv: c.rating >= 92 ? 2 : 1 }); }
     c._gt = { r: c.rating, n: (c.playStyles || []).length, l: out };
     return out;
   }

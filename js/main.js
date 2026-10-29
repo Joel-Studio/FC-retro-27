@@ -482,7 +482,7 @@
       <div class="rule"><b>When:</b> ${esc(GT_WHEN[t.k] || '')}</div>
       <div class="rule"><b>Best for:</b> ${esc(t.pos.join(', '))}</div></div>`;
     return `<h1>Gametraits Guide</h1><p class="dim">15 Gametraits in 5 categories. Unlike a PlayStyle you press nothing: the player does it by himself in the right moment, and a red logo pops up to the right of him. Each has a normal and a plus (+) version; the plus is stronger. The logos sit on the right of the card.</p>
-      <div class="px"><h3>Who gets them</h3><div class="rule">Special cards (promo, evolved, Ballon d'Or, award, Player of the Week and Month) get as many Gametraits as PlayStyles+ they have. Plain gold cards get two thirds of that, rounded up. A 90+ card gets one extra. The most any card has is 3. Cards without a PlayStyle+ have none. The traits come from the player's position and his best stats, and the plus version needs a stat of about 86+ or a 91+ rating.</div></div>
+      <div class="px"><h3>Who gets them</h3><div class="rule">Special cards (promo, evolved, Ballon d'Or, award, Player of the Week and Month) get as many Gametraits as PlayStyles+ they have. Plain gold cards get two thirds of that, rounded up. A 90+ card gets one extra. The most any card has is 3. Cards without a PlayStyle+ have none. The traits come from the player's position and his best stats, and every card rated 92 or more has the plus version, every card below 92 has the normal version.</div></div>
       ${G.CATS.map(c => `<h2 class="mt">${esc(c.name)}</h2><div class="grid cols-2">${G.LIST.filter(t => t.cat === c.k).map(card).join('')}</div>`).join('')}`;
   };
   VIEWS.playstyles = function () {
