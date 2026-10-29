@@ -1100,6 +1100,12 @@ window.RUT = window.RUT || {};
     Object.keys(bo).forEach(k => { const m = 1 + bo[k] / 100; c.face[k] = clamp(Math.round(c.face[k] * m), 1, 99); (SUB_MAP[k] || []).forEach(x => { c.sub[x] = clamp(Math.round(c.sub[x] * m), 1, 99); }); });
     c.value = valuation(c.rating, c.face, c.playStyles, c.position, c.rare);
   });
+  // v295 (JODIO): wingers' shooting and passing looked far too low for their overall (Luis Diaz 88 with 82 shooting, Kvaratskhelia 89 with 83, Leao 86 with 76 passing).
+  // A winger rated 82+ now shoots at least overall-3 and passes at least overall-6; the sub-stats behind each number rise by the same ratio.
+  const liftFace = (c, k, min) => { const cur = c.face[k]; if (cur >= min) return; const m = min / cur; c.face[k] = min; (SUB_MAP[k] || []).forEach(x => { if (c.sub[x] != null) c.sub[x] = clamp(Math.round(c.sub[x] * m), 1, 99); }); };
+  players.forEach(c => {
+    if (c.rating >= 82 && (c.position === 'LW' || c.position === 'RW')) { liftFace(c, 'sho', c.rating - 3); liftFace(c, 'pas', c.rating - 6); c.value = valuation(c.rating, c.face, c.playStyles, c.position, c.rare); }
+  });
   // v217 (JODIO): real-life strengths the face stats hid. Yamal shoots better (finishing, power, long shots, curl); Haaland and Kane win headers
   // (heading accuracy, jumping, strength) and hit harder. Values are floors: an evolved or promo copy that is already higher keeps its own.
   const SUB_SET = {
@@ -1188,6 +1194,8 @@ window.RUT = window.RUT || {};
     if (promo === 'bdor') {   // boost = the nominee's rank (1-30)
       const rank = boost, target = bdorRating(rank), k = target / base.rating, up = v => clamp(Math.round(v * k), 1, 99), face = {}, sub = {};
       Object.keys(base.face).forEach(x => { face[x] = up(base.face[x]); }); Object.keys(base.sub).forEach(x => { sub[x] = up(base.sub[x]); });
+      { const att = ['ST', 'CF', 'LW', 'RW', 'LF', 'RF'].includes(base.position), mid = ['CM', 'CAM', 'CDM', 'LM', 'RM'].includes(base.position), lift = (k, min) => { if (face[k] >= min) return; const m = min / face[k]; face[k] = min; (SUB_MAP[k] || []).forEach(x => { if (sub[x] != null) sub[x] = clamp(Math.round(sub[x] * m), 1, 99); }); };
+        if (att) lift('sho', 90); if (att || mid) lift('pas', 90); }   // v295 (JODIO): a Ballon d'Or attacker shoots 90+, an attacker or midfielder passes 90+
       const want = rank <= 3 ? 4 : 3, ps = base.playStyles.slice();
       for (let n = 0; n < 4 && ps.filter(x => /\+$/.test(x)).length < want; n++) { const nw = newStylesFor(Object.assign({}, base, { playStyles: ps }), sub); if (!nw) break; ps.push(nw); }
       const card = Object.assign({}, base, { id, rating: target, rarity: 'promo', promo, bdorRank: rank, face, sub, rare: true, baseId, playStyles: psGate(target, sub, ps, base.playStyles, want) });
