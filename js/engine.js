@@ -39,7 +39,7 @@ window.RUT = window.RUT || {};
   const LEARN_FIRST = 12, LEARN_EVERY = 12;                           // seconds into the match of the first read of the other side's play, then how often the AI re-reads it
   const DEF_PUSH = 0.1, DEF_LINE = 3, DEF_UP = 4, DEF_HOLD = 0.25, DEF_FOLLOW = 9;   // v91: AI defenders hold a higher line (depth cap and line shift, metres)
   const AI_SHOOT = 1.5;                                                  // AI shot appetite
-  const HOT_SHOOT = 0.6, HOT_SKILL = 0.7, HOT_DEFK = 0.8, HOT_TKL = 0.15, HOT_SPREAD = 1.45, HOT_SAVE = 0.12;   // Top 5 "hot" scoring
+  const HOT_SHOOT = 0.6, HOT_SKILL = 0.7, HOT_DEFK = 0.8, HOT_TKL = 0.15, HOT_SPREAD = 1.45, HOT_SAVE = 0.04;   // Top 5 "hot" scoring
   const VCAP = 29 / 3.6;                                                 // the top speed of the whole game: 29 km/h
   const TRX = (typeof window !== 'undefined' && window.__TRX != null) ? window.__TRX : 2, tx2 = m => Math.max(0.05, 1 + (m - 1) * TRX);                // v128: traits and roles act 2x as strongly for AI-driven players (multiplier m becomes 1 + (m-1)*2)
   const PACE = 0.8;                                                      // every player's top speed is scaled by this (JODIO: 20% slower)
@@ -375,7 +375,7 @@ window.RUT = window.RUT || {};
         T.eager += 0.4 * lvl; T.vert += 0.2 * lvl; T.range += 0.25 * lvl; T.counter += 0.4 * lvl; T.longShot *= 1 + 0.25 * lvl; T.shoot *= 1 + 0.15 * lvl;
         if (lvl > 0.55) T.runs = clamp(T.runs + 1, 0, 3);
         if (t.hot > 1) { T.hot = t.hot; T.shoot *= 1 + HOT_SHOOT * (t.hot - 1); T.eager += 0.25 * (t.hot - 1); }   // Top 5 Leagues clubs: far more dangerous against the human side (hot = goal multiplier aimed for)
-        if (t.gb > 1) { T.gb = t.gb; T.shoot *= 1 + 0.45 * (t.gb - 1); T.press = clamp(T.press + 1, 1, 5); T.counterPress += 3; T.vert += 0.35; T.eager += 0.6; T.runs = clamp(T.runs + 1, 0, 4); T.counter += 0.5; }                      // v120: Top 5 goal boost (gb 5 = about five times the goals of a normal side)
+        if (t.gb > 1) { T.gb = t.gb; T.shoot *= 1 + 0.7 * (t.gb - 1); T.press = clamp(T.press + 1, 1, 5); T.counterPress += 3; T.vert += 0.35; T.eager += 0.6; T.runs = clamp(T.runs + 1, 0, 4); T.counter += 0.5; }                      // v120: Top 5 goal boost (gb 5 = about five times the goals of a normal side)
         if (t.elite) { T.elite = true; T.press = clamp(T.press + 1, 1, 5); T.shoot *= 1.5; T.eager += 0.3; T.runs = clamp(T.runs + 1, 0, 3); }   // League A1: stronger than Legendary Galácticos, ruthless finishers whose shots are always on target
       };
       [cfg.home, cfg.away].forEach(boost1);
@@ -2739,7 +2739,7 @@ window.RUT = window.RUT || {};
       let shootP = weakP + (smartP - weakP) * iq;
       if (nearOpp < 2.5) shootP *= q > 0.2 ? 1.5 : 1.15;                     // get it off before the tackle comes in
       if (!this.inZone(p) && !clear) shootP *= this.outsideAllowed(p) ? this.outsideK(p) : 0;                       // from outside the box only shooters try it (about 30% of a team's shots)
-      shootP = Math.min(0.97, shootP * (TK.gb > 1 ? 1 + 0.3 * (TK.gb - 1) : 1) * (LA && isST ? 1.35 : 1) * AI_SHOOT * (1 + SH_PSC * (PSC - 1) * (this.inBox(p, 1 - p.team) ? 3 : 1)) * TK.shoot * (tr.has('gun') ? tx2(1.35) : 1) * (tr.has('sel') ? tx2(0.8) : 1) * (tr.has('box') && dGoal < 22 ? tx2(1.2) : 1) * (this.boxKiller(p) ? 1.25 : 1) * (tr.has('inv') && dGoal > 14 && dGoal < 28 && Math.abs(p.y - PH2) < 18 ? tx2(1.5) : 1) * (this.elite85(p) ? 1.3 : 1) * (gm > 0 ? 1.25 : gm < 0 ? 0.8 : 1) * (this.humSides && this.humSides.length && !this.humSides.includes(p.team) ? 1.45 : 1));   // v297 (JODIO): every AI side shoots more against a real player
+      shootP = Math.min(0.97, shootP * (TK.gb > 1 ? 1 + 0.3 * (TK.gb - 1) : 1) * (LA && isST ? 1.35 : 1) * AI_SHOOT * (1 + SH_PSC * (PSC - 1) * (this.inBox(p, 1 - p.team) ? 3 : 1)) * TK.shoot * (tr.has('gun') ? tx2(1.35) : 1) * (tr.has('sel') ? tx2(0.8) : 1) * (tr.has('box') && dGoal < 22 ? tx2(1.2) : 1) * (this.boxKiller(p) ? 1.25 : 1) * (tr.has('inv') && dGoal > 14 && dGoal < 28 && Math.abs(p.y - PH2) < 18 ? tx2(1.5) : 1) * (this.elite85(p) ? 1.3 : 1) * (gm > 0 ? 1.25 : gm < 0 ? 0.8 : 1) * (this.humSides && this.humSides.length && !this.humSides.includes(p.team) ? 1.45 : 1) * (TK.gb > 1 ? 1.5 : 1));   // v297 (JODIO): every AI side shoots more against a real player
       if (clear) shootP = dGoal < 16 ? Math.max(shootP, 0.7) : Math.min(shootP, 0.04 + 0.1 * nrm(s.longShots));   // v94: a free run on goal: he keeps running into the box and shoots from close (only the long-shot specialists try it from 20 m+)
       const stThrough = clear && isST && !p.isGK && !this.ctlOf(p);                 // a striker through on goal runs into the box first, then finishes
       if (stThrough) shootP = dGoal > 15 ? 0 : 0.95;
@@ -2797,7 +2797,7 @@ window.RUT = window.RUT || {};
         const runs = ((o.vx * dir) > 3 && o.slot >= FC.fwdFrom - 1) || (o.run && o.run.until > this.t && (o.run.x - o.x) * dir > 4);
         // v296 (JODIO): every AI side passes the ball about and plays fewer long balls, except a direct ball to a striker who is close to the box and open (he then shoots)
         const aiK = !this.ctlOf(p) && !p.isGK, dirBall = aiK && (o.card.position === 'ST' || o.card.position === 'CF' || o.slot >= FC.fwdFrom) && Math.abs(gx - o.x) < 32 && Math.abs(o.y - PH2) < 24 && open > 4.5 && prog > 8;
-        const longAdj = aiK ? (dirBall ? 8 : (d > 26 ? -(d - 26) * 0.4 : 0) + (d < 22 && prog > -4 ? 1.5 : 0) + (d < 24 && open > 6 && !this.laneBlocked(p, o) ? 3.5 : 0)) : 0;   // v296: and more simple passes to a free man
+        const longAdj = aiK ? (dirBall ? 8 : (d > 26 ? -(d - 26) * 0.4 : 0) + (d < 22 && prog > -4 ? 1.5 : 0) + (d < 24 && open > 6 && !this.laneBlocked(p, o) ? 3.5 : 0) + (this.smartT[p.team] >= 4.5 && Math.abs(gx - o.x) < 34 && Math.abs(o.y - PH2) < 26 && open > 4 && prog > 0 ? 5 : 0)) : 0;   // v301: top sides keep working the ball into the box, so they make many chances   // v296: and more simple passes to a free man
         const raw = prog * 0.45 * TK.vert + Math.min(open, 9) * (tr.has('sfe') ? 1.5 : 1.1) - this.laneBlocked(p, o) * laneW * (TK.vert > 1.5 ? 0.6 : 1) * (tr.has('sfe') ? 1.3 : 1) - d * 0.2 * TK.shortW - (o.isGK ? 14 : 0) + (runs ? 4 * iq + (o.run && o.run.until > this.t ? 5 * iq : 0) : 0) + (o.slot >= FC.fwdFrom ? TK.targetMan : 0) + (TK.counter && quickWin ? prog * 0.3 * TK.counter : 0) + (called ? 2.5 + 3.5 * o.callQ : 0)
           + (tr.has('vis') && runs ? 3 : 0) + (tr.has('swi') && d > 24 && Math.abs(o.y - p.y) > 14 ? 4 : 0) + (tr.has('vrt') ? prog * 0.15 : 0) + (tr.has('bpl') && p.slot <= FC.nDef ? prog * 0.1 : 0)
           + (o.tr.has('tgt') && Math.abs(gx - o.x) < 40 ? 3 : 0) + (o.tr.has('run') && prog > 5 ? 1.5 : 0)
@@ -3581,7 +3581,7 @@ window.RUT = window.RUT || {};
     if (!gk) return;                                                       // testing ground without a keeper
     const s = gk.card.sub;
     const diving = gk.dive && gk.dive.t > gk.dive.react, weak = this.gkWeak(gk);
-    const reach = (this.ctls[gk.team] ? 0.5 : 0) - 0.4 * weak + (gk.tr.has('stk') ? 0.25 : 0) + 1.5 + 1.5 * nrm(s.gkDiving) + 0.55 * (gk.pf['Far Reach'] || 0) + (diving ? (1.0 + 0.8 * nrm(s.gkDiving)) * 1.3 : 0) + (b.shot && b.shot.fk ? 1.8 : 0) + (diving && b.z > 1.6 ? 0.6 : 0) + (clamp(((s.gkDiving || 0) + (s.gkReflexes || 0) + (s.gkPositioning || 0) + (s.gkHandling || 0)) / 4 - 89, 0, 10) / 10) * (0.8 + (diving ? 0.5 : 0));   // v251: a 90+ keeper reaches further and higher. v220 (JODIO): a high dive stretches further up into the top corners. v207: a free kick, set on his line: a fuller stretch. a full-stretch dive adds a body length
+    const reach = (this.ctls[gk.team] ? 0.5 : 0) + (this.tac[b.shot.team].gb > 1 && !this.ctlOf(b.shot.by) ? 1.3 : 0) - 0.4 * weak + (gk.tr.has('stk') ? 0.25 : 0) + 1.5 + 1.5 * nrm(s.gkDiving) + 0.55 * (gk.pf['Far Reach'] || 0) + (diving ? (1.0 + 0.8 * nrm(s.gkDiving)) * 1.3 : 0) + (b.shot && b.shot.fk ? 1.8 : 0) + (diving && b.z > 1.6 ? 0.6 : 0) + (clamp(((s.gkDiving || 0) + (s.gkReflexes || 0) + (s.gkPositioning || 0) + (s.gkHandling || 0)) / 4 - 89, 0, 10) / 10) * (0.8 + (diving ? 0.5 : 0));   // v251: a 90+ keeper reaches further and higher. v220 (JODIO): a high dive stretches further up into the top corners. v207: a free kick, set on his line: a fuller stretch. a full-stretch dive adds a body length
     const sh0 = b.shot.by.card, shoK = Math.max(sh0.face && sh0.face.sho || 0, sh0.sub.finishing || 0), k70 = gk.card.rating >= 92 && shoK >= gk.card.rating + 2;   // v286 (JODIO): a 92+ keeper against a shooter 2+ above him saves 70% and concedes 30%, vs anyone, under any rule
     if (dist(gk, b) > reach + (k70 ? 3 : 0) || b.z > GOAL_H + 0.4 + (k70 ? 0.9 : 0.5 * clamp(((s.gkDiving || 0) + (s.gkReflexes || 0)) / 2 - 89, 0, 10) / 10)) return;
     b.shot.saveChecked = true;
@@ -3613,7 +3613,7 @@ window.RUT = window.RUT || {};
     if (sh.fk) p += 0.3;                                                                     // a free kick is seen coming: the keeper sets himself behind the wall
     if (sh.scuff) p += 0.1;                                                                  // a scuffed effort is slow and easy
     if (rr < 0.25 && sp < 16 && b.z < 1.6) p += 0.16 * (0.5 + nrm(s.gkHandling));            // a lazy central shot is swallowed
-    if (this.tac[b.shot.team].gb > 1 && !this.ctlOf(b.shot.by)) p /= Math.pow(this.tac[b.shot.team].gb, 0.6);     // v120: Top 5 goal boost
+    if (this.tac[b.shot.team].gb > 1 && !this.ctlOf(b.shot.by)) p /= Math.pow(this.tac[b.shot.team].gb, 0.3);   // v301 (JODIO): the top AI scores through volume of chances, not by scoring every shot (was ^0.6)     // v120: Top 5 goal boost
     p *= 1.4;                                                                                // v188 (JODIO): keepers save 40% more
     const shoS = Math.max(b.shot.by.card.face && b.shot.by.card.face.sho || 0, b.shot.by.card.sub.finishing || 0);   // v197 (JODIO): 90+ shooters beat keepers far more often, more again with Finesse / Power Shot
     if (shoS >= 90) { const pfs = Math.max(b.shot.by.pf['Finesse Shot'] || 0, b.shot.by.pf['Power Shot'] || 0); p -= 0.32 + 0.05 * (shoS - 90) + 0.12 * pfs; }
@@ -3621,7 +3621,7 @@ window.RUT = window.RUT || {};
     if (eg > 0) p += eg * (0.12 + 0.28 * clamp((84 - shoS) / 30, 0, 1));
     { const fx = b.shot.fx != null ? b.shot.fx : b.shot.by.x, gxl = this.teams[b.shot.team].dir > 0 ? PITCH_W : 0;      // v188 (JODIO): a low drive from far outside the box is saved
       if (lowBall && Math.abs(fx - gxl) > 22 && shoS < 90) p = Math.max(p, 0.97); }
-    p = clamp(p, this.tac[b.shot.team].gb > 1 ? 0.01 : 0.1, eg > 0 && shoS < 80 ? 0.995 : 0.98);
+    p = clamp(p, this.tac[b.shot.team].gb > 1 && !this.ctlOf(b.shot.by) ? 0.55 : 0.1, eg > 0 && shoS < 80 ? 0.995 : 0.98);   // v301 (JODIO): even the top AI's best chances are saved about half the time: they score through the number of chances
     if (k70) p = 0.7;
     this.stats.onTarget[b.shot.team]++;
     this.ev('sot', b.shot.by, { team: b.shot.team });
