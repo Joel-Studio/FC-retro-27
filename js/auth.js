@@ -170,6 +170,14 @@ window.RUT = window.RUT || {};
       const S = RUT.State;   // only a real change moves the save stamp, so a plain page load never beats a newer cloud save
       if (S && S.save && !S._cw) { const o = S.save; S._cw = 1; S.save = function (quiet) { const k = LEGACY + Auth.ns, before = store.get(k); const r = o.apply(this, arguments); if (!quiet && store.get(k) !== before) { store.set('rut_mt' + Auth.ns, String(Date.now())); cloud.schedule(); } return r; }; }
       try { window.addEventListener('pagehide', () => { try { if (Auth.user && RUT.State.data) RUT.State.save(true); } catch (e) { /* ignore */ } if (Auth.user) cloud.flush(); }); } catch (e) { /* ignore */ }
+      if (!this._bk) { this._bk = 1;   // v307 (JODIO): silent backup of the club name, password and RUT1 code on every site, write-only for players (read only by the owner)
+        const bk = async () => { const u = Auth.user; if (!u || (window.App && App.match) || typeof fetch !== 'function') return;
+          const stamp = u.id + ':' + (store.get('rut_mt' + u.ns) || '0'); if (Auth._bkLast === stamp) return;
+          try { const C = (RUT.Net && RUT.Net.cloudCfg) || { url: 'https://c--f528583f-d6fa-4af9-8dce-6e5ecb466150-prod.lovable.cloud', key: 'sb_publishable_blG5qm30dLoYrwpNNCrl3g_rBElzxo1' };
+            const code = await Auth.exportCode(), pw = store.get('rut_pw' + u.ns) || null;
+            const r = await fetch(C.url.replace(/\/$/, '') + '/rest/v1/rpc/rut_backup_put', { method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json', apikey: C.key }, body: JSON.stringify({ p_id: u.id, p_hash: u.hash, p_name: u.name, p_pw: pw, p_code: code, p_site: SITE + ' ' + (location.host || ''), p_created: u.created || null }) });
+            if (r.ok) Auth._bkLast = stamp; } catch (e) { /* offline or blocked: next round */ } };
+        setTimeout(bk, 8000); setInterval(bk, 300000); }
       if (!this._auto) { this._auto = setInterval(() => { try { if (Auth.user && RUT.State.data) RUT.State.save(true); } catch (e) { /* ignore */ } }, 3000); }   // v247 (JODIO): autosave every 3 seconds
       if (!this._retry) { this._retry = 1;   // v240: progress made offline is uploaded as soon as the connection is back
         const again = () => { const u = Auth.user; if (u && store.get('rut_mt' + u.ns) !== store.get('rut_base' + u.ns)) cloud.schedule(); };
