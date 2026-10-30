@@ -46,6 +46,7 @@ window.RUT = window.RUT || {};
   const cloud = {
     _db: undefined, site: SITE, main: '', q: Promise.resolve(), timer: 0, last: null, err: null,
     async db() {
+      if (this._rec) return this._rec;   // v308: read-only recovery of an older cloud copy during a login (cloud save itself stays off)
       if (!window.RUT_CLOUD_SAVE) return null;   // v247 (JODIO): saves stay in this browser on every site, like the artifact; online is only for online matches
       try { if ((JSON.parse(localStorage.getItem('rut_settings') || '{}') || {}).net === 'offline') return null; } catch (e) { /* default online */ }   // v198: Offline mode in Settings
       if (this._db !== undefined) return this._db;
@@ -130,6 +131,10 @@ window.RUT = window.RUT || {};
     },
     /** v137: log in with a club that only exists in the cloud (made on another device): check the password against its hash, then copy it here. */
     async cloudLogin(name, pw) {
+      if (!window.RUT_CLOUD_SAVE) { try { cloud._rec = await cloud.supa(); return await this._cloudLogin(name, pw); } finally { cloud._rec = null; } }
+      return this._cloudLogin(name, pw);
+    },
+    async _cloudLogin(name, pw) {
       const id = idOf(name), h = await cloud.head(id);
       if (!h || h.id !== id || !h.salt || !h.hash || (await hash(String(pw || ''), h.salt)) !== h.hash) return null;
       const all = accounts(), acc = { id, name: clean(h.name || name), salt: String(h.salt), hash: String(h.hash), ns: ':' + id, created: h.created || Date.now() };
