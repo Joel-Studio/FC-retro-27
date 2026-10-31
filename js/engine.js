@@ -355,12 +355,13 @@ window.RUT = window.RUT || {};
     let seed = cfg.seed != null ? cfg.seed : (Math.random() * 1e9) | 0;
     this.rng = RUT.DB.rng(seed);
     this.seed0 = seed; this.tk = 0; this.rs = [mkRS(), mkRS()]; this._po = -1; this._ls = [null, null]; this.rec = null; this.reel = null;     // v108: recorder / reel state
-    this.halfSeconds = ((cfg.humans && cfg.humans.length) || cfg.humanTeam === 0 || cfg.humanTeam === 1) && !cfg.train ? 90 : (cfg.halfSeconds || 90);   // v302 (JODIO): every match a person plays is 90 seconds a half (Testing Ground keeps its own clock)
+    this.halfSeconds = cfg.rush ? 60 : ((cfg.humans && cfg.humans.length) || cfg.humanTeam === 0 || cfg.humanTeam === 1) && !cfg.train ? 90 : (cfg.halfSeconds || 90);   // v302 (JODIO): every match a person plays is 90 seconds a half (Testing Ground keeps its own clock)
     this.brain = cfg.brain === 'ultra' ? 1 : 0;                           // Ultra mode: the computer players read the game faster and better (same on both sides, so it is part of the match setup)
     this.brainR = this.brain ? 0.6 : 1;
     this.surf = SURF[cfg.surface] || SURF.dry;                            // pitch condition and match ball: part of the match setup (same on both sides online)
     this.ballM = BALLS[cfg.ballModel] || BALLS.match;
     this.assist = ASSIST[cfg.assist] ? cfg.assist : 'semi';
+    if (cfg.rush) [cfg.home, cfg.away].forEach(t => { const c = t.cards, o = c.slice(1, 11).filter(Boolean).sort((a, b) => b.rating - a.rating).slice(0, 4), k = [c[0]]; [2, 5, 8, 10].forEach((sl, i) => { k[sl] = o[i]; }); t.cards = k; });   // v316 Rush 5v5: a keeper (slot 0) and your four best outfield players in slots 2, 5, 8, 10
     if (cfg.duel) [cfg.home, cfg.away].forEach(t => { const c = t.cards, k = [c[0]]; k[9] = c[1]; t.cards = k; });   // 1v1 duel: a keeper (slot 0) and one outfield player (slot 9) each
     if (Array.isArray(cfg.balance)) {   // v306: the balancer's lift for the AI sides (levels from AIBal.level, 0 for a human side)
       const b0 = cfg.balance; cfg.home = Object.assign({}, cfg.home, { cards: AIBal.lift(cfg.home.cards, AIBal.add(b0[0] || 0)) }); cfg.away = Object.assign({}, cfg.away, { cards: AIBal.lift(cfg.away.cards, AIBal.add(b0[1] || 0)) });
@@ -456,7 +457,7 @@ window.RUT = window.RUT || {};
     humans.forEach((t, i) => { this.ctls[t] = newCtl(t, humans.length > 1 ? (i ? 'p2' : 'p1') : 'all', i); });
     this.human = humans.length ? humans[0] : null;
     this.cam = { x: PW2, y: PH2 }; this.camMode = CAMS[cfg.camera] ? cfg.camera : 'tv'; this.gfx = 'auto'; this.tagMode = 2;   // name tags: 0 off, 1 all players, 2 only the ones you control + the ball carrier
-    this.speed = 1; this.over = false;
+    this.speed = 1; this.tempo = 1; this.over = false;
     this.ticker = 'KICK OFF!'; this.tickerT = 3;
     this.training = cfg.training || null;
     if (this.training) { this.halfSeconds = 1e9; this.noOffside = true; this.trainSetup(); this.ticker = 'TESTING GROUND'; }
@@ -3946,7 +3947,7 @@ window.RUT = window.RUT || {};
   };
   /** Offside snapshot at the instant of a pass: attackers past the ball AND the second-last defender. */
   P.offsideSnapshot = function (passer) {
-    if (this.cfg.duel) { this.offsideList = []; return; }                                // 1v1 duel: no offside
+    if (this.cfg.duel || this.cfg.rush) { this.offsideList = []; return; }                                // 1v1 duel: no offside
     if (this.noOffside) { this.noOffside = false; this.offsideList = []; return; } // none from goal kick / corner / throw-in
     const dir = this.teams[passer.team].dir, gx = dir > 0 ? PITCH_W : 0;
     const defs = this.players.filter(p => p.team !== passer.team).map(p => Math.abs(gx - p.x)).sort((a, b) => a - b);
@@ -5508,8 +5509,8 @@ void main(){
         this.netPump(now, dt);
       } else if (this.reel) { if (!this.paused) this.reelFrame(dt);
       } else if (!this.paused) {
-        acc += dt * this.speed;
-        acc = Math.min(acc, step * (this.speed > 1 ? 8 : 4));              // a slow frame never snowballs into a burst of catch-up steps: the game just runs a touch slower
+        acc += dt * this.speed * this.tempo;
+        acc = Math.min(acc, step * (this.speed * this.tempo > 1 ? 8 : 4));              // a slow frame never snowballs into a burst of catch-up steps: the game just runs a touch slower
         while (acc >= step) { this.update(step); acc -= step; }
       }
       // v105: the simulation runs at 60 Hz, so drawing more often than 60 times a second on a 90 / 120 / 144 Hz screen only repeats the same picture:
