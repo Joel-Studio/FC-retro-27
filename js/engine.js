@@ -3898,6 +3898,7 @@ window.RUT = window.RUT || {};
   P.card = function (p, color, why) {
     if (color === 'yellow') { p.yellows = (p.yellows || 0) + 1; if (p.yellows >= 2) { color = 'red'; why = 'second yellow'; } }
     this.event((color === 'red' ? 'RED CARD ' : 'YELLOW CARD ') + p.card.name + ' (' + why + ')', color);
+    { let n = 0; this.players.forEach(q => { if (q !== p && !q.isGK && n < 4 && Math.hypot(q.x - p.x, q.y - p.y) < (q.team === p.team ? 7 : 13)) { q._argue = this.t + 2.4; n++; } }); }   // v319: players crowd the referee and argue
     this.fx({ type: 'card', x: p.x, y: p.y, color: color === 'red' ? '#ff2a2a' : '#ffe600', life: 1.6 });
     this.stoppage += 0.4;
     if (color === 'red') { // ejection: player leaves the pitch
@@ -3972,6 +3973,7 @@ window.RUT = window.RUT || {};
     this.event('GOAL! ' + (sh ? sh.card.name : this.teams[team].name) + ' ' + this.score.join('-'), 'goal');
     this.stoppage += 0.6;
     this.goalFlash = 2.2; this.goalTeam = team;
+    { const dr = this.teams[team].dir, cols = ['#e23b3b', '#3b7be2', '#f2f2f2', '#ffb020']; const c0 = cols[(this.score[0] * 2 + this.score[1] + team) % 4]; for (let i = 0; i < 12; i++) this.fx({ type: 'smoke', x: (dr > 0 ? PITCH_W + 3 : -3) + (i % 3) * dr * 1.2, y: PH2 + (i - 5.5) * 3.4, color: c0, life: 3.2 + (i % 4) * 0.3, dx: dr * (0.2 + (i % 3) * 0.1) }); }   // v319: smoke bombs behind the goal
     const sig = sh && RUT.DB.signatureFor(sh.card);
     this.celebration = sh ? { p: sh, sig, t: 0, ct: 0, run: true, flag: null } : null;
     if (sig) { this.say(sig.celebration + '!'); this.goalFlash = 3.2; }
@@ -4435,6 +4437,7 @@ void main(){
     this.effects.forEach(e => {
       const a = 1 - e.t / e.life;
       if (e.type === 'dust') { const s = proj(e.x, e.y, e.t * 1.5); ctx.fillStyle = 'rgba(220,220,200,' + a * 0.7 + ')'; ctx.fillRect(Math.round(s.x + e.t * 6), Math.round(s.y), Math.max(2, Math.round(s.k * 0.3 / ZOOM)), Math.max(2, Math.round(s.k * 0.3 / ZOOM))); }
+      if (e.type === 'smoke') { const s = proj(e.x + (e.dx || 0) * e.t, e.y, 0.8 + e.t * 1.6), r = Math.max(3, s.k * (1.2 + e.t * 1.1) / ZOOM); ctx.globalAlpha = Math.max(0, a) * 0.38; ctx.fillStyle = e.color; ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, 6.283); ctx.fill(); ctx.globalAlpha = 1; }
       if (e.type === 'text') { const s = proj(e.x, e.y + 2, 2.4 + e.t * 1.5); this.pixelText(ctx, e.text, Math.round(s.x), Math.round(s.y), e.color, 'center', a); }
       if (e.type === 'card') { const s = proj(e.x, e.y, 2.6); const h = Math.min(1, e.t * 6); const w = Math.max(5, Math.round(s.k * 0.9 / ZOOM)), hh = Math.round(w * 1.4 * h); ctx.fillStyle = '#000'; ctx.fillRect(Math.round(s.x + s.k * 0.4 / ZOOM) - 1, Math.round(s.y - hh) - 1, w + 2, hh + 2); ctx.fillStyle = e.color; ctx.fillRect(Math.round(s.x + s.k * 0.4 / ZOOM), Math.round(s.y - hh), w, hh); }
     });
@@ -4530,12 +4533,13 @@ void main(){
     else if (p.cool.stun > 0.5) anim = 'down';
     else if (p.skill) { anim = p.skill.kind + (p.skill.side < 0 && p.skill.kind !== 'knock' ? '_m' : ''); t = clamp(p.skill.t / p.skill.dur, 0, 1); }
     else if (p.cool.stun > 0.05) { anim = 'stumble'; t = (this.t * 2.2) % 1; }
+    else if (p._argue > this.t && sp < 2.5) { anim = 'argue'; t = (this.t * 1.4) % 1; }
     else if (p.tackleT > 0) { anim = p._tv === 2 ? 'poke' : 'tackle'; if (p._tv === 1 || this.leftFoot(p)) anim += '_m'; t = 1 - p.tackleT / 0.4; }
     else if (cel && !cel.run && cel.sig && cel.sig.aura === 'lightning') anim = 'cross';
     else if (cel ? !cel.run : (team && sp < 1.2)) {
       anim = 'up'; t = (this.t * 1.7 + (p.slot + p.team * 11) * 0.23) % 1;
       if (cel) {                                              // the scorer: a star's own celebration, otherwise one picked from his name
-        const star = p._look.star, pick = star ? star.celeb : ['wide', 'slide', 'sky', 'kneel', 'dance', 'bow', 'siu', 'med'][((RUT.DB.hashStr(p.card.name) >>> 0) + this.score[0] * 3 + this.score[1] * 5) % 8];
+        const star = p._look.star, pick = star ? star.celeb : ['wide', 'slide', 'sky', 'kneel', 'dance', 'bow', 'siu', 'med', 'plane', 'shush', 'cradle', 'flex'][((RUT.DB.hashStr(p.card.name) >>> 0) + this.score[0] * 3 + this.score[1] * 5) % 12];
         const ct = cel.ct || 0;
         if (pick === 'cross') anim = 'cross';
         else if (pick !== 'up') {
@@ -4602,12 +4606,13 @@ void main(){
     else if (p.cool.stun > 0.5) anim = 'down';
     else if (p.skill) { anim = p.skill.kind + (p.skill.side < 0 && p.skill.kind !== 'knock' ? '_m' : ''); t = clamp(p.skill.t / p.skill.dur, 0, 1); }
     else if (p.cool.stun > 0.05) { anim = 'stumble'; t = (this.t * 2.2) % 1; }
+    else if (p._argue > this.t && sp < 2.5) { anim = 'argue'; t = (this.t * 1.4) % 1; }
     else if (p.tackleT > 0) { anim = p._tv === 2 ? 'poke' : 'tackle'; if (p._tv === 1 || this.leftFoot(p)) anim += '_m'; t = 1 - p.tackleT / 0.4; }
     else if (cel && !cel.run && cel.sig && cel.sig.aura === 'lightning') anim = 'cross';
     else if (cel ? !cel.run : (team && sp < 1.2)) {
       anim = 'up'; t = (this.t * 1.7 + (p.slot + p.team * 11) * 0.23) % 1;
       if (cel) {                                              // the scorer: a star's own celebration, otherwise one picked from his name
-        const star = p._look.star, pick = star ? star.celeb : ['wide', 'slide', 'sky', 'kneel', 'dance', 'bow', 'siu', 'med'][((RUT.DB.hashStr(p.card.name) >>> 0) + this.score[0] * 3 + this.score[1] * 5) % 8];
+        const star = p._look.star, pick = star ? star.celeb : ['wide', 'slide', 'sky', 'kneel', 'dance', 'bow', 'siu', 'med', 'plane', 'shush', 'cradle', 'flex'][((RUT.DB.hashStr(p.card.name) >>> 0) + this.score[0] * 3 + this.score[1] * 5) % 12];
         const ct = cel.ct || 0;
         if (pick === 'cross') anim = 'cross';
         else if (pick !== 'up') {

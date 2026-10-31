@@ -615,6 +615,53 @@ window.RUT = window.RUT || {};
       armL: { pitch: 0.4, roll: 1.3, elbow: 0.5 }, armR: { pitch: 0.2, roll: 1.2, elbow: 0.5 },
     };
   }
+
+  // v319 (JODIO, FC27 new gameplay features video): four more goal celebrations and an arguing-with-the-referee pose ---------
+  /** Aeroplane: arms straight out, tilting side to side. */
+  function celebPlane(t) {
+    const w = Math.sin(TAU * t);
+    return {
+      pelvis: V(0, B.hipH - 0.7, 0), lean: 0.1, roll: 0.22 * w, yaw: 0, twist: 0, head: { down: -0.1 },
+      footL: FL(4.2, B.ankle, 0.5, 0, 0.3), footR: FL(-4.2, B.ankle, -0.5, 0, -0.3),
+      armL: { pitch: 0.05, roll: 1.55 + 0.25 * w, elbow: 0.05 }, armR: { pitch: 0.05, roll: 1.55 - 0.25 * w, elbow: 0.05 },
+    };
+  }
+  /** Shush: one finger to the lips, the other arm folded, a slow nod. */
+  function celebShush(t) {
+    const n = Math.sin(TAU * t) * 0.12;
+    return {
+      pelvis: V(0, B.hipH - 0.5, 0), lean: -0.04, roll: 0, yaw: 0, twist: 0, head: { down: 0.12 + n },
+      footL: FL(4.2, B.ankle, 0.3, 0, 0.3), footR: FL(-4.2, B.ankle, -0.3, 0, -0.3),
+      armL: { pitch: 0.2, roll: 0.5, elbow: 1.6, cross: 0.2 }, armR: { pitch: 0.6, roll: 0.3, elbow: 1.8, cross: 0.85 },
+    };
+  }
+  /** Cradle: both arms folded in front and rocked like a baby. */
+  function celebCradle(t) {
+    const r = Math.sin(TAU * t);
+    return {
+      pelvis: V(0.5 * r, B.hipH - 0.9, 0), lean: 0.05, roll: 0.1 * r, yaw: 0, twist: 0.2 * r, head: { down: 0.4 },
+      footL: FL(4.2, B.ankle, 0.3, 0, 0.3), footR: FL(-4.2, B.ankle, -0.3, 0, -0.3),
+      armL: { pitch: 0.7 + 0.1 * r, roll: 0.4, elbow: 1.5, cross: 0.7 }, armR: { pitch: 0.7 - 0.1 * r, roll: 0.4, elbow: 1.5, cross: 0.7 },
+    };
+  }
+  /** Flex: both arms up and bent, chest out, little bounces. */
+  function celebFlex(t) {
+    const j = Math.max(0, Math.sin(TAU * t * 2)) * 0.9;
+    return {
+      pelvis: V(0, B.hipH - 1.0 + j, 0), lean: -0.12, roll: 0, yaw: 0, twist: 0, head: { down: -0.2 },
+      footL: FL(4.8, B.ankle + j * 0.4, 0.3, 0, 0.3), footR: FL(-4.8, B.ankle + j * 0.4, -0.3, 0, -0.3),
+      armL: { pitch: 0.1, roll: 1.5, elbow: 1.9 }, armR: { pitch: 0.1, roll: 1.5, elbow: 1.9 },
+    };
+  }
+  /** Arguing with the referee: arms spread, palms up, shaking the head, small steps. Loops. */
+  function arguePose(t) {
+    const w = Math.sin(TAU * t * 2), a = Math.sin(TAU * t);
+    return {
+      pelvis: V(0, B.hipH - 0.6, 0.4), lean: 0.1, roll: 0.04 * w, yaw: 0.1 * a, twist: 0.12 * a, head: { down: 0.1 + 0.18 * w },
+      footL: FL(4.4, B.ankle, 0.8 + 0.5 * a, 0, 0.3), footR: FL(-4.4, B.ankle, -0.8 - 0.5 * a, 0, -0.3),
+      armL: { pitch: 0.5 + 0.2 * w, roll: 1.0, elbow: 1.1 }, armR: { pitch: 0.5 - 0.2 * w, roll: 1.0, elbow: 1.1 },
+    };
+  }
   /** Shielding: side-on, knees bent, wide base, the near arm out to keep the defender off while the far foot keeps the ball. Loops. */
   function shieldPose(t) {
     const w = Math.sin(TAU * t), d = Math.max(0, Math.sin(TAU * t * 2));
@@ -792,7 +839,7 @@ window.RUT = window.RUT || {};
   }
 
   /** Frames per animation (cache granularity). Kicks don't loop. */
-  const FRAMES = { roll: 10, roll_m: 10, step: 12, step_m: 12, feint: 10, feint_m: 10, knock: 8, header: 10, volley: 10, trap: 8, touch: 8, chest: 8, thigh: 8, chip: 10, shield: 8, jostle: 8, poke: 8, poke_m: 8, tackle_m: 8, volley_m: 10, heel: 10, clear: 12, clear_m: 12, outside: 10, outside_m: 10, fk: 14, pass_m: 12, shot_m: 12, chip_m: 10, celeb_med: 6, celeb_siu: 14, celeb_sky: 6, celeb_kneel: 6, celeb_slide: 10, celeb_dance: 10, celeb_wide: 8, celeb_bow: 10, idle: 4, idle_cb: 4, idle_fb: 4, idle_dm: 4, idle_cm: 4, idle_w: 4, idle_st: 4, gkready: 4, walk: 10, jog: 10, sprint: 10, dribble: 10, pass: 12, shot: 12, tackle: 8, slide: 10, stumble: 6, up: 6, cross: 1, save: 1, down: 1, dive_lo: 16, dive_hi: 16 };
+  const FRAMES = { roll: 10, roll_m: 10, step: 12, step_m: 12, feint: 10, feint_m: 10, knock: 8, header: 10, volley: 10, trap: 8, touch: 8, chest: 8, thigh: 8, chip: 10, shield: 8, jostle: 8, celeb_plane: 10, celeb_shush: 8, celeb_cradle: 10, celeb_flex: 8, argue: 10, poke: 8, poke_m: 8, tackle_m: 8, volley_m: 10, heel: 10, clear: 12, clear_m: 12, outside: 10, outside_m: 10, fk: 14, pass_m: 12, shot_m: 12, chip_m: 10, celeb_med: 6, celeb_siu: 14, celeb_sky: 6, celeb_kneel: 6, celeb_slide: 10, celeb_dance: 10, celeb_wide: 8, celeb_bow: 10, idle: 4, idle_cb: 4, idle_fb: 4, idle_dm: 4, idle_cm: 4, idle_w: 4, idle_st: 4, gkready: 4, walk: 10, jog: 10, sprint: 10, dribble: 10, pass: 12, shot: 12, tackle: 8, slide: 10, stumble: 6, up: 6, cross: 1, save: 1, down: 1, dive_lo: 16, dive_hi: 16 };
   function poseFor(anim, t, gk, star) {
     switch (anim) {
       case 'walk': case 'jog': case 'sprint': case 'dribble': return gaitPose(anim, t, star);
@@ -810,6 +857,7 @@ window.RUT = window.RUT || {};
       case 'fk': return fkPose(t);
       case 'pass_m': return mirrorPose(kickPose(t, false)); case 'shot_m': return mirrorPose(kickPose(t, true)); case 'chip_m': return mirrorPose(chipPose(t));
       case 'poke': return pokePose(t); case 'poke_m': return mirrorPose(pokePose(t)); case 'tackle_m': return mirrorPose(tacklePose(t)); case 'volley_m': return mirrorPose(volleyPose(t)); case 'heel': return heelPose(t);
+      case 'celeb_plane': return celebPlane(t); case 'celeb_shush': return celebShush(t); case 'celeb_cradle': return celebCradle(t); case 'celeb_flex': return celebFlex(t); case 'argue': return arguePose(t);
       case 'shield': return shieldPose(t); case 'jostle': return jostlePose(t);
       case 'celeb_med': return celebMed(t);
       case 'celeb_siu': return celebSiu(t);
@@ -1300,7 +1348,7 @@ window.RUT = window.RUT || {};
     const key = L.key + '#' + anim + '#' + f + '#' + Math.round(yaw * 100) + '#' + s.toFixed(3) + (HD ? 'h' : '');
     let c = cache.get(key);
     if (c) { cache.delete(key); cache.set(key, c); return c; }
-    const tq = (anim === 'poke' || anim === 'poke_m' || anim === 'tackle_m' || anim === 'volley_m' || anim === 'heel' || anim === 'clear' || anim === 'clear_m' || anim === 'outside' || anim === 'outside_m' || anim === 'fk' || anim === 'pass_m' || anim === 'shot_m' || anim === 'chip_m' || anim === 'pass' || anim === 'chip' || anim === 'shot' || anim === 'tackle' || anim === 'slide' || anim === 'roll' || anim === 'roll_m' || anim === 'step' || anim === 'step_m' || anim === 'feint' || anim === 'feint_m' || anim === 'knock' || anim === 'header' || anim === 'volley' || anim === 'trap' || anim === 'touch' || anim === 'celeb_siu' || anim === 'celeb_slide' || anim === 'celeb_bow') ? f / Math.max(1, n - 1) : (f + 0.5) / n;
+    const tq = (anim === 'argue' || anim === 'poke' || anim === 'poke_m' || anim === 'tackle_m' || anim === 'volley_m' || anim === 'heel' || anim === 'clear' || anim === 'clear_m' || anim === 'outside' || anim === 'outside_m' || anim === 'fk' || anim === 'pass_m' || anim === 'shot_m' || anim === 'chip_m' || anim === 'pass' || anim === 'chip' || anim === 'shot' || anim === 'tackle' || anim === 'slide' || anim === 'roll' || anim === 'roll_m' || anim === 'step' || anim === 'step_m' || anim === 'feint' || anim === 'feint_m' || anim === 'knock' || anim === 'header' || anim === 'volley' || anim === 'trap' || anim === 'touch' || anim === 'celeb_siu' || anim === 'celeb_slide' || anim === 'celeb_bow') ? f / Math.max(1, n - 1) : (f + 0.5) / n;
     if (anim === 'down') {                                                                   // lying on the grass: side view turned flat
       const src = toCanvas(renderFigure(L, 'idle', 0.25, Math.PI / 2, !!L.gloves, s));
       c = document.createElement('canvas'); c.width = src.height; c.height = src.width;              // a quarter turn: swap the sides
