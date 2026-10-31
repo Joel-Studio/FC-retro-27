@@ -242,11 +242,11 @@ window.RUT = window.RUT || {};
    *  A history of 0.6 (win = 1, draw = 0.5, loss = 0) is the target: a win in about 3 of 5. Fewer than 3 results: no change. */
   const AI_RATING_LIFT = true;   // v314 (JODIO): the rating boosts (Top 5 level and balancer) are back, but only for the AI side that plays against a human, never for the human's own team or AI against AI
   const AIBal = {
-    TARGET: 0.6, WINDOW: 10,
-    level(hist) { const h = (hist || []).slice(-this.WINDOW); if (h.length < 3) return 0; const avg = h.reduce((x, y) => x + y, 0) / h.length; return clamp((avg - this.TARGET) * 3.5, -1, 1); },
-    add(level) { return level > 0 ? 7 * level : 4 * level; },
+    TARGET: 0.5, WINDOW: 10,   // v315 (JODIO): harsher, a win rate of 1 in 2 already pushes the AI up
+    level(hist) { const h = (hist || []).slice(-this.WINDOW); if (h.length < 3) return 0; const avg = h.reduce((x, y) => x + y, 0) / h.length; return clamp((avg - this.TARGET) * 5, -1, 1); },
+    add(level) { return level > 0 ? 10 * level : 3 * level; },
     /** v309 (JODIO): short window. When you win 2 or more of your last 3 games the AI plays smarter (0..1): more chances in the box, more goals from them, shots from range when it has no pass. */
-    pressure(hist) { const h = (hist || []).slice(-3); if (h.length < 2) return 0; const avg = h.reduce((x, y) => x + y, 0) / h.length; return clamp((avg - 0.5) * 2, 0, 1); },
+    pressure(hist) { const h = (hist || []).slice(-3); if (h.length < 2) return 0; const avg = h.reduce((x, y) => x + y, 0) / h.length; return clamp((avg - 0.5) * 3, 0, 1); },
     push(hist, r) { const h = (hist || []).concat([r]); return h.slice(-this.WINDOW); },
     lift(cards, add) { if (!AI_RATING_LIFT) return cards; return cards.map(c => { if (!c || !add) return c; const nr = clamp(Math.round(c.rating + add), 40, 99); if (nr === c.rating) return c; const k = nr / c.rating, up = v => clamp(Math.round(v * k), 1, 99), face = {}, sub = {};
       Object.keys(c.face || {}).forEach(x => { face[x] = up(c.face[x]); }); Object.keys(c.sub || {}).forEach(x => { sub[x] = up(c.sub[x]); }); return Object.assign({}, c, { rating: nr, face, sub }); }); },
@@ -3625,8 +3625,9 @@ window.RUT = window.RUT || {};
     p -= 0.16 * weak;                                                         // below 90 a keeper is beatable
     if (this.tac[b.shot.team].hot > 1 && !this.ctlOf(b.shot.by)) p -= HOT_SAVE * (this.tac[b.shot.team].hot - 1);                   // Top 5 Leagues finishers beat keepers more often
     if (this.tac[b.shot.team].elite && !this.ctlOf(b.shot.by)) p -= 0.14;                  // League A1 finishers beat keepers far more often
+    if (!this.ctlOf(b.shot.by) && this.humSides && this.humSides.includes(gk.team)) p -= 0.07;   // v315 (JODIO): the opponent AI scores more against a real player
     if (b.shot.bk) p -= 0.3;                                                  // an 85+ finisher in the box places it
-    if ((this.pressMask & 4) && this.pressT[b.shot.team] && !this.ctlOf(b.shot.by) && this.inBox(b.shot.by, 1 - b.shot.team)) p -= 0.3 * this.pressT[b.shot.team];   // v309: you keep winning, so their chances inside the box are finished better
+    if ((this.pressMask & 4) && this.pressT[b.shot.team] && !this.ctlOf(b.shot.by) && this.inBox(b.shot.by, 1 - b.shot.team)) p -= 0.45 * this.pressT[b.shot.team];   // v309: you keep winning, so their chances inside the box are finished better
     if (b.shot.fe) p -= 0.22 * b.shot.fe;                                     // v128 finisher edge
     if (b.shot.pen && gk.tr.has('pks')) p += 0.12;                           // penalty specialists
     if (b.shot.gte) p -= 0.14 + 0.1 * b.shot.gte;                              // v254 Time Finisher / Range Finder: a clean, well placed strike
