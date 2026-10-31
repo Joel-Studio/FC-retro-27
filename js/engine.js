@@ -35,7 +35,7 @@ window.RUT = window.RUT || {};
   let PITCH_W = 105, PITCH_H = 68, PW2 = 52.5, PH2 = 34;                // the pitch can be resized per match (setPitch): PW2/PH2 are its centre
   const IC_PSC = 3, SH_PSC = 2;                                          // reach and appetite grow with the pitch (a bigger pitch spreads the play, so shots and interceptions would dry up)
   let PSC = 1;                                                           // how much bigger the pitch is than the standard one (linear); used to keep reach and shot appetite in proportion
-  const GOAL_HALF = 8.0, GOAL_H = 3.4;                                   // JODIO's big arcade goal: 16 m wide (twice the old width) and 3.4 m high
+  const GOAL_HALF = 8.0, GOAL_H = 5.1;                                   // JODIO's big arcade goal: 16 m wide (twice the old width) and 3.4 m high; v309 (JODIO): 50% higher, 5.1 m
   const LEARN_FIRST = 12, LEARN_EVERY = 12;                           // seconds into the match of the first read of the other side's play, then how often the AI re-reads it
   const DEF_PUSH = 0.1, DEF_LINE = 3, DEF_UP = 4, DEF_HOLD = 0.25, DEF_FOLLOW = 9;   // v91: AI defenders hold a higher line (depth cap and line shift, metres)
   const AI_SHOOT = 1.5;                                                  // AI shot appetite
@@ -244,6 +244,8 @@ window.RUT = window.RUT || {};
     TARGET: 0.6, WINDOW: 10,
     level(hist) { const h = (hist || []).slice(-this.WINDOW); if (h.length < 3) return 0; const avg = h.reduce((x, y) => x + y, 0) / h.length; return clamp((avg - this.TARGET) * 3.5, -1, 1); },
     add(level) { return level > 0 ? 7 * level : 4 * level; },
+    /** v309 (JODIO): short window. When you win 2 or more of your last 3 games the AI plays smarter (0..1): more chances in the box, more goals from them, shots from range when it has no pass. */
+    pressure(hist) { const h = (hist || []).slice(-3); if (h.length < 2) return 0; const avg = h.reduce((x, y) => x + y, 0) / h.length; return clamp((avg - 0.5) * 2, 0, 1); },
     push(hist, r) { const h = (hist || []).concat([r]); return h.slice(-this.WINDOW); },
     lift(cards, add) { return cards.map(c => { if (!c || !add) return c; const nr = clamp(Math.round(c.rating + add), 40, 99); if (nr === c.rating) return c; const k = nr / c.rating, up = v => clamp(Math.round(v * k), 1, 99), face = {}, sub = {};
       Object.keys(c.face || {}).forEach(x => { face[x] = up(c.face[x]); }); Object.keys(c.sub || {}).forEach(x => { sub[x] = up(c.sub[x]); }); return Object.assign({}, c, { rating: nr, face, sub }); }); },
@@ -365,7 +367,8 @@ window.RUT = window.RUT || {};
     {   // v300 (JODIO): AI sides of Top 5 level or higher (smart >= 4: Top 5 Leagues, Champions League) play like players 3-10 overall better, never above 96; the lower the rating the bigger the lift
       const hs0 = cfg.humans || (cfg.humanTeam === 0 || cfg.humanTeam === 1 ? [cfg.humanTeam] : []);
       [cfg.home, cfg.away].forEach((t, ti) => { if (!t || t._eb || t.smart < 4 || hs0.includes(ti) || !t.cards) return; t._eb = true;
-        t.cards = t.cards.map(c => { if (!c || c.rating >= 96) return c; const add = clamp(10 - (c.rating - 70) * 0.35, 3, 10), nr = Math.min(96, Math.round(c.rating + add)), k = nr / c.rating, up = v => clamp(Math.round(v * k), 1, 99), face = {}, sub = {};
+        const avg0 = t.cards.reduce((x, c) => x + (c ? c.rating : 0), 0) / Math.max(1, t.cards.filter(Boolean).length), cap0 = Math.round(93 + 3 * clamp((avg0 - 76) / 12, 0, 1));   // v309: a weak side is lifted up to 93, a strong one up to 96
+        t.cards = t.cards.map(c => { if (!c || c.rating >= cap0) return c; const add = clamp(10 - (c.rating - 70) * 0.35, 3, 10), nr = Math.min(cap0, Math.round(c.rating + add)), k = nr / c.rating, up = v => clamp(Math.round(v * k), 1, 99), face = {}, sub = {};
           Object.keys(c.face || {}).forEach(x => { face[x] = up(c.face[x]); }); Object.keys(c.sub || {}).forEach(x => { sub[x] = up(c.sub[x]); });
           return Object.assign({}, c, { rating: nr, face, sub }); }); });
     }
@@ -425,6 +428,8 @@ window.RUT = window.RUT || {};
     [cfg.home, cfg.away].forEach((t, ti) => { if (t && t.smart > 1.5) this.players.forEach(p => { if (p.team === ti) p.iq = Math.min(1.2, p.iq + 0.3 * (t.smart - 1.5)); }); });   // v94: past 1.5 the football brain itself sharpens (2.0 = +0.15)
     if (this.brain) this.players.forEach(p => { p.iq = Math.min(1.15, p.iq + 0.1); });
     // v120: past smart 2 the side also thinks faster (smart 4 = decisions twice as quick) and its passes find their man more truly
+    this.pressMask = cfg.pressMask == null ? 7 : cfg.pressMask;
+    this.pressT = Array.isArray(cfg.press) ? [cfg.press[0] || 0, cfg.press[1] || 0] : [0, 0];   // v309 balancer pressure per side
     this.smartT = [cfg.home, cfg.away].map(t => (t && t.smart) || 1); this.teamIQ = [cfg.home, cfg.away].map(t => (t && t.teamIQ) || 1); /* v201: Champions League sides play 1.5x more as a team */ this.thinkK = this.smartT.map(v => v > 2 ? 2 / v : 1);
     /* v219 (JODIO: "FC 27's hardest AI, for every AI, most for the opponent"). From FC 27's Legendary/Ultimate: faster reactions, less time
        to recover after losing the ball (longer counter-press), a compact block that shifts to the ball side, a back line that drops off when
@@ -1096,7 +1101,7 @@ window.RUT = window.RUT || {};
     const finesse = type === 'finesse', powerPS = type === 'power', low = type === 'low', chip = type === 'chip', volley = type === 'volley', head = type === 'header';
     const gk = this.players.find(o => o.isGK && o.team !== p.team);
     let ty = opt.ty != null ? opt.ty : PH2 + aim * (GOAL_HALF - 0.55);
-    const netShot = opt.ty != null && !this.penaltyKick && this.rng() < 0.9;                  // v138: 9 in 10 semi / full-auto shots go into the net even when he is not facing the goal
+    const netShot = opt.ty != null && !this.penaltyKick && this.rng() < (this.ctlOf(p) && (opt.assist || this.assist) === 'full' ? 0.65 : 0.9);   // v309 (JODIO): full auto nerfed, fewer of its shots are forced on frame   // v138: 9 in 10 semi / full-auto shots go into the net even when he is not facing the goal
     if (netShot) ty = PH2 + clamp(ty - PH2, -(GOAL_HALF - 0.9), GOAL_HALF - 0.9);
     if (netShot && (opt.assist || this.assist) === 'full' && this.ctlOf(p) && !head && !chip) {   // v206 (JODIO): your full-auto shots and finesse curlers go wider, out by the post (better finishers closer to it)
       const fin0 = nrm(d > 20 ? s.longShots : s.finishing);
@@ -1187,7 +1192,7 @@ window.RUT = window.RUT || {};
     // assisted shooting: a correction layer on the human's strike (lower difficulties keep a weak aim on frame)
     if (bar != null || opt.timing || opt.human) err *= AS.aim;
     if ((bar != null || opt.human) && this.assist !== 'manual') {                  // assisted shooting rewards a good finisher: more pace and a truer strike
-      const fq = nrm(Math.max(s.finishing || 55, d > 20 ? s.longShots || 55 : 0)) * (this.assist === 'full' ? 1 : 0.75);
+      const fq = nrm(Math.max(s.finishing || 55, d > 20 ? s.longShots || 55 : 0)) * (this.assist === 'full' ? 0.85 : 0.75);
       err *= 1 - 0.35 * fq; speed *= 1 + 0.14 * fq;
     }
     let spin = this.gauss() * 0.12, tspin = (this.rng() - 0.4) * 0.4;
@@ -1256,7 +1261,7 @@ window.RUT = window.RUT || {};
         if (Math.abs(cross - gk.y) < 1.6) { const side = Math.abs(gk.y - PH2) > 0.5 ? (gk.y > PH2 ? -1 : 1) : (cross >= gk.y ? 1 : -1); ang = Math.atan2(PH2 + side * (GOAL_HALF - 0.9) - p.y, dx) - (curlComp && !chip ? curlComp : 0); } } }
     // v196 (JODIO): assisted shooting for a human shooter: full auto keeps 95% of shots on frame, semi auto 90% (semi still goes where he aimed; only a shot that would miss is pulled inside the post / under the bar)
     { const am = opt.assist || this.assist;
-      if (this.ctlOf(p) && (am === 'full' || am === 'semi') && !isPen && !chip && !head && Math.abs(gx - p.x) > 1 && this.rng() < (am === 'full' ? 0.86 : 0.66)) {   // forced share; with shots that stay on frame by themselves the total lands at about 95% / 90%
+      if (this.ctlOf(p) && (am === 'full' || am === 'semi') && !isPen && !chip && !head && Math.abs(gx - p.x) > 1 && this.rng() < (am === 'full' ? 0.6 : 0.66)) {   // forced share; with shots that stay on frame by themselves the total lands at about 95% / 90%
         const dx = gx - p.x, aimed = curlAimY != null ? curlAimY : p.y + Math.tan(ang) * dx, lim = GOAL_HALF - 0.35, ty = clamp(aimed, PH2 - lim, PH2 + lim);
         if (ty !== aimed) { ang = Math.atan2(ty - p.y, dx) - (curlComp && !chip ? curlComp : 0); }
         if (!curlComp) spin *= 0.3;                                                    // no wild swerve taking it back off target
@@ -2754,7 +2759,7 @@ window.RUT = window.RUT || {};
       let shootP = weakP + (smartP - weakP) * iq;
       if (nearOpp < 2.5) shootP *= q > 0.2 ? 1.5 : 1.15;                     // get it off before the tackle comes in
       if (!this.inZone(p) && !clear) shootP *= this.outsideAllowed(p) ? this.outsideK(p) : 0;                       // from outside the box only shooters try it (about 30% of a team's shots)
-      shootP = Math.min(0.97, shootP * (TK.gb > 1 ? 1 + 0.3 * (TK.gb - 1) : 1) * (LA && isST ? 1.35 : 1) * AI_SHOOT * (1 + SH_PSC * (PSC - 1) * (this.inBox(p, 1 - p.team) ? 3 : 1)) * TK.shoot * (tr.has('gun') ? tx2(1.35) : 1) * (tr.has('sel') ? tx2(0.8) : 1) * (tr.has('box') && dGoal < 22 ? tx2(1.2) : 1) * (this.boxKiller(p) ? 1.25 : 1) * (tr.has('inv') && dGoal > 14 && dGoal < 28 && Math.abs(p.y - PH2) < 18 ? tx2(1.5) : 1) * (this.elite85(p) ? 1.3 : 1) * (gm > 0 ? 1.25 : gm < 0 ? 0.8 : 1) * (this.humSides && this.humSides.length && !this.humSides.includes(p.team) ? 1.45 : 1) * (TK.gb > 1 ? 1.5 : 1));   // v297 (JODIO): every AI side shoots more against a real player
+      shootP = Math.min(0.97, shootP * (TK.gb > 1 ? 1 + 0.3 * (TK.gb - 1) : 1) * (LA && isST ? 1.35 : 1) * AI_SHOOT * (1 + SH_PSC * (PSC - 1) * (this.inBox(p, 1 - p.team) ? 3 : 1)) * TK.shoot * (tr.has('gun') ? tx2(1.35) : 1) * (tr.has('sel') ? tx2(0.8) : 1) * (tr.has('box') && dGoal < 22 ? tx2(1.2) : 1) * (this.boxKiller(p) ? 1.25 : 1) * (tr.has('inv') && dGoal > 14 && dGoal < 28 && Math.abs(p.y - PH2) < 18 ? tx2(1.5) : 1) * (this.elite85(p) ? 1.3 : 1) * (gm > 0 ? 1.25 : gm < 0 ? 0.8 : 1) * (this.humSides && this.humSides.length && !this.humSides.includes(p.team) ? 1.45 : 1) * (TK.gb > 1 ? 1.5 : 1));   // v297 (JODIO): every AI side shoots more against a real player   // v309: and more still when you keep winning
       if (clear) shootP = dGoal < 16 ? Math.max(shootP, 0.7) : Math.min(shootP, 0.04 + 0.1 * nrm(s.longShots));   // v94: a free run on goal: he keeps running into the box and shoots from close (only the long-shot specialists try it from 20 m+)
       const stThrough = clear && isST && !p.isGK && !this.ctlOf(p);                 // a striker through on goal runs into the box first, then finishes
       if (stThrough) shootP = dGoal > 15 ? 0 : 0.95;
@@ -2775,6 +2780,12 @@ window.RUT = window.RUT || {};
     const lsN = tr.has('lng') ? Math.max(nrm(s.longShots), 0.65) : nrm(s.longShots);
     if (p.cool.ls <= 0 && p.cool.kick <= 0 && dGoal > 21 && dGoal < 38) {
       p.cool.ls = 0.4;
+      const prs = (this.pressMask & 2) ? (this.pressT[p.team] || 0) : 0;   // v309: no pass on, the balancer lets him have a go from range
+      let noOpt = false; if (prs > 0 && !this.ctlOf(p)) { noOpt = !this.players.some(o => o.team === p.team && o !== p && !o.isGK && (o.x - p.x) * this.teams[p.team].dir > -2 && dist(o, p) < 32 && dist(o, p) > 6 && this.laneBlocked(p, o) < 0.5 && this.players.every(q => q.team === p.team || dist(q, o) > 5)); }
+      if (noOpt && lsN > 0.4 && nearOpp > 2.0 && nearOpp < 5 && Math.abs(PH2 - p.y) < dGoal * 0.9 && this.laneBlocked(p, { x: gx, y: PH2 }, true) < 1 && this.rng() < 0.01 + 0.05 * prs) {
+        const gk0 = this.players.find(o => o.team !== p.team && o.isGK); const side0 = gk0 ? (gk0.y < PH2 ? 1 : -1) : (this.rng() < 0.5 ? -1 : 1);
+        this.tallyShot(p); this.shoot(p, clamp(side0 * (0.3 + 0.5 * this.rng()), -1, 1), 1, null, { long: true }); return;
+      }
       if (lsN > 0.5 && this.outsideAllowed(p) && this.rng() < 0.1 * this.outsideK(p) / OUT_BASE && nearOpp > 2.2 && Math.abs(PH2 - p.y) < dGoal * 0.8 && this.laneBlocked(p, { x: gx, y: PH2 }, true) < 1 && this.rng() < (0.03 + 0.2 * lsN * lsN) * (this.tacLS ? this.tacLS(p) : 1) * (tr.has('lng') ? 1.8 : 1)) {
         const gk = this.players.find(o => o.team !== p.team && o.isGK);
         const side = gk ? (gk.y < PH2 ? 1 : -1) : (this.rng() < 0.5 ? -1 : 1);
@@ -3053,12 +3064,18 @@ window.RUT = window.RUT || {};
       if (p.dive.t > 1.0) p.dive = null;
       return;
     }
+    // v309 (JODIO): an AI keeper whose shot was deflected or re-aimed after he committed turns the dive to where the ball is now going
+    if (!b.owner && b.shot && b.shot.team !== p.team && !b.shot.fool && !this.ctls[p.team] && p.dive && p.dvT != null && p.dive.t < (p.dive.react || 0) + 0.12 && b.vx * dir < -2.5) {
+      const tl2 = (gx + dir * 0.4 - b.x) / b.vx;
+      if (tl2 > 0 && tl2 < 3.4) { const sh2 = b.shot, ey = sh2.curl > 0.12 && sh2.aimY != null ? sh2.aimY : b.y + b.vy * tl2;
+        if (Math.abs(ey - PH2) < GOAL_HALF + 0.15 && Math.abs(ey - p.dive.y) > 1.6) { p.dive.y = clamp(ey, PH2 - GOAL_HALF - 0.5, PH2 + GOAL_HALF + 0.5); p.dvSide = ey >= p.y ? 1 : -1; } }
+    }
     // a shot or a ball into the area: read where it will cross the keeper's position and how high, then go for it
     if (!b.owner && b.shot && b.shot.team !== p.team && b.vx * dir < -2.5 && p.dvT == null) {      // a real shot only: passes and clearances are not dived at
       const tk = (p.x - b.x) / b.vx, tl = (gx + dir * 0.4 - b.x) / b.vx;
       if (tl > 0 && tl < 3.4) {                                                                        // even a ball that has already got past him: he turns and throws himself at it
         const sh = b.shot, curly = sh.curl > 0.12 && sh.aimY != null;
-        if (curly && sh.fool == null) sh.fool = (sh.fk || b.trailType === 'finesse') && this.rng() < 0.95 - 0.4 * nrm(((s.gkReflexes || 60) + (s.gkPositioning || 60)) / 2) - 0.1 * (p.pf['Far Reach'] || 0) - (sh.fk ? 0.35 : 0);   // v207: from his line at a free kick he reads the bend better   // v149: a finesse shot starts wide; the keeper goes with where it looks headed and is sometimes wrong-footed when it bends
+        if (curly && sh.fool == null) sh.fool = (sh.fk || b.trailType === 'finesse') && this.rng() < (0.95 - 0.4 * nrm(((s.gkReflexes || 60) + (s.gkPositioning || 60)) / 2) - 0.1 * (p.pf['Far Reach'] || 0) - (sh.fk ? 0.35 : 0)) * (this.ctls[p.team] ? 1 : 0.35);   // v309: AI keepers are wrong-footed far less often   // v207: from his line at a free kick he reads the bend better   // v149: a finesse shot starts wide; the keeper goes with where it looks headed and is sometimes wrong-footed when it bends
         const tk2 = Math.max(tk, Math.min(0.12, tl)), cy = b.y + b.vy * tk2, zt = Math.max(0, b.z + b.vz * tk2 - 4.9 * tk2 * tk2), zl = b.z + b.vz * tl - 4.9 * tl * tl;
         const endY = curly ? sh.aimY : b.y + b.vy * tl, onTarget = Math.abs(endY - PH2) < GOAL_HALF + 0.15 && zl < GOAL_H + 0.1 && zl > -0.5;        // inside the posts and under the bar, or he stays on his feet
         if (onTarget) {
@@ -3373,7 +3390,7 @@ window.RUT = window.RUT || {};
    * Fast balls are integrated in sub-steps so a 30 m/s shot cannot tunnel
    * through a 12 cm post.
    * --------------------------------------------------------------------- */
-  const BALL_R = 0.11, POST_R = 0.06, NET_DEPTH = 3.2, NET_TOP_BACK = 2.9;
+  const BALL_R = 0.11, POST_R = 0.06, NET_DEPTH = 3.2, NET_TOP_BACK = 4.4;
   /** v223: where a struck ball crosses the goal line x = gx (no players, no randomness): the same spin, drag, dip, bounce and roll as updateBall / integrateBall3D. */
   P.curlCross = function (x, y, vx, vy, vz, spin, tspin, gx) {
     const mg = this.ballM.magnus, dg = this.ballM.drag, S = this.surf, h = 1 / 120, sgn = Math.sign(gx - x); let z = 0;
@@ -3608,6 +3625,7 @@ window.RUT = window.RUT || {};
     if (this.tac[b.shot.team].hot > 1 && !this.ctlOf(b.shot.by)) p -= HOT_SAVE * (this.tac[b.shot.team].hot - 1);                   // Top 5 Leagues finishers beat keepers more often
     if (this.tac[b.shot.team].elite && !this.ctlOf(b.shot.by)) p -= 0.14;                  // League A1 finishers beat keepers far more often
     if (b.shot.bk) p -= 0.3;                                                  // an 85+ finisher in the box places it
+    if ((this.pressMask & 4) && this.pressT[b.shot.team] && !this.ctlOf(b.shot.by) && this.inBox(b.shot.by, 1 - b.shot.team)) p -= 0.3 * this.pressT[b.shot.team];   // v309: you keep winning, so their chances inside the box are finished better
     if (b.shot.fe) p -= 0.22 * b.shot.fe;                                     // v128 finisher edge
     if (b.shot.pen && gk.tr.has('pks')) p += 0.12;                           // penalty specialists
     if (b.shot.gte) p -= 0.14 + 0.1 * b.shot.gte;                              // v254 Time Finisher / Range Finder: a clean, well placed strike
