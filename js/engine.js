@@ -240,7 +240,7 @@ window.RUT = window.RUT || {};
 
   /** v306 (JODIO): AI balancer. The last 10 results against the AI set a level from -1 (you keep losing: the AI eases off, down to 4 overall) to +1 (you keep winning: the AI gets up to 7 overall stronger).
    *  A history of 0.6 (win = 1, draw = 0.5, loss = 0) is the target: a win in about 3 of 5. Fewer than 3 results: no change. */
-  const AI_RATING_LIFT = false;   // v313 (JODIO): the AI never gets higher rated cards from the Top 5 boost or the balancer; only its play changes
+  const AI_RATING_LIFT = true;   // v314 (JODIO): the rating boosts (Top 5 level and balancer) are back, but only for the AI side that plays against a human, never for the human's own team or AI against AI
   const AIBal = {
     TARGET: 0.6, WINDOW: 10,
     level(hist) { const h = (hist || []).slice(-this.WINDOW); if (h.length < 3) return 0; const avg = h.reduce((x, y) => x + y, 0) / h.length; return clamp((avg - this.TARGET) * 3.5, -1, 1); },
@@ -367,7 +367,7 @@ window.RUT = window.RUT || {};
     }
     {   // v300 (JODIO): AI sides of Top 5 level or higher (smart >= 4: Top 5 Leagues, Champions League) play like players 3-10 overall better, never above 96; the lower the rating the bigger the lift
       const hs0 = cfg.humans || (cfg.humanTeam === 0 || cfg.humanTeam === 1 ? [cfg.humanTeam] : []);
-      [cfg.home, cfg.away].forEach((t, ti) => { if (!AI_RATING_LIFT || !t || t._eb || t.smart < 4 || hs0.includes(ti) || !t.cards) return; t._eb = true;
+      [cfg.home, cfg.away].forEach((t, ti) => { if (!AI_RATING_LIFT || !t || t._eb || t.smart < 4 || !hs0.length || hs0.includes(ti) || !t.cards) return; t._eb = true;
         const avg0 = t.cards.reduce((x, c) => x + (c ? c.rating : 0), 0) / Math.max(1, t.cards.filter(Boolean).length), cap0 = Math.round(93 + 3 * clamp((avg0 - 76) / 12, 0, 1));   // v309: a weak side is lifted up to 93, a strong one up to 96
         t.cards = t.cards.map(c => { if (!c || c.rating >= cap0) return c; const add = clamp(10 - (c.rating - 70) * 0.35, 3, 10), nr = Math.min(cap0, Math.round(c.rating + add)), k = nr / c.rating, up = v => clamp(Math.round(v * k), 1, 99), face = {}, sub = {};
           Object.keys(c.face || {}).forEach(x => { face[x] = up(c.face[x]); }); Object.keys(c.sub || {}).forEach(x => { sub[x] = up(c.sub[x]); });
