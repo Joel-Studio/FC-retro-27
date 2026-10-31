@@ -129,6 +129,7 @@ window.RUT = window.RUT || {};
     const lq = list().find(x => x.id === id);
     if (!lq.ready) return { ok: false, msg: lq.claimed ? 'Already claimed' : 'Not finished yet' };
     const r = lq.reward, st = D();
+    r.coins = Math.round(r.coins * RUT.State.weekendK());   // v311 weekend boost
     RUT.State.addCoins(r.coins, 'Quest: ' + q.title);
     if (r.packs) Object.keys(r.packs).forEach(k => { st.packsOwned[k] = (st.packsOwned[k] || 0) + r.packs[k]; });
     (q.daily ? S().dClaimed : S().claimed)[id] = 1;

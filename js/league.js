@@ -88,7 +88,7 @@ window.RUT = window.RUT || {};
     const d = D(), g = d.league, L = g.cur; if (!L || !L.done) return null;
     const i = ORDER.indexOf(g.code), up = L.rank <= 2; let msg;
     if (up) {
-      const reward = Math.round(3000 * (i + 1) * 1.3);
+      const reward = Math.round(3000 * (i + 1) * 1.3 * RUT.State.weekendK());
       RUT.State.addCoins(reward, 'League ' + g.code + ' top 2');
       if (i < ORDER.length - 1) { g.code = ORDER[i + 1]; msg = 'PROMOTED to ' + g.code + '! +' + reward.toLocaleString() + ' coins'; }
       else { g.titles = (g.titles || 0) + 1; msg = 'LEAGUE A1 top 2! +' + reward.toLocaleString() + ' coins. Keep defending your place at the top.'; }

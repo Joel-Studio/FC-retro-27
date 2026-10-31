@@ -273,6 +273,8 @@ window.RUT = window.RUT || {};
     setItemOrder(itemId, key) { const it = this.data.items[itemId]; if (!it) return; if (key) it.order = key; else delete it.order; this.save(); },
     benchCards() { return (this.data.squad.bench || []).map(id => (id ? this.card(id) : null)).filter(Boolean); },
 
+    /** v311 (JODIO): weekend boost, +50% on every kind of income (match, league, Top 5, Champions League, Rivals, quests) on Saturday and Sunday (the player's local days). */
+    weekendK() { const d = new Date().getDay(); return d === 0 || d === 6 ? 1.5 : 1; },
     addCoins(n, why) { this.data.coins += n; if (why) this.log(why + (n >= 0 ? ' +' : ' ') + n.toLocaleString() + 'c'); },
 
     canAfford(n) { return this.data.coins >= n; },

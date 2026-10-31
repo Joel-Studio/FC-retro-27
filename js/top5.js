@@ -334,7 +334,7 @@ window.RUT = window.RUT || {};
   function advance() {
     const R = root(), L = R.cur; if (!L || !L.done) return null;
     const rw = seasonReward(L.rank), st = D();
-    rw.coins = Math.round(rw.coins * 1.3);                                           // v103: +30% on earnings
+    rw.coins = Math.round(rw.coins * 1.3 * RUT.State.weekendK());                                           // v103: +30% on earnings
     RUT.State.addCoins(rw.coins, LGS[L.lg].name + ' finish #' + L.rank);
     Object.keys(rw.packs).forEach(k => { st.packsOwned[k] = (st.packsOwned[k] || 0) + rw.packs[k]; });
     if (L.rank === 1) R.titles[L.lg] = (R.titles[L.lg] || 0) + 1;
@@ -486,7 +486,7 @@ window.RUT = window.RUT || {};
       else if (nx.stage === 'f') { U.won = true; out.champion = true; out.bonus = UCL.stage.win; const R = root(); R.uclTitles = (R.uclTitles || 0) + 1; }
       else { U.stage = STAGES[STAGES.indexOf(nx.stage) + 1]; out.bonus = UCL.stage[U.stage]; }
     }
-    if (out.bonus) { RUT.State.data.coins += out.bonus; U.earned += out.bonus; }
+    if (out.bonus) { out.bonus = Math.round(out.bonus * RUT.State.weekendK()); RUT.State.data.coins += out.bonus; U.earned += out.bonus; }
     RUT.State.save(); return out;
   }
   const uclPayout = (gf, ga) => (gf > ga ? UCL.win : gf === ga ? UCL.draw : 0) + gf * UCL.goal;

@@ -2482,7 +2482,7 @@
   }
   function onlineResult(res, home, away, me) {
     const st2 = res.stats, mine = res.score[me], theirs = res.score[1 - me], O = App.online;
-    let rv = ''; if (O && O.quick && O.quick.kind) { const ch = O.quick.kind === 'champs', c = ch ? Math.round(champPay(mine, theirs) * EARN) : rivCoins(mine, theirs); State.addCoins(c, (ch ? 'Champions' : 'Rivals') + ' match'); rv = `<p class="gold">+${fmt(c)} coins</p>` + (ch ? champFees(mine, theirs) : '') + rivRecord(O.quick.kind, mine, theirs); State.save(); }
+    let rv = ''; if (O && O.quick && O.quick.kind) { const ch = O.quick.kind === 'champs', c = Math.round((ch ? Math.round(champPay(mine, theirs) * EARN) : rivCoins(mine, theirs)) * State.weekendK()); State.addCoins(c, (ch ? 'Champions' : 'Rivals') + ' match'); rv = `<p class="gold">+${fmt(c)} coins</p>` + (ch ? champFees(mine, theirs) : '') + rivRecord(O.quick.kind, mine, theirs); State.save(); }
     modal(`<h1>${mine > theirs ? 'YOU WIN!' : mine < theirs ? 'YOU LOSE' : 'DRAW'}</h1>
       <h2>${esc(home.name)} ${res.score[0]} - ${res.score[1]} ${esc(away.name)}</h2>
       ${[['Possession', st2.possession[0] + '%', st2.possession[1] + '%'], ['Shots', st2.shots[0], st2.shots[1]], ['On target', st2.onTarget[0], st2.onTarget[1]], ['Passes', st2.passes[0], st2.passes[1]], ['Tackles', st2.tackles[0], st2.tackles[1]]]
@@ -2529,7 +2529,7 @@
       const c = r.champs; if (!c || c.g >= CH_GAMES) return '';
       c.g++; if (win) c.w++; else c.l++;                           // Champions: a draw counts as a loss
       out = `<p class="${win ? 'good' : 'bad'}">Champions: ${c.w} W - ${c.l} L (${c.g}/${CH_GAMES} played)</p>`;
-      if (c.g >= CH_GAMES && !c.paid) { c.paid = true; const p = champCoins(c.w); State.addCoins(p, 'Champions finals: ' + c.w + ' wins'); out += `<p class="gold">Finals over with ${c.w} wins: +${fmt(p)} coins</p>`; }
+      if (c.g >= CH_GAMES && !c.paid) { c.paid = true; const p = Math.round(champCoins(c.w) * State.weekendK()); State.addCoins(p, 'Champions finals: ' + c.w + ' wins'); out += `<p class="gold">Finals over with ${c.w} wins: +${fmt(p)} coins</p>`; }
     } else {
       const was = r.div;
       if (win) { r.w++; r.pts += 3; } else if (draw) { r.d++; r.pts += 1; } else { r.l++; r.pts = Math.max(0, r.pts - 1); }
@@ -2712,7 +2712,7 @@
     const dnfPenalty = Math.min(st.dnf, 5) * 100;
     let coins = Math.max(0, Math.round(mult * Object.values(parts).reduce((x, y) => x + y, 0) - dnfPenalty));
     if (xo && xo.coins) coins = xo.coins(res);                                                  // League: a fixed payout per win and per goal
-    coins = Math.round(coins * EARN);                                                          // v103: +30% on everything earned by playing
+    coins = Math.round(coins * EARN * State.weekendK());                                                          // v103: +30% on everything earned by playing
     if (st.dnf > 0) st.dnf--; // each completed match clears one DNF
     s.matches++; s.goalsFor += res.score[0]; s.goalsAgainst += res.score[1];
     if (res.won) s.wins++; else if (res.draw) s.draws++; else s.losses++;
@@ -3396,7 +3396,7 @@
     'qm-cancel': () => quickCancel(),
     'qm-again': () => { const k = App.online && App.online.quick ? App.online.quick.kind : null; if (App.online && App.online.session) App.online.session.close(); App.online = null; closeModal(); setView('online'); quickSearch(null, k); },
     'riv-play': el => { const k = el.dataset.k === 'champs' ? 'champs' : 'rivals'; if (k === 'champs' && !rivChampsOpen()) return; setView('online'); quickSearch(null, k); },
-    'riv-claim': () => { const r = RV(), p = r.pending; if (!p) return; r.pending = null; State.addCoins(p.coins, 'Weekly Rivals and Champions rewards'); State.save(); toast('+' + fmt(p.coins) + ' coins claimed', 'good'); render(); },
+    'riv-claim': () => { const r = RV(), p = r.pending; if (!p) return; r.pending = null; const pc = Math.round(p.coins * State.weekendK()); State.addCoins(pc, 'Weekly Rivals and Champions rewards'); State.save(); toast('+' + fmt(pc) + ' coins claimed', 'good'); render(); },
     'on-host': () => onlineStartSession('host', Net ? Net.newCode() : ''),
     'dr-test': () => {
       let link; try { link = new Net.Direct(); } catch (e) { App.directTest = 'WebRTC is blocked here: ' + e.message; render(); return; }
