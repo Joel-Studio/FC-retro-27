@@ -152,6 +152,10 @@ window.RUT = window.RUT || {};
     let nerf = false;
     if (!opts.buy && st.sbcPacks && st.sbcPacks[packId] > 0) { st.sbcPacks[packId]--; nerf = true; }
     if (nerf) def = nerfed(def);
+    if (RUT.State.weekendK && RUT.State.weekendK() > 1 && def.bands) {   // v312 (JODIO): weekend pack boost, about +50% on the chance of 88+ (and 86+) players and of promo cards (all ratings still capped as before)
+      const o = Object.assign({}, def); o.bands = def.bands.map(b => [b[0], b[1], b[2] * (b[0] >= 88 ? 2.4 : b[0] >= 86 ? 1.5 : b[0] >= 83 ? 1.25 : 1)]);
+      ['topChance', 'nlpofmChance', 'clChance', 'nlstarChance', 'totwChance', 'pwChance', 'promoChance'].forEach(k => { if (o[k]) o[k] = Math.min(0.95, o[k] * 1.5); }); def = o;
+    }
     const cards = [];
     for (let i = 0; i < def.count; i++) cards.push(drawCard(def.bands, r, def.pos));
     if (def.guaranteeMin && !cards.some(c => c.rating >= def.guaranteeMin)) {
