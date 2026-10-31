@@ -35,7 +35,7 @@ window.RUT = window.RUT || {};
   let PITCH_W = 105, PITCH_H = 68, PW2 = 52.5, PH2 = 34;                // the pitch can be resized per match (setPitch): PW2/PH2 are its centre
   const IC_PSC = 3, SH_PSC = 2;                                          // reach and appetite grow with the pitch (a bigger pitch spreads the play, so shots and interceptions would dry up)
   let PSC = 1;                                                           // how much bigger the pitch is than the standard one (linear); used to keep reach and shot appetite in proportion
-  const GOAL_HALF = 8.0, GOAL_H = 5.1;                                   // JODIO's big arcade goal: 16 m wide (twice the old width) and 3.4 m high; v309 (JODIO): 50% higher, 5.1 m
+  const GOAL_HALF = 8.0, GOAL_H = 3.4;                                   // JODIO's big arcade goal: 16 m wide (twice the old width) and 3.4 m high (v309 raised it to 5.1 m, reverted in v310)
   const LEARN_FIRST = 12, LEARN_EVERY = 12;                           // seconds into the match of the first read of the other side's play, then how often the AI re-reads it
   const DEF_PUSH = 0.1, DEF_LINE = 3, DEF_UP = 4, DEF_HOLD = 0.25, DEF_FOLLOW = 9;   // v91: AI defenders hold a higher line (depth cap and line shift, metres)
   const AI_SHOOT = 1.5;                                                  // AI shot appetite
@@ -3390,7 +3390,7 @@ window.RUT = window.RUT || {};
    * Fast balls are integrated in sub-steps so a 30 m/s shot cannot tunnel
    * through a 12 cm post.
    * --------------------------------------------------------------------- */
-  const BALL_R = 0.11, POST_R = 0.06, NET_DEPTH = 3.2, NET_TOP_BACK = 4.4;
+  const BALL_R = 0.11, POST_R = 0.06, NET_DEPTH = 3.2, NET_TOP_BACK = 2.9;
   /** v223: where a struck ball crosses the goal line x = gx (no players, no randomness): the same spin, drag, dip, bounce and roll as updateBall / integrateBall3D. */
   P.curlCross = function (x, y, vx, vy, vz, spin, tspin, gx) {
     const mg = this.ballM.magnus, dg = this.ballM.drag, S = this.surf, h = 1 / 120, sgn = Math.sign(gx - x); let z = 0;
