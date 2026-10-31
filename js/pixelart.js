@@ -595,6 +595,26 @@ window.RUT = window.RUT || {};
       armL: { pitch: 0.2, roll: k.ar + 0.3, elbow: 0.25 }, armR: { pitch: -0.2, roll: k.ar, elbow: 0.3 },
     };
   }
+
+  // v318: toe-poke tackle and a rare heel flick ---------------------------------------------------------------------------
+  /** Poke tackle: a quick step in and a stabbed toe at the ball, upright, no lunge. */
+  function pokePose(u) {
+    const k = keyed([[0, { ln: 0.1, fy: 1, fz: -2, fp: 0.2 }], [0.3, { ln: 0.22, fy: 2.4, fz: 6, fp: 0.1 }], [0.5, { ln: 0.3, fy: 1.2, fz: 13, fp: -0.5 }], [0.75, { ln: 0.18, fy: 1.6, fz: 5, fp: 0 }], [1, { ln: 0.08, fy: 0.4, fz: -1, fp: 0 }]], u);
+    return {
+      pelvis: V(0, B.hipH - 1.2, 0.8), lean: k.ln, roll: 0.06, yaw: -0.2, twist: 0.2, head: { down: 0.6 },
+      footL: FL(3.8, B.ankle, -1, 0.1, 0.3), footR: FL(-3.4, B.ankle + k.fy, k.fz, k.fp, -0.2),
+      armL: { pitch: 0.6, roll: 1.2, elbow: 0.6 }, armR: { pitch: 0.4, roll: 1.4, elbow: 0.6 },
+    };
+  }
+  /** Heel flick: the ball is pushed back with the heel of the kicking foot while the body leans forward. */
+  function heelPose(u) {
+    const k = keyed([[0, { ln: 0.1, fy: 0.5, fz: 2 }], [0.35, { ln: 0.2, fy: 3.5, fz: 4 }], [0.55, { ln: 0.3, fy: 6, fz: -10 }], [0.8, { ln: 0.2, fy: 2, fz: -2 }], [1, { ln: 0.06, fy: 0.4, fz: 0 }]], u);
+    return {
+      pelvis: V(0, B.hipH - 0.8, 0), lean: k.ln, roll: 0.05, yaw: 0, twist: 0, head: { down: 0.6 },
+      footL: FL(3.8, B.ankle, 1.5, 0, 0.2), footR: FL(-3.4, B.ankle + k.fy, k.fz, 0.9, -0.1),
+      armL: { pitch: 0.4, roll: 1.3, elbow: 0.5 }, armR: { pitch: 0.2, roll: 1.2, elbow: 0.5 },
+    };
+  }
   /** Shielding: side-on, knees bent, wide base, the near arm out to keep the defender off while the far foot keeps the ball. Loops. */
   function shieldPose(t) {
     const w = Math.sin(TAU * t), d = Math.max(0, Math.sin(TAU * t * 2));
@@ -772,7 +792,7 @@ window.RUT = window.RUT || {};
   }
 
   /** Frames per animation (cache granularity). Kicks don't loop. */
-  const FRAMES = { roll: 10, roll_m: 10, step: 12, step_m: 12, feint: 10, feint_m: 10, knock: 8, header: 10, volley: 10, trap: 8, touch: 8, chest: 8, thigh: 8, chip: 10, shield: 8, jostle: 8, clear: 12, clear_m: 12, outside: 10, outside_m: 10, fk: 14, pass_m: 12, shot_m: 12, chip_m: 10, celeb_med: 6, celeb_siu: 14, celeb_sky: 6, celeb_kneel: 6, celeb_slide: 10, celeb_dance: 10, celeb_wide: 8, celeb_bow: 10, idle: 4, idle_cb: 4, idle_fb: 4, idle_dm: 4, idle_cm: 4, idle_w: 4, idle_st: 4, gkready: 4, walk: 10, jog: 10, sprint: 10, dribble: 10, pass: 12, shot: 12, tackle: 8, slide: 10, stumble: 6, up: 6, cross: 1, save: 1, down: 1, dive_lo: 16, dive_hi: 16 };
+  const FRAMES = { roll: 10, roll_m: 10, step: 12, step_m: 12, feint: 10, feint_m: 10, knock: 8, header: 10, volley: 10, trap: 8, touch: 8, chest: 8, thigh: 8, chip: 10, shield: 8, jostle: 8, poke: 8, poke_m: 8, tackle_m: 8, volley_m: 10, heel: 10, clear: 12, clear_m: 12, outside: 10, outside_m: 10, fk: 14, pass_m: 12, shot_m: 12, chip_m: 10, celeb_med: 6, celeb_siu: 14, celeb_sky: 6, celeb_kneel: 6, celeb_slide: 10, celeb_dance: 10, celeb_wide: 8, celeb_bow: 10, idle: 4, idle_cb: 4, idle_fb: 4, idle_dm: 4, idle_cm: 4, idle_w: 4, idle_st: 4, gkready: 4, walk: 10, jog: 10, sprint: 10, dribble: 10, pass: 12, shot: 12, tackle: 8, slide: 10, stumble: 6, up: 6, cross: 1, save: 1, down: 1, dive_lo: 16, dive_hi: 16 };
   function poseFor(anim, t, gk, star) {
     switch (anim) {
       case 'walk': case 'jog': case 'sprint': case 'dribble': return gaitPose(anim, t, star);
@@ -789,6 +809,7 @@ window.RUT = window.RUT || {};
       case 'outside': return outsidePose(t); case 'outside_m': return mirrorPose(outsidePose(t));
       case 'fk': return fkPose(t);
       case 'pass_m': return mirrorPose(kickPose(t, false)); case 'shot_m': return mirrorPose(kickPose(t, true)); case 'chip_m': return mirrorPose(chipPose(t));
+      case 'poke': return pokePose(t); case 'poke_m': return mirrorPose(pokePose(t)); case 'tackle_m': return mirrorPose(tacklePose(t)); case 'volley_m': return mirrorPose(volleyPose(t)); case 'heel': return heelPose(t);
       case 'shield': return shieldPose(t); case 'jostle': return jostlePose(t);
       case 'celeb_med': return celebMed(t);
       case 'celeb_siu': return celebSiu(t);
@@ -1279,7 +1300,7 @@ window.RUT = window.RUT || {};
     const key = L.key + '#' + anim + '#' + f + '#' + Math.round(yaw * 100) + '#' + s.toFixed(3) + (HD ? 'h' : '');
     let c = cache.get(key);
     if (c) { cache.delete(key); cache.set(key, c); return c; }
-    const tq = (anim === 'clear' || anim === 'clear_m' || anim === 'outside' || anim === 'outside_m' || anim === 'fk' || anim === 'pass_m' || anim === 'shot_m' || anim === 'chip_m' || anim === 'pass' || anim === 'chip' || anim === 'shot' || anim === 'tackle' || anim === 'slide' || anim === 'roll' || anim === 'roll_m' || anim === 'step' || anim === 'step_m' || anim === 'feint' || anim === 'feint_m' || anim === 'knock' || anim === 'header' || anim === 'volley' || anim === 'trap' || anim === 'touch' || anim === 'celeb_siu' || anim === 'celeb_slide' || anim === 'celeb_bow') ? f / Math.max(1, n - 1) : (f + 0.5) / n;
+    const tq = (anim === 'poke' || anim === 'poke_m' || anim === 'tackle_m' || anim === 'volley_m' || anim === 'heel' || anim === 'clear' || anim === 'clear_m' || anim === 'outside' || anim === 'outside_m' || anim === 'fk' || anim === 'pass_m' || anim === 'shot_m' || anim === 'chip_m' || anim === 'pass' || anim === 'chip' || anim === 'shot' || anim === 'tackle' || anim === 'slide' || anim === 'roll' || anim === 'roll_m' || anim === 'step' || anim === 'step_m' || anim === 'feint' || anim === 'feint_m' || anim === 'knock' || anim === 'header' || anim === 'volley' || anim === 'trap' || anim === 'touch' || anim === 'celeb_siu' || anim === 'celeb_slide' || anim === 'celeb_bow') ? f / Math.max(1, n - 1) : (f + 0.5) / n;
     if (anim === 'down') {                                                                   // lying on the grass: side view turned flat
       const src = toCanvas(renderFigure(L, 'idle', 0.25, Math.PI / 2, !!L.gloves, s));
       c = document.createElement('canvas'); c.width = src.height; c.height = src.width;              // a quarter turn: swap the sides

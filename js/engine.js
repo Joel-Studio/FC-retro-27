@@ -850,6 +850,7 @@ window.RUT = window.RUT || {};
     p.cool.kick = 0.35; p.kickType = trailType === 'shot' ? 'shot' : vz > 4 ? 'chip' : Math.hypot(vx, vy) > 21 ? 'drive' : 'pass';
     { const sp0 = Math.hypot(vx, vy), dir0 = this.teams[p.team].dir, own = dir0 > 0 ? p.x : PITCH_W - p.x;   // v317: clearances, outside-foot passes (picked by the tick, so online stays in step)
       if (trailType !== 'shot' && !p.isGK && ['CB', 'LB', 'RB', 'CDM'].indexOf(p.card.position) >= 0 && own < PITCH_W * 0.3 && (vz > 3 || sp0 > 19)) p.kickType = 'clear';
+      else if (p.kickType === 'pass' && sp0 < 18 && (this.tk * 11 + p.slot) % 17 === 0) p.kickType = 'heel';
       else if (p.kickType === 'pass' && sp0 < 21 && (this.tk * 7 + p.slot * 3) % 5 === 0) p.kickType = 'outside'; }   // v181: lofted passes scoop, driven ones swing like a shot
     if (this.training && p === this.hero) this.lastKick = { speed: Math.sqrt(vx * vx + vy * vy + vz * vz), lift: vz, t: this.t };
     if (!p.isGK) { if (this._kz > 1.4) p.cool.head = 0.5; else if (this._kz > 0.7) p.cool.volley = 0.45; }
@@ -1439,7 +1440,7 @@ window.RUT = window.RUT || {};
   P.tackle = function (def, slide) {
     const b = this.ball, car = b.owner;
     def.cool.tackle = 0.6;
-    if (!slide) def.tackleT = 0.4;                   // standing tackle animation
+    if (!slide) { def.tackleT = 0.4; def._tv = (this.tk + def.slot) % 3; }                   // standing tackle animation
     if (slide) {
       def.cool.slide = 0.8;
       const sp = 8.5;
@@ -4529,7 +4530,7 @@ void main(){
     else if (p.cool.stun > 0.5) anim = 'down';
     else if (p.skill) { anim = p.skill.kind + (p.skill.side < 0 && p.skill.kind !== 'knock' ? '_m' : ''); t = clamp(p.skill.t / p.skill.dur, 0, 1); }
     else if (p.cool.stun > 0.05) { anim = 'stumble'; t = (this.t * 2.2) % 1; }
-    else if (p.tackleT > 0) { anim = 'tackle'; t = 1 - p.tackleT / 0.4; }
+    else if (p.tackleT > 0) { anim = p._tv === 2 ? 'poke' : 'tackle'; if (p._tv === 1 || this.leftFoot(p)) anim += '_m'; t = 1 - p.tackleT / 0.4; }
     else if (cel && !cel.run && cel.sig && cel.sig.aura === 'lightning') anim = 'cross';
     else if (cel ? !cel.run : (team && sp < 1.2)) {
       anim = 'up'; t = (this.t * 1.7 + (p.slot + p.team * 11) * 0.23) % 1;
@@ -4545,8 +4546,8 @@ void main(){
     }
     else if (p.dvT != null) { anim = p.dvHi ? 'dive_hi' : 'dive_lo'; t = clamp(p.dvT / 1.7, 0, 1); }
     else if (p.cool.head > 0) { anim = 'header'; t = 1 - p.cool.head / 0.5; }
-    else if (p.cool.volley > 0) { anim = 'volley'; t = 1 - p.cool.volley / 0.45; }
-    else if (p.cool.kick > 0) { { const kt = p.kickType; anim = kt === 'fk' ? 'fk' : kt === 'clear' ? 'clear' : kt === 'outside' ? 'outside' : kt === 'shot' || kt === 'drive' ? 'shot' : kt === 'chip' ? 'chip' : 'pass'; if ((anim === 'clear' || anim === 'outside') && this.leftFoot(p)) anim += '_m'; } t = 0.42 + 0.58 * (1 - p.cool.kick / 0.35); }   // the ball leaves at contact, then the follow-through
+    else if (p.cool.volley > 0) { anim = this.leftFoot(p) ? 'volley_m' : 'volley'; t = 1 - p.cool.volley / 0.45; }
+    else if (p.cool.kick > 0) { { const kt = p.kickType; anim = kt === 'fk' ? 'fk' : kt === 'heel' ? 'heel' : kt === 'clear' ? 'clear' : kt === 'outside' ? 'outside' : kt === 'shot' || kt === 'drive' ? 'shot' : kt === 'chip' ? 'chip' : 'pass'; if ((anim === 'clear' || anim === 'outside') && this.leftFoot(p)) anim += '_m'; } t = 0.42 + 0.58 * (1 - p.cool.kick / 0.35); }   // the ball leaves at contact, then the follow-through
     else if (cc && cc.strike && this.ball.owner === p) { anim = 'shot'; t = 0.05 + 0.3 * clamp(cc.strike.t / cc.strike.T, 0, 1); }
     else if (cc && cc.hold === 'shoot' && this.ball.owner === p && cc.wd < 2.3) { anim = 'walk'; t = p.gait || 0; }   // walking up to the shot while aiming
     else if (cc && cc.hold && this.ball.owner === p) { anim = cc.hold === 'shoot' ? 'shot' : 'pass'; t = 0.05 + 0.3 * cc.charge; }  // wind-up while charging
@@ -4601,7 +4602,7 @@ void main(){
     else if (p.cool.stun > 0.5) anim = 'down';
     else if (p.skill) { anim = p.skill.kind + (p.skill.side < 0 && p.skill.kind !== 'knock' ? '_m' : ''); t = clamp(p.skill.t / p.skill.dur, 0, 1); }
     else if (p.cool.stun > 0.05) { anim = 'stumble'; t = (this.t * 2.2) % 1; }
-    else if (p.tackleT > 0) { anim = 'tackle'; t = 1 - p.tackleT / 0.4; }
+    else if (p.tackleT > 0) { anim = p._tv === 2 ? 'poke' : 'tackle'; if (p._tv === 1 || this.leftFoot(p)) anim += '_m'; t = 1 - p.tackleT / 0.4; }
     else if (cel && !cel.run && cel.sig && cel.sig.aura === 'lightning') anim = 'cross';
     else if (cel ? !cel.run : (team && sp < 1.2)) {
       anim = 'up'; t = (this.t * 1.7 + (p.slot + p.team * 11) * 0.23) % 1;
@@ -4617,8 +4618,8 @@ void main(){
     }
     else if (p.dvT != null) { anim = p.dvHi ? 'dive_hi' : 'dive_lo'; t = clamp(p.dvT / 1.7, 0, 1); }
     else if (p.cool.head > 0) { anim = 'header'; t = 1 - p.cool.head / 0.5; }
-    else if (p.cool.volley > 0) { anim = 'volley'; t = 1 - p.cool.volley / 0.45; }
-    else if (p.cool.kick > 0) { { const kt = p.kickType; anim = kt === 'fk' ? 'fk' : kt === 'clear' ? 'clear' : kt === 'outside' ? 'outside' : kt === 'shot' || kt === 'drive' ? 'shot' : kt === 'chip' ? 'chip' : 'pass'; if ((anim === 'clear' || anim === 'outside') && this.leftFoot(p)) anim += '_m'; } t = 0.42 + 0.58 * (1 - p.cool.kick / 0.35); }   // the ball leaves at contact, then the follow-through
+    else if (p.cool.volley > 0) { anim = this.leftFoot(p) ? 'volley_m' : 'volley'; t = 1 - p.cool.volley / 0.45; }
+    else if (p.cool.kick > 0) { { const kt = p.kickType; anim = kt === 'fk' ? 'fk' : kt === 'heel' ? 'heel' : kt === 'clear' ? 'clear' : kt === 'outside' ? 'outside' : kt === 'shot' || kt === 'drive' ? 'shot' : kt === 'chip' ? 'chip' : 'pass'; if ((anim === 'clear' || anim === 'outside') && this.leftFoot(p)) anim += '_m'; } t = 0.42 + 0.58 * (1 - p.cool.kick / 0.35); }   // the ball leaves at contact, then the follow-through
     else if (cc && cc.strike && this.ball.owner === p) { anim = 'shot'; t = 0.05 + 0.3 * clamp(cc.strike.t / cc.strike.T, 0, 1); }
     else if (cc && cc.hold === 'shoot' && this.ball.owner === p && cc.wd < 2.3) { anim = 'walk'; t = p.gait || 0; }   // walking up to the shot while aiming
     else if (cc && cc.hold && this.ball.owner === p) { anim = cc.hold === 'shoot' ? 'shot' : 'pass'; t = 0.05 + 0.3 * cc.charge; }  // wind-up while charging
