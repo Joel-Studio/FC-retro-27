@@ -761,7 +761,7 @@ window.RUT = window.RUT || {};
     ang += this.gauss() * errA;
     let scuff = false; if (this.rng() < clamp((1 - q) * 0.12, 0, 0.1)) { scuff = true; speed *= 0.6; vz *= 0.5; }
     this.kick(p, Math.cos(ang) * speed, Math.sin(ang) * speed, vz, spin, 'shot', tspin);
-    p.kickType = 'shot';
+    p.kickType = style === 'curl' ? 'fk' : 'shot';
     this.ball.shot = { team: p.team, by: p, saveChecked: false, pen: false, bk: false, type: style === 'curl' ? 'finesse' : 'low', q: clamp(q, 0, 1), scuff, green: false, fk: true };
     this.stats.shots[p.team]++;
     this.say(style === 'curl' ? 'FREE KICK · CURLED OVER THE WALL' : 'FREE KICK · LOW AT THE FAR CORNER');
@@ -842,11 +842,15 @@ window.RUT = window.RUT || {};
   P.fx = function (o) { if (!this.headless) this.effects.push(Object.assign({ t: 0 }, o)); };
 
   /* ------------------------------ kicking -------------------------------- */
+  P.leftFoot = function (p) { if (p._lf == null) { let h = 0; const n = p.card.name || ''; for (let i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) % 997; p._lf = h % 4 === 0; } return p._lf; };   // v317: about a quarter of players kick with the left foot (drawing only)
   P.kick = function (p, vx, vy, vz, spin, trailType, tspin) {
     const b = this.ball; this._kz = b.z;
     b.owner = null; b.last = p; b.vx = vx; b.vy = vy; b.vz = vz; b.spin = spin || 0; b.tspin = tspin || 0;
     b.noPick = p; b.noPickT = 0.25; b.trailType = trailType || null; b.trail = []; b.passTo = null; b.cross = null;
-    p.cool.kick = 0.35; p.kickType = trailType === 'shot' ? 'shot' : vz > 4 ? 'chip' : Math.hypot(vx, vy) > 21 ? 'drive' : 'pass';   // v181: lofted passes scoop, driven ones swing like a shot
+    p.cool.kick = 0.35; p.kickType = trailType === 'shot' ? 'shot' : vz > 4 ? 'chip' : Math.hypot(vx, vy) > 21 ? 'drive' : 'pass';
+    { const sp0 = Math.hypot(vx, vy), dir0 = this.teams[p.team].dir, own = dir0 > 0 ? p.x : PITCH_W - p.x;   // v317: clearances, outside-foot passes (picked by the tick, so online stays in step)
+      if (trailType !== 'shot' && !p.isGK && ['CB', 'LB', 'RB', 'CDM'].indexOf(p.card.position) >= 0 && own < PITCH_W * 0.3 && (vz > 3 || sp0 > 19)) p.kickType = 'clear';
+      else if (p.kickType === 'pass' && sp0 < 21 && (this.tk * 7 + p.slot * 3) % 5 === 0) p.kickType = 'outside'; }   // v181: lofted passes scoop, driven ones swing like a shot
     if (this.training && p === this.hero) this.lastKick = { speed: Math.sqrt(vx * vx + vy * vy + vz * vz), lift: vz, t: this.t };
     if (!p.isGK) { if (this._kz > 1.4) p.cool.head = 0.5; else if (this._kz > 0.7) p.cool.volley = 0.45; }
   };
@@ -4542,7 +4546,7 @@ void main(){
     else if (p.dvT != null) { anim = p.dvHi ? 'dive_hi' : 'dive_lo'; t = clamp(p.dvT / 1.7, 0, 1); }
     else if (p.cool.head > 0) { anim = 'header'; t = 1 - p.cool.head / 0.5; }
     else if (p.cool.volley > 0) { anim = 'volley'; t = 1 - p.cool.volley / 0.45; }
-    else if (p.cool.kick > 0) { anim = p.kickType === 'shot' || p.kickType === 'drive' ? 'shot' : p.kickType === 'chip' ? 'chip' : 'pass'; t = 0.42 + 0.58 * (1 - p.cool.kick / 0.35); }   // the ball leaves at contact, then the follow-through
+    else if (p.cool.kick > 0) { { const kt = p.kickType; anim = kt === 'fk' ? 'fk' : kt === 'clear' ? 'clear' : kt === 'outside' ? 'outside' : kt === 'shot' || kt === 'drive' ? 'shot' : kt === 'chip' ? 'chip' : 'pass'; if ((anim === 'clear' || anim === 'outside') && this.leftFoot(p)) anim += '_m'; } t = 0.42 + 0.58 * (1 - p.cool.kick / 0.35); }   // the ball leaves at contact, then the follow-through
     else if (cc && cc.strike && this.ball.owner === p) { anim = 'shot'; t = 0.05 + 0.3 * clamp(cc.strike.t / cc.strike.T, 0, 1); }
     else if (cc && cc.hold === 'shoot' && this.ball.owner === p && cc.wd < 2.3) { anim = 'walk'; t = p.gait || 0; }   // walking up to the shot while aiming
     else if (cc && cc.hold && this.ball.owner === p) { anim = cc.hold === 'shoot' ? 'shot' : 'pass'; t = 0.05 + 0.3 * cc.charge; }  // wind-up while charging
@@ -4614,7 +4618,7 @@ void main(){
     else if (p.dvT != null) { anim = p.dvHi ? 'dive_hi' : 'dive_lo'; t = clamp(p.dvT / 1.7, 0, 1); }
     else if (p.cool.head > 0) { anim = 'header'; t = 1 - p.cool.head / 0.5; }
     else if (p.cool.volley > 0) { anim = 'volley'; t = 1 - p.cool.volley / 0.45; }
-    else if (p.cool.kick > 0) { anim = p.kickType === 'shot' || p.kickType === 'drive' ? 'shot' : p.kickType === 'chip' ? 'chip' : 'pass'; t = 0.42 + 0.58 * (1 - p.cool.kick / 0.35); }   // the ball leaves at contact, then the follow-through
+    else if (p.cool.kick > 0) { { const kt = p.kickType; anim = kt === 'fk' ? 'fk' : kt === 'clear' ? 'clear' : kt === 'outside' ? 'outside' : kt === 'shot' || kt === 'drive' ? 'shot' : kt === 'chip' ? 'chip' : 'pass'; if ((anim === 'clear' || anim === 'outside') && this.leftFoot(p)) anim += '_m'; } t = 0.42 + 0.58 * (1 - p.cool.kick / 0.35); }   // the ball leaves at contact, then the follow-through
     else if (cc && cc.strike && this.ball.owner === p) { anim = 'shot'; t = 0.05 + 0.3 * clamp(cc.strike.t / cc.strike.T, 0, 1); }
     else if (cc && cc.hold === 'shoot' && this.ball.owner === p && cc.wd < 2.3) { anim = 'walk'; t = p.gait || 0; }   // walking up to the shot while aiming
     else if (cc && cc.hold && this.ball.owner === p) { anim = cc.hold === 'shoot' ? 'shot' : 'pass'; t = 0.05 + 0.3 * cc.charge; }  // wind-up while charging
@@ -4634,6 +4638,7 @@ void main(){
     const ro = this.runOff(p), s = proj(p.x + (ro ? ro.x : 0), p.y + (ro ? ro.y : 0), 0), big0 = PLAYER_BIG * this._sizeOf(p), sc = Math.min(s.k / ZOOM / 9 * big0, 50 / (9 * SC));   // v183: capped like the sprite itself so tags stay on the head up close
     // rendered at exactly its on-screen size (about 4.2 px per unit of k), so the pixels stay crisp near and far
     const big = PLAYER_BIG * this._sizeOf(p);
+    if ((anim === 'shot' || anim === 'pass' || anim === 'chip') && this.leftFoot(p)) anim += '_m';
     const spr = PA.sprite(p._look, anim, t, anim === 'up' || anim === 'cross' || anim.startsWith('celeb_') ? 0 : yaw, s.k / ZOOM / 12.5 * big * SC);   // rendered at its true device size
     const flip = anim === 'down' && p.fx < 0;
     const dxd = Math.round(s.x * SC - spr.ox), dyd = Math.round(s.y * SC - spr.oy);   // device pixels

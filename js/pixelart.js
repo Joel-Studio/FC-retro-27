@@ -565,6 +565,36 @@ window.RUT = window.RUT || {};
       armL: { pitch: 0.3, roll: 1.4, elbow: 0.3 }, armR: { pitch: -0.3, roll: 1.2, elbow: 0.35 },
     };
   }
+
+  // v317 (JODIO, TrueFoot FC27 animation overhaul video): clearances, outside-foot passes, curled free kicks ---------------
+  /** Clearance: a big hoof, hips thrown back, long swing through the ball, arms out for balance. */
+  function clearPose(u) {
+    const k = keyed([[0, { ln: 0.12, fy: 5, fz: -10, fp: 0.9, py: -0.6 }], [0.35, { ln: -0.1, fy: 3, fz: -12, fp: 1.0, py: -1.2 }], [0.55, { ln: -0.5, fy: 8, fz: 16, fp: -0.7, py: 0.4 }], [0.75, { ln: -0.6, fy: 13, fz: 18, fp: -1.0, py: 1.4 }], [1, { ln: 0, fy: 1, fz: 2, fp: 0, py: 0 }]], u);
+    return {
+      pelvis: V(0, B.hipH - 0.6 + k.py, 0), lean: k.ln, roll: -0.1, yaw: -0.25, twist: 0.35, head: { down: 0.2 },
+      footL: FL(3.8, B.ankle + (u > 0.5 && u < 0.9 ? 1.2 : 0), -0.5, 0, 0.3), footR: FL(-3.4, B.ankle + k.fy, k.fz, k.fp, -0.25),
+      armL: { pitch: 0.2, roll: 1.9, elbow: 0.2 }, armR: { pitch: -0.5, roll: 1.4, elbow: 0.3 },
+    };
+  }
+  /** Outside-foot pass: the kicking foot turns in and the leg whips across the body, a short flick with little follow-through. */
+  function outsidePose(u) {
+    const k = keyed([[0, { ln: 0.08, fx: -3.4, fy: 1, fz: -3, fw: -0.3 }], [0.4, { ln: 0.14, fx: -2.6, fy: 1.6, fz: -5, fw: -0.8 }], [0.62, { ln: 0.05, fx: 1.2, fy: 1.2, fz: 6, fw: -1.25 }], [0.8, { ln: -0.02, fx: 2.4, fy: 2.2, fz: 8, fw: -1.4 }], [1, { ln: 0.04, fx: -3.4, fy: 0.4, fz: 0, fw: -0.3 }]], u);
+    return {
+      pelvis: V(0, B.hipH - 0.7, 0), lean: k.ln, roll: 0.08, yaw: -0.1, twist: 0.1, head: { down: 0.55 },
+      footL: FL(3.8, B.ankle, 0.2, 0, 0.3), footR: FL(k.fx, B.ankle + k.fy, k.fz, 0.1, k.fw),
+      armL: { pitch: 0.3, roll: 1.2, elbow: 0.4 }, armR: { pitch: -0.2, roll: 1.4, elbow: 0.4 },
+    };
+  }
+  /** Curled free kick: arms out, a long angled run-up (the first part is the approach), plant the foot beside the ball and wrap the inside of the boot round it. */
+  function fkPose(u) {
+    const k = keyed([[0, { ln: 0.0, fx: -3.4, fy: 0, fz: 0, fw: -0.2, ar: 1.5 }], [0.3, { ln: 0.2, fx: -3.4, fy: 3, fz: -4, fw: -0.2, ar: 1.2 }], [0.55, { ln: 0.12, fx: -3.0, fy: 6, fz: -9, fw: -0.3, ar: 1.0 }], [0.72, { ln: -0.12, fx: 1.8, fy: 5, fz: 12, fw: -0.9, ar: 1.6 }], [0.88, { ln: -0.28, fx: 3.0, fy: 9, fz: 14, fw: -1.0, ar: 1.7 }], [1, { ln: 0.04, fx: -3.4, fy: 0.4, fz: 0, fw: -0.2, ar: 0.6 }]], u);
+    const hop = u > 0.6 && u < 0.95 ? 1.8 * Math.sin((u - 0.6) / 0.35 * Math.PI) : 0;
+    return {
+      pelvis: V(0, B.hipH - 0.6 + hop * 0.3, 0), lean: k.ln, roll: 0.06, yaw: -0.2, twist: 0.3, head: { down: 0.5 },
+      footL: FL(3.8, B.ankle + hop, 0.8, hop * 0.2, 0.3), footR: FL(k.fx, B.ankle + k.fy, k.fz, 0.2, k.fw),
+      armL: { pitch: 0.2, roll: k.ar + 0.3, elbow: 0.25 }, armR: { pitch: -0.2, roll: k.ar, elbow: 0.3 },
+    };
+  }
   /** Shielding: side-on, knees bent, wide base, the near arm out to keep the defender off while the far foot keeps the ball. Loops. */
   function shieldPose(t) {
     const w = Math.sin(TAU * t), d = Math.max(0, Math.sin(TAU * t * 2));
@@ -742,7 +772,7 @@ window.RUT = window.RUT || {};
   }
 
   /** Frames per animation (cache granularity). Kicks don't loop. */
-  const FRAMES = { roll: 10, roll_m: 10, step: 12, step_m: 12, feint: 10, feint_m: 10, knock: 8, header: 10, volley: 10, trap: 8, touch: 8, chest: 8, thigh: 8, chip: 10, shield: 8, jostle: 8, celeb_med: 6, celeb_siu: 14, celeb_sky: 6, celeb_kneel: 6, celeb_slide: 10, celeb_dance: 10, celeb_wide: 8, celeb_bow: 10, idle: 4, idle_cb: 4, idle_fb: 4, idle_dm: 4, idle_cm: 4, idle_w: 4, idle_st: 4, gkready: 4, walk: 10, jog: 10, sprint: 10, dribble: 10, pass: 12, shot: 12, tackle: 8, slide: 10, stumble: 6, up: 6, cross: 1, save: 1, down: 1, dive_lo: 16, dive_hi: 16 };
+  const FRAMES = { roll: 10, roll_m: 10, step: 12, step_m: 12, feint: 10, feint_m: 10, knock: 8, header: 10, volley: 10, trap: 8, touch: 8, chest: 8, thigh: 8, chip: 10, shield: 8, jostle: 8, clear: 12, clear_m: 12, outside: 10, outside_m: 10, fk: 14, pass_m: 12, shot_m: 12, chip_m: 10, celeb_med: 6, celeb_siu: 14, celeb_sky: 6, celeb_kneel: 6, celeb_slide: 10, celeb_dance: 10, celeb_wide: 8, celeb_bow: 10, idle: 4, idle_cb: 4, idle_fb: 4, idle_dm: 4, idle_cm: 4, idle_w: 4, idle_st: 4, gkready: 4, walk: 10, jog: 10, sprint: 10, dribble: 10, pass: 12, shot: 12, tackle: 8, slide: 10, stumble: 6, up: 6, cross: 1, save: 1, down: 1, dive_lo: 16, dive_hi: 16 };
   function poseFor(anim, t, gk, star) {
     switch (anim) {
       case 'walk': case 'jog': case 'sprint': case 'dribble': return gaitPose(anim, t, star);
@@ -755,6 +785,10 @@ window.RUT = window.RUT || {};
       case 'trap': return trapPose(t);
       case 'touch': return touchPose(t);
       case 'chest': return chestPose(t); case 'thigh': return thighPose(t); case 'chip': return chipPose(t);
+      case 'clear': return clearPose(t); case 'clear_m': return mirrorPose(clearPose(t));
+      case 'outside': return outsidePose(t); case 'outside_m': return mirrorPose(outsidePose(t));
+      case 'fk': return fkPose(t);
+      case 'pass_m': return mirrorPose(kickPose(t, false)); case 'shot_m': return mirrorPose(kickPose(t, true)); case 'chip_m': return mirrorPose(chipPose(t));
       case 'shield': return shieldPose(t); case 'jostle': return jostlePose(t);
       case 'celeb_med': return celebMed(t);
       case 'celeb_siu': return celebSiu(t);
@@ -1245,7 +1279,7 @@ window.RUT = window.RUT || {};
     const key = L.key + '#' + anim + '#' + f + '#' + Math.round(yaw * 100) + '#' + s.toFixed(3) + (HD ? 'h' : '');
     let c = cache.get(key);
     if (c) { cache.delete(key); cache.set(key, c); return c; }
-    const tq = (anim === 'pass' || anim === 'chip' || anim === 'shot' || anim === 'tackle' || anim === 'slide' || anim === 'roll' || anim === 'roll_m' || anim === 'step' || anim === 'step_m' || anim === 'feint' || anim === 'feint_m' || anim === 'knock' || anim === 'header' || anim === 'volley' || anim === 'trap' || anim === 'touch' || anim === 'celeb_siu' || anim === 'celeb_slide' || anim === 'celeb_bow') ? f / Math.max(1, n - 1) : (f + 0.5) / n;
+    const tq = (anim === 'clear' || anim === 'clear_m' || anim === 'outside' || anim === 'outside_m' || anim === 'fk' || anim === 'pass_m' || anim === 'shot_m' || anim === 'chip_m' || anim === 'pass' || anim === 'chip' || anim === 'shot' || anim === 'tackle' || anim === 'slide' || anim === 'roll' || anim === 'roll_m' || anim === 'step' || anim === 'step_m' || anim === 'feint' || anim === 'feint_m' || anim === 'knock' || anim === 'header' || anim === 'volley' || anim === 'trap' || anim === 'touch' || anim === 'celeb_siu' || anim === 'celeb_slide' || anim === 'celeb_bow') ? f / Math.max(1, n - 1) : (f + 0.5) / n;
     if (anim === 'down') {                                                                   // lying on the grass: side view turned flat
       const src = toCanvas(renderFigure(L, 'idle', 0.25, Math.PI / 2, !!L.gloves, s));
       c = document.createElement('canvas'); c.width = src.height; c.height = src.width;              // a quarter turn: swap the sides
