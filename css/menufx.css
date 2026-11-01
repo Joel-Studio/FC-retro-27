@@ -44,3 +44,12 @@ html.fx-on body::after { bottom: 4vh; background: linear-gradient(100deg, transp
 .btn:active, #subnav button:active, .site-nav button:active { transform: scale(.96); }
 .btn:focus-visible, #subnav button:focus-visible, .site-nav button:focus-visible { outline: 2px solid #ffd400; outline-offset: 2px; }
 @media (max-width: 800px) { #subnav { padding: 8px 12px 2px; } #subnav button { padding: 11px 16px; font-size: 14px; } }
+
+/* v347: home hub */
+.m2-hub { margin-top: 18px; display: grid; gap: 14px; } .m2-hs h3 { margin: 0 0 8px; font: 800 15px 'Barlow Condensed', sans-serif; letter-spacing: .12em; text-transform: uppercase; opacity: .75; }
+.m2-hg { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.m2-hb { position: relative; text-align: left; padding: 16px 16px 18px; border-radius: 10px; border: 1px solid rgba(255,255,255,.2); background: linear-gradient(160deg, rgba(255,255,255,.1), rgba(255,255,255,.02)); color: #fff; cursor: pointer; transition: transform .14s, border-color .15s, box-shadow .15s; }
+.m2-hb:hover, .m2-hb:focus-visible { transform: translateY(-3px); border-color: #ffd400; box-shadow: 0 10px 26px rgba(0,0,0,.45); }
+.m2-hb:active { transform: scale(.97); } .m2-hb b { display: block; font: 800 20px 'Barlow Condensed', sans-serif; } .m2-hb small { display: block; opacity: .75; font-size: 12px; margin-top: 3px; }
+.m2-bdg { position: absolute; top: 8px; right: 8px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: #e33; color: #fff; font: 800 12px/22px sans-serif; text-align: center; }
+@media (max-width: 800px) { .m2-hg { grid-template-columns: repeat(2, 1fr); } }

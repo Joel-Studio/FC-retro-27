@@ -13,6 +13,16 @@
   const tile = (v, title, sub, k, extra) => `<button class="m2-tile" data-act="nav" data-v="${v}"><b>${title}</b><small>${sub}</small>${art(k)}${extra || ''}</button>`;
   const nav = (tabs) => `<div class="m2-sub">${tabs.map(([t, v, on]) => `<button data-act="nav" data-v="${v}"${on ? ' class="on"' : ''}>${t}</button>`).join('')}</div>`;
   const hints = `<div class="m2-hints"><span><i>A</i> Select</span><span><i>B</i> Back</span><span class="r">FC HUB</span></div>`;
+  /** v347 (JODIO): the home hub: one tile per mode, with a badge when something is waiting. */
+  function hub() {
+    const R = RUT, q = R.Quests ? R.Quests.readyCount() : 0, tr = R.Progress ? R.Progress.ready() : 0, st = R.State && R.State.data;
+    const sbOk = R.Battles ? R.Battles.claimable().filter(c => c.ok && !c.got).length : 0, pn = R.Pen ? R.Pen.left() : 0, un = st && st.unassigned ? st.unassigned.length : 0;
+    const t = (v, title, sub, k, b) => `<button class="m2-hb" data-act="nav" data-v="${v}"><b>${title}</b><small>${sub}</small>${b ? `<span class="m2-bdg">${b}</span>` : ''}</button>`;
+    const sec = (h, items) => `<div class="m2-hs"><h3>${h}</h3><div class="m2-hg">${items.join('')}</div></div>`;
+    return `<div class="m2-hub">${sec('Play', [t('play', 'Kick Off', 'Play a match'), t('moments', 'Moments', 'Challenges, first win pays'), t('battles', 'Squad Battles', 'Weekly rank vs AI', 0, sbOk), t('penalties', 'Penalty Shootout', pn + ' rewarded left today'), t('rivals', 'Rivals', 'Divisions and Champions'), t('online', 'Online', 'Quick match or invite'), t('cup', 'Knockout Cup', 'Three rounds, big prizes'), t('scout', 'Daily Scout', 'Free player every day', 0, (RUT.Scout && !RUT.Scout.state().taken) ? 1 : 0), t('compare', 'Compare Players', 'Side by side stats')])}
+      ${sec('Club', [t('squad', 'Squad', 'XI, subs, chemistry'), t('tactics', 'Tactics', 'Style and set pieces'), t('trophies', 'Trophy Room', 'Level, streak, achievements', 0, tr), t('friends', 'Friends', 'Head to head'), t('quests', 'Quests', 'Daily and weekly', 0, q), t('unassigned', 'Unassigned', 'Items to place', 0, un)])}
+      ${sec('Get cards', [t('store', 'Store', 'Open packs'), t('market', 'Transfer Market', 'Buy and sell'), t('sbc', 'SBCs', 'Build squads for rewards'), t('evo', 'Evolutions', 'Upgrade cards'), t('promoshop', 'Promo Shop', 'Promo players'), t('league', 'League', 'Seasons and Top 5')])}</div>`;
+  }
   function home(c) {
     const lay = LAYOUT[n], fig = c.figure || '';
     if (lay === 'A') return `<section class="m2 m2-a">
@@ -40,10 +50,10 @@
           <h1 class="m2-h">${n === 5 ? 'MOMENTS' : 'SINGLE NATION TOURNAMENT'}</h1><div class="m2-tag">${n === 5 ? 'DAILY CHALLENGES · QUESTS · EARN PACKS' : '4 ROUNDS · GOLDEN GOAL · MYSTERY BALL'}</div>
           <p>${n === 5 ? 'Complete Moments to earn coins and packs every day. Build your club while the Ballon d\'Or 2026 stars are on show.' : 'Compete in the live event to complete objectives and earn rewards!'}</p>
           <div class="m2-info"><span><i>Your Club</i><b>${esc(c.club)}</b></span><span><i>Rating</i><b>${c.rating}</b></span><span><i>Record</i><b>${c.rec}</b></span></div>
-          <button class="m2-go" data-act="nav" data-v="${n === 5 ? 'quests' : 'play'}">${n === 5 ? 'Enter Moments' : 'View Tournament'}</button></div>
+          <button class="m2-go" data-act="nav" data-v="${n === 5 ? 'moments' : 'play'}">${n === 5 ? 'Enter Moments' : 'View Tournament'}</button></div>
         ${n === 5 && c.top10 ? `<aside class="m2-rew m2-bd"><b>Ballon d'Or 2026</b><small>Top 10 showcase</small><div class="m2-top10">${c.top10}</div><button class="m2-go sm" data-act="nav" data-v="bdorgal">See all nominees</button></aside>` : `<aside class="m2-rew"><b>Reward</b><small>Single Nation Tournament</small>${art('store')}<span>1x Rare Mega Pack (Untradeable)</span><small>Completed Objectives 0 / 4</small></aside>`}
       </div>
-      <div class="m2-tiles m2-tiles3">${tile('play', 'Kick Off', 'Play a match', 'play')}${tile('quests', 'Moments', 'Daily challenges', 'quest')}${tile('store', 'Store', 'Open packs', 'store')}${tile('market', 'Transfer Market', 'Buy and sell', 'market')}</div>${hints}</section>`;
+      ${hub()}${hints}</section>`;
   }
   RUT.Menu2 = { home, on: () => !!LAYOUT[n], n, NAMES };
 })();
