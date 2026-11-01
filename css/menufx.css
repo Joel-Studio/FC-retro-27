@@ -1,0 +1,34 @@
+/* v328 (JODIO, FC27 menu video): moving light beams behind the menus, a light sweep and staggered slide-in on every page change,
+   a "The club is yours" welcome card once per visit, and "Entering the grounds" before a match. No controller icons. */
+html.fx-on body::before, html.fx-on body::after { content: ''; position: fixed; z-index: 0; pointer-events: none; width: 140vmax; height: 26vmax; left: -20vmax; mix-blend-mode: screen; filter: blur(14px); opacity: .55; }
+html.fx-on body::before { top: 8vh; background: linear-gradient(100deg, transparent 0, rgba(255,214,90,.0) 30%, rgba(255,214,90,.22) 50%, transparent 70%); transform: rotate(-24deg); animation: fxBeamA 11s ease-in-out infinite alternate; }
+html.fx-on body::after { bottom: 4vh; background: linear-gradient(100deg, transparent 0, rgba(255,255,255,.0) 35%, rgba(255,240,200,.16) 55%, transparent 75%); transform: rotate(-24deg); animation: fxBeamB 14s ease-in-out infinite alternate; }
+@keyframes fxBeamA { from { translate: -18vw 0; opacity: .25; } to { translate: 22vw 14vh; opacity: .6; } }
+@keyframes fxBeamB { from { translate: 20vw 0; opacity: .5; } to { translate: -16vw -10vh; opacity: .2; } }
+#view > *, #view .panel { animation: fxIn .55s cubic-bezier(.2,.8,.2,1) both; }
+#view > *:nth-child(2) { animation-delay: .06s; } #view > *:nth-child(3) { animation-delay: .12s; } #view > *:nth-child(4) { animation-delay: .18s; } #view > *:nth-child(5) { animation-delay: .24s; } #view > *:nth-child(n+6) { animation-delay: .3s; }
+@keyframes fxIn { from { opacity: 0; transform: translateX(34px) skewX(-4deg); } to { opacity: 1; transform: none; } }
+.fx-sweep { position: fixed; inset: 0; z-index: 90; pointer-events: none; overflow: hidden; }
+.fx-sweep::before { content: ''; position: absolute; top: -20%; bottom: -20%; width: 38%; left: -45%; background: linear-gradient(100deg, transparent, rgba(255,226,140,.0) 15%, rgba(255,226,140,.5) 50%, rgba(255,255,255,.0) 85%, transparent); transform: skewX(-22deg); animation: fxSweep .62s ease-out forwards; }
+@keyframes fxSweep { to { left: 120%; } }
+.btn { position: relative; overflow: hidden; }
+.btn::after { content: ''; position: absolute; top: 0; bottom: 0; width: 40%; left: -60%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.35), transparent); transform: skewX(-20deg); transition: none; pointer-events: none; }
+.btn:hover::after { left: 130%; transition: left .55s ease; }
+.fx-welcome { position: fixed; inset: 0; z-index: 95; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: radial-gradient(ellipse at 50% 40%, #1d1a10, #000 70%); color: #fff; font-family: Barlow, 'Arial Narrow', sans-serif; overflow: hidden; animation: fxFadeIn .5s ease both; }
+.fx-welcome::before { content: ''; position: absolute; width: 160vmax; height: 30vmax; background: linear-gradient(100deg, transparent 25%, rgba(255,214,90,.25) 50%, transparent 75%); transform: rotate(-24deg); animation: fxBeamA 6s ease-in-out infinite alternate; filter: blur(16px); }
+.fx-welcome small { position: relative; letter-spacing: .5em; font-size: 14px; color: #e9c46a; animation: fxRise .7s .1s both; }
+.fx-welcome h1 { position: relative; font-size: clamp(34px, 7vw, 84px); line-height: 1; margin: 12px 0 8px; font-weight: 800; letter-spacing: .04em; animation: fxRise .8s .3s both; }
+.fx-welcome h2 { position: relative; font-size: clamp(16px, 2.4vw, 28px); font-weight: 600; color: #e9c46a; margin: 0 0 26px; animation: fxRise .8s .55s both; }
+.fx-welcome .btn { position: relative; animation: fxRise .8s .85s both; font-size: 18px; padding: 12px 34px; }
+.fx-welcome.out { animation: fxFadeOut .45s ease forwards; }
+@keyframes fxRise { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
+@keyframes fxFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fxFadeOut { to { opacity: 0; } }
+.fx-enter { position: fixed; inset: 0; z-index: 99; pointer-events: none; display: flex; align-items: center; justify-content: center; background: #000; color: #fff; font-family: Barlow, 'Arial Narrow', sans-serif; font-weight: 600; letter-spacing: .12em; font-size: clamp(16px, 2.2vw, 26px); animation: fxEnter 1.5s ease forwards; }
+.fx-enter i { display: inline-block; width: 6px; height: 6px; margin-left: 6px; border-radius: 50%; background: #e9c46a; animation: mmDot 1s infinite; } .fx-enter i:nth-child(2) { animation-delay: .2s; } .fx-enter i:nth-child(3) { animation-delay: .4s; }
+@keyframes fxEnter { 0% { opacity: 1; } 65% { opacity: 1; } 100% { opacity: 0; } }
+.pm-ucl { text-align: center; }
+.pm-ucl svg { width: min(34vw, 220px); height: auto; animation: fxRise .8s both; filter: drop-shadow(0 10px 30px rgba(120,160,255,.5)); }
+.pm-ucl h2 { letter-spacing: .3em; font-size: clamp(14px, 2.6vw, 28px); margin: 14px 0 4px; }
+.pm-ucl p { color: #9db8ff; letter-spacing: .2em; }
+@media (prefers-reduced-motion: reduce) { html.fx-on body::before, html.fx-on body::after, #view > *, .fx-sweep::before { animation: none !important; } }

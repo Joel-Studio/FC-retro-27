@@ -2015,7 +2015,10 @@
     };
     const best = cs => cs.slice().sort((a, b) => b.rating - a.rating)[0];
     const tag = esc(o.tag || (o.knockout ? 'Cup tie' : 'Match day'));
+    const ucl = /champions league/i.test(o.tag || '');
+    const trophy = '<svg viewBox="0 0 100 140"><defs><linearGradient id="tg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4f7ff"/><stop offset=".5" stop-color="#aab8d8"/><stop offset="1" stop-color="#e6ecff"/></linearGradient></defs><path d="M30 8h40c0 30-4 52-20 58C34 60 30 38 30 8z" fill="url(#tg)"/><path d="M30 14c-14 0-20 8-18 18s12 16 22 16M70 14c14 0 20 8 18 18s-12 16-22 16" fill="none" stroke="#d0d9f0" stroke-width="5" stroke-linecap="round"/><rect x="45" y="64" width="10" height="34" fill="url(#tg)"/><path d="M32 124h36l-6-26H38z" fill="url(#tg)"/><rect x="26" y="124" width="48" height="10" rx="3" fill="#8e9cc4"/></svg>';
     const scenes = [
+      ...(ucl ? [[2100, `<div class="pm-ucl">${trophy}<h2>UEFA CHAMPIONS LEAGUE</h2><p>${esc(o.home.name)} v ${esc(o.away.name)}</p></div>`]] : []),
       [1900, `<div class="pm-vs"><p class="pm-comp">${tag}</p><div class="pm-teams">${crest(o.home, 'h')}<div class="pm-name">${esc(o.home.name)}<small>OVR ${ovr(H)}</small></div><span class="pm-v">VS</span><div class="pm-name">${esc(o.away.name)}<small>OVR ${ovr(A)}</small></div>${crest(o.away, 'a')}</div></div>`],
       [3300, pitch(A, o.away, 'Starting XI · Away')],
       [3300, pitch(H, o.home, 'Starting XI · Home')],
@@ -2057,6 +2060,7 @@
   }
 
   function runMatch(o) {
+    if (!o.online && !o.training && RUT.MenuFX) RUT.MenuFX.enter();   // v328: "Entering the grounds"
     if (App.rushOnce && !o.online && !o.training && !o.duel) { App.rushOnce = false; o.rush = true; o.pitch = RUSH_PITCH; o.halfSeconds = 60; o.noIntro = true; o.tag = (o.tag ? o.tag + ' · ' : '') + 'Rush 5v5'; }   // v323: Rush buttons next to Play / Watch everywhere
     const humans = o.humans || [], two = humans.length > 1 && !o.online;
     const canTac = humans.length === 1 && !o.online && !o.training && !o.duel && !o.rush;      // v113: tactic changes during the match (by button / keys 1-9) and the auto coach

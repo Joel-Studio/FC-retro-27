@@ -4520,10 +4520,11 @@ void main(){
 
   /** Player = the shared pixel figure (js/pixelart.js, same art as the cards), scaled by depth so the pixels stay chunky. */
   /** On-screen size from the body: height (cm) with a little for strength, so a 195 cm target man towers over a 168 cm winger. */
+  P._camK = function () { return this.camMode === 'fc' ? 0.7 : this.camMode === 'tv' ? 0.82 : 1; };   // v328 (JODIO, FC27 broadcast video): players look smaller against the pitch and goals on the TV and FC27 cameras
   P._sizeOf = function (p) {
-    if (p._size) return p._size;
-    const h = (p.card.details && p.card.details.height) || 180, st = (p.card.sub && p.card.sub.strength) || 60;
-    return (p._size = clamp(0.9 + 0.2 * clamp((h - 165) / 35, 0, 1) + 0.04 * (nrm(st) - 0.5), 0.88, 1.12));
+    if (!p._size) { const h = (p.card.details && p.card.details.height) || 180, st = (p.card.sub && p.card.sub.strength) || 60;
+      p._size = clamp(0.9 + 0.2 * clamp((h - 165) / 35, 0, 1) + 0.04 * (nrm(st) - 0.5), 0.88, 1.12); }
+    return p._size * this._camK();
   };
   /** The animation a player is in right now ({ anim, t }): shared by the pixel sprites and the Ultra 3D models. */
   P.animOf = function (p) {
