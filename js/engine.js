@@ -5722,10 +5722,10 @@ void main(){
     const press = opps.reduce((m, o) => Math.min(m, dist(o, p)), 99);
     let lv;
     if ((lv = gtLv(p, 'timef')) && this.inBox(p, 1 - p.team) && age < 0.5 + 0.2 * lv && Math.abs(p.x - gx) < 14 && this.gtGo(p, 'timef', 2.5)) {
-      this.gtPop(p, 'timef'); this.shoot(p, 0, (lv > 1 ? 0.9 : 0.84) + this.rng() * 0.1, null, { auto: true, assist: 'full' }); if (b.shot && b.shot.by === p) b.shot.gte = lv; return;
+      this.gtPop(p, 'timef'); this.shoot(p, 0, (lv > 1 ? 0.9 : 0.84) + this.rng() * 0.1, null, { auto: true, assist: 'full', type: 'low' }); if (b.shot && b.shot.by === p) b.shot.gte = lv; return;
     }
-    if ((lv = gtLv(p, 'range')) && this.inBox(p, 1 - p.team) && dg > 8 && Math.abs(p.y - PH2) < 16 && !this.laneBlocked(p, { x: gx, y: PH2 }, true) && press > 3 && age > 0.15 && this.gtGo(p, 'range', 7 - lv)) {
-      this.gtPop(p, 'range'); this.shoot(p, 0, 0.88 + 0.08 * lv, null, { auto: true, assist: 'full', long: false }); if (b.shot && b.shot.by === p) b.shot.gte = lv; return;
+    if ((lv = gtLv(p, 'range')) && (this.inBox(p, 1 - p.team) ? dg > 8 : dg >= 17 && dg <= 27 + 5 * lv) && Math.abs(p.y - PH2) < (this.inBox(p, 1 - p.team) ? 16 : 20) && !this.laneBlocked(p, { x: gx, y: PH2 }, true) && press > 3 && age > 0.15 && this.gtGo(p, 'range', 7 - lv)) {
+      this.gtPop(p, 'range'); this.shoot(p, 0, 0.88 + 0.08 * lv, null, { auto: true, assist: 'full', long: dg > 22 }); if (b.shot && b.shot.by === p) b.shot.gte = lv; return;
     }
     const mates = this.players.filter(o => o.team === p.team && o !== p && !o.isGK && !o.dummy);
     if ((lv = gtLv(p, 'pincr')) && Math.abs(p.y - PH2) > PH2 * 0.55 && Math.abs(p.x - gx) < 34 && Math.abs(p.x - gx) > 8 && !this.inBox(p, 1 - p.team)) {
