@@ -1307,9 +1307,10 @@
       <select id="sty-opp">${styleOptions(App.oppStyle, true)}</select>
       <p class="dim" style="font-size:8px;line-height:1.9">${App.oppStyle !== 'auto' ? esc(styleBlurb(App.oppStyle)) : esc(styleBlurb('auto'))}</p>
       <label><input type="checkbox" id="ko" ${App.knockout ? 'checked' : ''}> Knockout tie (draw → penalty shootout, ABAB + sudden death)</label>
+      <label>Game mode</label>
+      <select id="gm-mode"><option value="normal" ${App.rushMode ? '' : 'selected'}>Normal 11 v 11</option><option value="rush" ${App.rushMode ? 'selected' : ''}>Rush 5 v 5 (small pitch, 60 s halves)</option></select>
       <div class="row mt">
         <button class="btn y" data-act="match" data-mode="play" ${ready ? '' : 'disabled'}>▶ Play (you control)</button>
-        <button class="btn y" data-act="match" data-mode="rush" ${ready ? '' : 'disabled'}>Rush 5v5</button>
         <button class="btn c" data-act="match" data-mode="watch" ${ready ? '' : 'disabled'}>Watch AI vs AI</button>
         <button class="btn" data-act="match" data-mode="sim" ${ready ? '' : 'disabled'}>Quick Sim</button>
       </div>
@@ -1485,7 +1486,7 @@
     const P = [[2, 2, 2], [3, 2, 1], [2, 3, 1], [1, 2, 3], [2, 1, 3], [1, 3, 2], [3, 1, 2], [2, 2, 1], [1, 2, 2]], ks = Object.keys(TT()), pt = P[Math.floor(Math.random() * P.length)];
     return pt.join('-') + '|' + ks[Math.floor(Math.random() * ks.length)];
   };
-  function bindPlay() { const so = $('#sty-opp'); if (so) so.addEventListener('change', () => { App.oppStyle = so.value; saveSet(); render(); });
+  function bindPlay() { const gm = $('#gm-mode'); if (gm) gm.addEventListener('change', () => { App.rushMode = gm.value === 'rush'; saveSet(); }); const so = $('#sty-opp'); if (so) so.addEventListener('change', () => { App.oppStyle = so.value; saveSet(); render(); });
     const s = $('#half-len'); if (s) s.addEventListener('change', () => { App.halfSeconds = +s.value; saveSet(); }); const k = $('#ko'); if (k) k.addEventListener('change', () => { App.knockout = k.checked; saveSet(); }); }
 
   const SKILL_MULT = { amateur: 0.6, semi: 0.8, pro: 1, world: 1.3, legendary: 1.6 };
@@ -1495,7 +1496,7 @@
   const camLabel = mode => ({ tv: 'TV', wide: 'Wide', close: 'Close' }[mode] || 'TV');
   const TEMPO = 1.2, RUSH_PITCH = [70, 50];                               // v316 (JODIO): matches you play run 20% faster; Rush is 5v5 on a small pitch
   function startMatch(mode) {
-    if (mode === 'rush') { const st = D(), ra = Engine.buildOpponent(App.difficulty); runMatch({ tag: 'Rush 5v5', home: { name: st.clubName, short: 'RFC', cards: State.matchCards() }, away: ra, humans: [0], knockout: true, rush: true, pitch: RUSH_PITCH, halfSeconds: 60, noIntro: true, styles: [myTac(), pickStyle(App.oppStyle)], onEnd: res => finishMatch(res, ra), onQuit: quitMatch }); return; }
+    if (mode === 'rush' || (App.rushMode && (mode === 'play' || mode === 'watch'))) { const st = D(), ra = Engine.buildOpponent(App.difficulty); runMatch({ tag: 'Rush 5v5', home: { name: st.clubName, short: 'RFC', cards: State.matchCards() }, away: ra, humans: mode === 'watch' ? [] : [0], knockout: true, rush: true, pitch: RUSH_PITCH, halfSeconds: 60, noIntro: true, styles: [myTac(), pickStyle(App.oppStyle)], onEnd: res => finishMatch(res, ra), onQuit: quitMatch }); return; }
     const st = D();
     const home = { name: st.clubName, short: 'RFC', cards: State.matchCards() };
     const away = Engine.buildOpponent(App.difficulty), styles = [myTac(), pickStyle(App.oppStyle)];
