@@ -1129,6 +1129,8 @@ window.RUT = window.RUT || {};
   });
   // v329 (JODIO): every Ronaldo card is 5% faster in pace (sprint speed, acceleration, the PAC face number), capped at 99
   players.forEach(c => { if (c.name !== 'Cristiano Ronaldo') return; ['sprintSpeed', 'acceleration', 'speed'].forEach(k => { if (c.sub[k] != null) c.sub[k] = Math.min(99, Math.round(c.sub[k] * 1.05)); }); if (c.face && c.face.pac != null) c.face.pac = Math.min(99, Math.round(c.face.pac * 1.05)); c.value = valuation(c.rating, c.face, c.playStyles, c.position, c.rare); });
+  // v331 (JODIO): Ronaldo, Kane and Haaland get Precision Header+ instead of Chip Shot (promo copies are built from these cards)
+  players.forEach(c => { if (!/^(Cristiano Ronaldo|Harry Kane|Erling Haaland)$/.test(c.name)) return; const ps = c.playStyles.filter(n => !/^Chip Shot/.test(n) && !/^Precision Header/.test(n)); ps.splice(1, 0, 'Precision Header+'); c.playStyles = ps.slice(0, 5); c.value = valuation(c.rating, c.face, c.playStyles, c.position, c.rare); });
   all.forEach(capFace);
   // v157 (JODIO): the value of every normal (non-special) card under 89 is 30% lower (promo cards are made after this and are untouched)
   all.forEach(c => { if (!c.promo && c.rating < 89) c.value = roundToIncrement(c.value * 0.7); });
