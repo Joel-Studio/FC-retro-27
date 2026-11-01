@@ -243,10 +243,10 @@ window.RUT = window.RUT || {};
   const AI_RATING_LIFT = true;   // v314 (JODIO): the rating boosts (Top 5 level and balancer) are back, but only for the AI side that plays against a human, never for the human's own team or AI against AI
   const AIBal = {
     TARGET: 0.5, WINDOW: 10,   // v315 (JODIO): harsher, a win rate of 1 in 2 already pushes the AI up
-    level(hist) { const h = (hist || []).slice(-this.WINDOW); if (h.length < 3) return 0; const avg = h.reduce((x, y) => x + y, 0) / h.length; return clamp((avg - this.TARGET) * 5, -1, 1); },
-    add(level) { return level > 0 ? 10 * level : 3 * level; },
+    level(hist) { const h = (hist || []).slice(-this.WINDOW); if (h.length < 3) return 0; const avg = h.reduce((x, y) => x + y, 0) / h.length; return clamp((avg - this.TARGET) * 5.2, -1, 1); },
+    add(level) { return level > 0 ? 10.4 * level : 3 * level; },
     /** v309 (JODIO): short window. When you win 2 or more of your last 3 games the AI plays smarter (0..1): more chances in the box, more goals from them, shots from range when it has no pass. */
-    pressure(hist) { const h = (hist || []).slice(-3); if (h.length < 2) return 0; const avg = h.reduce((x, y) => x + y, 0) / h.length; return clamp((avg - 0.5) * 3, 0, 1); },
+    pressure(hist) { const h = (hist || []).slice(-3); if (h.length < 2) return 0; const avg = h.reduce((x, y) => x + y, 0) / h.length; return clamp((avg - 0.5) * 3.12, 0, 1); },
     push(hist, r) { const h = (hist || []).concat([r]); return h.slice(-this.WINDOW); },
     lift(cards, add) { if (!AI_RATING_LIFT) return cards; return cards.map(c => { if (!c || !add) return c; const nr = clamp(Math.round(c.rating + add), 40, 99); if (nr === c.rating) return c; const k = nr / c.rating, up = v => clamp(Math.round(v * k), 1, 99), face = {}, sub = {};
       Object.keys(c.face || {}).forEach(x => { face[x] = up(c.face[x]); }); Object.keys(c.sub || {}).forEach(x => { sub[x] = up(c.sub[x]); }); return Object.assign({}, c, { rating: nr, face, sub }); }); },
@@ -794,6 +794,10 @@ window.RUT = window.RUT || {};
     if (prev && prev.team !== p.team) { this.lostAt[prev.team] = this.t; this.wonAt[p.team] = this.t; }
     if (b.passTo && prev && this.pstat) { if (prev.team === p.team) { if (p !== prev) this.pst(prev, 'pc'); } else this.pst(p, 'int'); }
     if (b.indirect && p !== b.indirect) b.indirect = null;
+    if (prev && prev !== p && prev.team === p.team) {   // v335 (JODIO): count how often the same two team-mates swap the ball (tiki-taka ping-pong)
+      const pp = this.pp = this.pp || [null, null], q = pp[p.team];
+      if (q && this.t - q.t < 7 && ((q.a === prev && q.b === p) || (q.a === p && q.b === prev))) { q.n++; q.t = this.t; } else pp[p.team] = { a: prev, b: p, n: 1, t: this.t };
+    }
     b.airZ = b.owner ? 0 : b.z; b.airT = this.t;   // v332: a ball taken out of the air (a cross) can still be headed at goal for a moment
     b.owner = p; b.last = p; b.z = 0; b.vz = 0; b.spin = 0; b.tspin = 0; b.shot = null; b.trailType = null; b.passTo = null; b.cross = null; b.gotT = this.t; b.gotSp = this._inSp || 0;
     const c = this.ctls[p.team]; if (c) c.controlled = p;
@@ -2140,20 +2144,20 @@ window.RUT = window.RUT || {};
           tx = car.x + car.vx * 0.25 + nx * sg * 0.85; ty = car.y + car.vy * 0.25 + ny * sg * 0.85;
         } }
       // jockey: a defender (not a pressing side) backs off goal-side of the carrier at his pace and waits for a heavy touch instead of diving in
-      let jock = TC.defSmart && p.slot >= 1 && p.slot <= F.nDef && !cpress && dC < 9 && dC > 1.7 && !this.ctlOf(p) && Math.abs(car.x - own) > 14;
+      let jock = TC.defSmart && p.slot >= 1 && p.slot <= F.nDef && !cpress && dC < 5.5 && dC > 1.7 && !this.ctlOf(p) && Math.abs(car.x - own) > 14;
       if (jock && (p.fpos || RUT.State.BASE_FORMATION[p.slot]) === 'CB') {                                 // centre-backs jockey for 2 seconds at most, then go for the tackle
         if (p.jockCar !== car || this.t - (p.jockLast || -9) > 0.6) { p.jockCar = car; p.jockT0 = this.t; }
         p.jockLast = this.t;
-        if (this.t - p.jockT0 > 2) jock = false;
+        if (this.t - p.jockT0 > 0.8) jock = false;
       }
       if (jock) {
         const ux = own - car.x, uy = PH2 - car.y, ul = len(ux, uy) || 1;
-        this.seek(p, car.x + car.vx * 0.2 + ux / ul * 2.6, car.y + car.vy * 0.2 + uy / ul * 2.6, dC > 6);
+        this.seek(p, car.x + car.vx * 0.2 + ux / ul * 1.8, car.y + car.vy * 0.2 + uy / ul * 1.8, dC > 4);
       } else this.seek(p, tx, ty, true);
       if (p.cool.tackle <= 0 && p.cool.decide <= 0) {
         p.cool.decide = 0.13 - 0.06 * dq + this.rng() * 0.06;
         const reach = 1.05 + 0.6 * nrm(p.card.sub.standingTackle), dB = dist(p, b), loose = dist(b, car) > 1.25;
-        if (dB < reach && this.rng() < (0.5 + 0.45 * dq + (dB < reach * 0.7 ? 0.15 : 0)) * (p.tr.has('stp') ? 1.2 : 1) * (jock && !loose ? 0.5 : 1)) this.tackle(p, false);
+        if (dB < reach && this.rng() < (0.5 + 0.45 * dq + (dB < reach * 0.7 ? 0.15 : 0)) * (p.tr.has('stp') ? 1.2 : 1) * (jock && !loose ? 0.8 : 1)) this.tackle(p, false);
         else if (dC > 1.2 && dC < 3.2 && !(jock && !loose)) {
           // slide: smart players only from the front or side with the ball exposed; weak players dive in from anywhere
           const behind = (p.fx * car.fx + p.fy * car.fy) > 0.5 && ((car.x - p.x) * car.fx + (car.y - p.y) * car.fy) > 0;
@@ -2859,8 +2863,9 @@ window.RUT = window.RUT || {};
           + (TK.vert < 1.4 && (p.x - ownG) * dir < PW2 * 1.15 ? ((o.slot > FC.nDef && o.slot < FC.fwdFrom ? 3 : 0) - (p.slot >= 1 && p.slot <= FC.nDef && o.slot >= FC.fwdFrom && d > 25 ? 3 : 0)) : 0)               // build through the midfield: defenders look for the midfielders, not the long ball
           + (fwdAI && dGoal >= 24 && o.slot > FC.nDef && o.slot < FC.fwdFrom ? 5 : 0)                                                               // v110: a striker with his back to goal plays it to the midfield, they build the attack
           + (LA && isST && (o.card.position === 'LW' || o.card.position === 'RW' || o.card.position === 'CAM' || o.card.position === 'LM' || o.card.position === 'RM') ? 4 : 0) + longAdj;   // and the striker lays it off to the wingers / CAM for help
-        const sc = raw + this.gauss() * noise * (called ? 0.55 : 1);                    // the noise changes WHICH option he sees, not how keen he is to pass
-        if (sc > bs) { bs = sc; best = o; braw = raw; through = runs && open > 4 && prog > 0; }
+        let pingPen = 0; { const q = this.pp && this.pp[p.team]; if (q && q.n >= 2 && this.t - q.t < 7 && (q.a === o || q.b === o) && (this.cfg.rush || this.smartT[p.team] >= 4.5) && !this.ctlOf(p)) pingPen = 9 * (q.n - 1); }   // v335 (JODIO): Rush, Top 5 and Champions League AI make good combinations but stop ping-ponging between two players
+        const sc = raw - pingPen + this.gauss() * noise * (called ? 0.55 : 1);                    // the noise changes WHICH option he sees, not how keen he is to pass
+        if (sc > bs) { bs = sc; best = o; braw = raw - pingPen; through = runs && open > 4 && prog > 0; }
       });
       const warned = this.t - p.warnT < 0.7, pressured = nearOpp < 2.4 || (warned && nearOpp < 4.5);
       // traits colour the choice: dribblers and fearless players hold on, selfless / playmaking ones release it, poor link-up players keep it
@@ -5363,7 +5368,8 @@ void main(){
    */
   P.action = function (c, a, down) {
     if (this.rec && this.rec.mode === 'rec' && NET_ACT_ID[a] != null) this.rec.q.push([c.team, NET_ACT_ID[a] * 2 + (down ? 1 : 0)]);      // v108: every button goes in the match recording
-    if (this.phase === 'replay') { if (down && !this.net) this._rpT = 1e9; return; }                 // any button skips the replay (not online)
+    if (this.phase === 'replay') { if (down && !this.net) this._rpT = 1e9; return; }
+    if (this.phase === 'goal' && down && !this.net && !this.training && this._gT != null && this._gT - this.phaseT > 0.7) { this.phaseT = Math.min(this.phaseT, 0.01); return; }   // v335 (JODIO): any button skips the goal celebration                 // any button skips the replay (not online)
     if (SKILL_KEYS[a]) { if (down) c.queued = a; return; }   // skill moves are single taps
     if (a === 'lob') c.pressHeld = down;
     const onBall = this.ball.owner && this.ball.owner === c.controlled;

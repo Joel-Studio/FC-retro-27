@@ -1495,7 +1495,7 @@
   const gfxPref = () => { try { return localStorage.getItem('rut_gfx') || '3d'; } catch (e) { return '3d'; } };
   const gfxLabel = g => ({ auto: 'Auto', ultra: 'Ultra 1440p', '3d': 'Full 3D (WebGL)', high: 'High', med: 'Medium', low: 'Low', potato: 'Potato' }[g || (function () { try { return localStorage.getItem('rut_gfx'); } catch (e) { return null; } })() || '3d'] || 'Auto');
   const camLabel = mode => ({ fc: 'FC27', tv: 'TV', wide: 'Wide', close: 'Close' }[mode] || 'TV');
-  const TEMPO = 1.2, RUSH_PITCH = [98, 70];                               // v316 (JODIO): matches you play run 20% faster; Rush is 5v5 on a small pitch
+  const TEMPO = 1.1, RUSH_PITCH = [98, 70];                               // v316 (JODIO): matches you play run 20% faster; Rush is 5v5 on a small pitch
   function startMatch(mode) {
     if (App.rushOnce && mode !== 'sim') { App.rushOnce = false; mode = 'rush' + mode; }
     if (mode === 'rush' || mode === 'rushplay' || mode === 'rushwatch') { const st = D(), ra = Engine.buildOpponent(App.difficulty); runMatch({ tag: 'Rush 5v5', home: { name: st.clubName, short: 'RFC', cards: State.matchCards() }, away: ra, humans: mode === 'rushwatch' ? [] : [0], knockout: true, rush: true, pitch: RUSH_PITCH, halfSeconds: 60, noIntro: true, styles: [myTac(), pickStyle(App.oppStyle)], onEnd: res => finishMatch(res, ra), onQuit: quitMatch }); return; }
@@ -2145,7 +2145,7 @@
         if (own) recordPlayerStats(res, o.away); if (recOn) saveRec(m, o); playsLive(m); setTimeout(() => { m.stop(); wrap.remove(); App.match = null; o.onEnd(res); }, 1800); },
     };
     const snap = recOn ? RUT.Rec.snapshot(mcfg) : null;
-    const m = new Engine.Match(mcfg); if (humans.length && !o.online && !o.training && !o.duel) m.tempo = TEMPO; m.spView = SET.spView || "behind";
+    const m = new Engine.Match(mcfg); if (humans.length && !o.online && !o.training && !o.duel) m.tempo = o.rush ? 0.95 : TEMPO;   // v335: Rush runs at normal pace (JODIO: slower) m.spView = SET.spView || "behind";
     if (recOn) m.recStart(snap);
 
     App.match = m;
