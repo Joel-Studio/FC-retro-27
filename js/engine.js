@@ -1103,7 +1103,9 @@ window.RUT = window.RUT || {};
     const s = p.card.sub, dir = this.teams[p.team].dir, b = this.ball;
     const gx = dir > 0 ? PITCH_W : 0;
     const d = len(gx - p.x, PH2 - p.y);
-    const type = this.shotType(p, opt), loose = b.owner !== p;
+    let type = this.shotType(p, opt); const loose = b.owner !== p;
+    let greenPS = false;   // v325 (JODIO): a human's Power Shot / Finesse Shot only fire when the bar is released in the green zone, and then the ball rises higher
+    if (bar != null && (type === 'power' || type === 'finesse')) { const zz = this.shotZone(p); if (bar >= zz.lo && bar <= zz.hi) greenPS = true; else type = 'normal'; }
     const AS = ASSIST[opt.assist || this.assist];
     const finesse = type === 'finesse', powerPS = type === 'power', low = type === 'low', chip = type === 'chip', volley = type === 'volley', head = type === 'header';
     const gk = this.players.find(o => o.isGK && o.team !== p.team);
@@ -1243,7 +1245,7 @@ window.RUT = window.RUT || {};
     if (sc > 0 && !elite && this.rng() < sc) { scuff = true; speed *= 0.55; ang += this.gauss() * 0.12; }
     // harder hit = higher: full-power strikes lift off the ground; accurate finishers keep it down (the shot-accuracy stat), weak ones balloon
     let lift = (bar != null || longS ? (humanAs ? 9 : 11) * (1 + 0.015 * Math.max(0, d - 20)) : 1.6) * clamp((power - 0.45) / 0.55, 0, 1) * (1.15 - 0.75 * fin) * (low ? 0.25 : 1) * 2;   // v137: shots fly up to 2x as high
-    let vz = (low ? 0.3 : 0.6 + this.rng() * 2.2 * (1 - fin * 0.7)) + lift + skied;
+    let vz = (low ? 0.3 : 0.6 + this.rng() * 2.2 * (1 - fin * 0.7)) + lift + skied + (greenPS ? 1.1 : 0);
     if (volley) vz = 0.3 + this.rng() * 1.2 * (1 - fin) + lift * 0.6 + Math.max(0, b.z - 0.5) * -0.8;       // taken on the half-turn: keeps down if it is hit cleanly
     if (head) vz = -(0.6 + 2.6 * nrm(s.headingAccuracy) * jt) + (1 - jt) * 3.2 + this.gauss() * 0.5 * (1 - fin);   // nodded down; a mistimed jump sends it up
     if (scuff) vz *= 0.5;
