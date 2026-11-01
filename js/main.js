@@ -193,10 +193,17 @@
     const names = { home: 'Home', trophies: 'Trophy Room', friends: 'Friends', moments: 'Moments', battles: 'Squad Battles', penalties: 'Penalty Shootout', club: 'Club', squad: 'Squad & Chemistry', play: 'Kick Off', casual: 'Casual Match', online: 'Online Match', rules: 'Match Rules', playstyles: 'PlayStyles Guide', gametraits: 'Gametraits Guide', market: 'Transfer Market', bdorgal: 'Ballon d\'Or', sbc: 'Squad Building Challenges', 'sbc-build': 'SBC Builder', evo: 'Evolutions', store: 'Store', promoshop: 'Promo Shop', pstats: 'Player Stats', unassigned: 'Unassigned', settings: 'Settings', tactics: 'Tactics', staff: 'Staff & Training', league: 'League', top5: 'Top 5 Leagues', quests: 'Quests' };
     const parent = { top5: 'League', squad: 'Club', staff: 'Club', evo: 'Club', unassigned: 'Club', rules: 'Play', playstyles: 'Club', gametraits: 'Club', trophies: 'Club', friends: 'Club', moments: 'Play', battles: 'Play', penalties: 'Play', casual: 'Play', online: 'Play', 'sbc-build': 'SBCs', promoshop: 'Market', bdorgal: 'Market', pstats: 'Club' }[App.view];
     $('#crumbs').innerHTML = `<a href="#" data-act="nav" data-v="home">Home</a>${parent ? ' › ' + parent : ''} › <b>${esc(names[App.view] || '')}</b>`;
+    try { /* v346: section tabs: the pages next to this one, as pills under the crumbs (FC 27 style) */
+      let sn = document.getElementById('subnav'); if (!sn) { sn = document.createElement('div'); sn.id = 'subnav'; $('#crumbs').after(sn); }
+      const alias = { casual: 'casual', rivals: 'rivals' }, hit = [...document.querySelectorAll('#tabs .dd-menu')].find(mn => [...mn.children].some(b => b.dataset.view === App.view && !b.dataset.train && !b.dataset.mt));
+      const extra = App.view === 'trophies' || App.view === 'friends' ? 'Club' : '';
+      if (!hit || App.match) sn.innerHTML = ''; else sn.innerHTML = [...hit.children].map(b => { const on = b.dataset.view === App.view && !b.dataset.train && (!b.dataset.mt || b.dataset.mt === App.marketTab) && (!b.dataset.t5 || b.dataset.t5 === App.t5tab); let bd = ''; if (b.dataset.view === 'trophies') { const n = RUT.Progress ? RUT.Progress.ready() : 0; if (n) bd = `<span class="badge">${n}</span>`; } return `<button ${[...b.attributes].filter(a => /^data-/.test(a.name)).map(a => a.name + '="' + a.value.replace(/"/g, '&quot;') + '"').join(' ')} class="${on ? 'on' : ''}">${b.textContent}${bd}</button>`; }).join('');
+    } catch (e) { /* optional */ }
     const mv = { club: 'squad', tactics: 'squad', evo: 'squad', staff: 'squad', casual: 'play', online: 'play', rivals: 'play', league: 'play', top5: 'play', promoshop: 'market', sbc: 'store', 'sbc-build': 'store' }[App.view] || App.view;
     document.querySelectorAll('#mnav [data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === mv));   // v214: phone tab bar
     document.querySelectorAll('#tabs .dd > button').forEach(b => {
       b.classList.toggle('on', b.dataset.view === App.view || (App.view === 'top5' && b.dataset.view === 'league') || (App.view === 'unassigned' && b.dataset.view === 'home') || (App.view === 'sbc-build' && b.dataset.view === 'sbc') || ((App.view === 'casual' || App.view === 'online') && b.dataset.view === 'play'));
+      if (b.dataset.view === 'club') { const n = RUT.Progress ? RUT.Progress.ready() : 0; b.innerHTML = 'Club ▾' + (n ? `<span class="badge">${n}</span>` : ''); }
       if (b.dataset.view === 'quests') { const n = RUT.Quests ? RUT.Quests.readyCount() : 0; b.innerHTML = 'Quests' + (n ? `<span class="badge">${n}</span>` : ''); }
       if (b.dataset.view === 'home' && b.parentElement.classList.contains('dd')) b.innerHTML = 'Home' + (D().unassigned.length ? `<span class="badge">${D().unassigned.length}</span>` : '');
     });
@@ -3714,7 +3721,7 @@
   document.addEventListener('click', e => {
     if (e.target.closest('#mnav-more')) { $('#tabs').classList.toggle('open'); window.scrollTo(0, 0); return; }
     if (e.target.closest('#burger')) { $('#tabs').classList.toggle('open'); return; }
-    const tab = e.target.closest('#tabs button');
+    const tab = e.target.closest('#tabs button, #subnav button');
     if (tab && tab.dataset.train) { $('#tabs').classList.remove('open'); startTraining(); return; }
     if (tab) { if (tab.dataset.mt) App.marketTab = tab.dataset.mt; if (tab.dataset.view === 'top5') App.t5tab = tab.dataset.t5 || 'lg'; $('#tabs').classList.remove('open'); setView(tab.dataset.view); return; }
     const sg = e.target.closest('a.site-go');
