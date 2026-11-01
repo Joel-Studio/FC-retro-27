@@ -1127,7 +1127,7 @@ window.RUT = window.RUT || {};
       const wide = (GOAL_HALF - 0.9) * (finesse ? 0.5 + 0.15 * fin0 : 0.72 + 0.22 * fin0);
       ty = PH2 + (Math.sign(off) || 1) * clamp(Math.max(Math.abs(off), wide), 0, GOAL_HALF - 0.6);
     }
-    const ps0 = p.card.position, elite = (!!this.tac[p.team].elite || ps0 === 'ST' || ps0 === 'CF' || ps0 === 'RW' || ps0 === 'LW') && !this.ctlOf(p) && !p.isGK;   // A1 teams, and every AI striker / winger in any league: shots always on frame
+    const ps0 = p.card.position, elite = ((!!this.tac[p.team].elite || ps0 === 'ST' || ps0 === 'CF' || ps0 === 'RW' || ps0 === 'LW') && !this.ctlOf(p) && !p.isGK) || !!opt.onFrame;   // A1 teams, and every AI striker / winger in any league: shots always on frame
     const autoA = !!opt.auto || elite, humanAs = (autoA || ((bar != null || opt.human) && this.assist !== 'manual')) && (!opt.long || elite) && !this.penaltyKick;
     // auto-assist with no aim given: pick a corner away from the keeper; how close to the post depends on the shooter's finishing
     if (humanAs && (autoA || this.assist === 'full') && aim === 0 && opt.ty == null && !head && !chip) {
@@ -5725,7 +5725,7 @@ void main(){
       this.gtPop(p, 'timef'); this.shoot(p, 0, (lv > 1 ? 0.9 : 0.84) + this.rng() * 0.1, null, { auto: true, assist: 'full', type: 'low' }); if (b.shot && b.shot.by === p) b.shot.gte = lv; return;
     }
     if ((lv = gtLv(p, 'range')) && !this.inBox(p, 1 - p.team) && dg >= 17 && dg <= 27 + 5 * lv && Math.abs(p.y - PH2) < 20 && !this.laneBlocked(p, { x: gx, y: PH2 }, true) && press > 3 && age > 0.15 && this.gtGo(p, 'range', 7 - lv)) {
-      this.gtPop(p, 'range'); this.shoot(p, 0, 0.88 + 0.08 * lv, null, { auto: true, assist: 'full', long: dg > 22 }); if (b.shot && b.shot.by === p) b.shot.gte = lv; return;
+      this.gtPop(p, 'range'); this.shoot(p, 0, 0.88 + 0.08 * lv, null, { auto: true, assist: 'full', long: dg > 22, onFrame: true });   // v338 (JODIO): Range Finder strikes are always on target if (b.shot && b.shot.by === p) b.shot.gte = lv; return;
     }
     const mates = this.players.filter(o => o.team === p.team && o !== p && !o.isGK && !o.dummy);
     if ((lv = gtLv(p, 'pincr')) && Math.abs(p.y - PH2) > PH2 * 0.55 && Math.abs(p.x - gx) < 34 && Math.abs(p.x - gx) > 8 && !this.inBox(p, 1 - p.team)) {
