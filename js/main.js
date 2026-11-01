@@ -405,7 +405,7 @@
         <label>Graphics</label>
         ${opt('gfx', '3d', [['3d', 'Full 3D (WebGL)'], ['ultra', 'Ultra 1440p'], ['high', 'High'], ['med', 'Medium'], ['low', 'Low'], ['potato', 'Potato'], ['auto', 'Auto']])}
         <label>Camera</label>
-        ${opt('camera', App.camMode || 'fc', [['fc', 'FC27'], ['tv', 'TV'], ['wide', 'Wide'], ['close', 'Close']])}
+        ${opt('camera', App.camMode || 'tv', [['tv', 'TV'], ['fc', 'FC27'], ['wide', 'Wide'], ['close', 'Close']])}
         <label>Mobile mode (touch controls)</label>
         ${opt('touch', SET.touch || 'auto', [['auto', 'Auto', 'phones and tablets'], ['on', 'Mobile mode ON', 'stick + buttons, any device'], ['off', 'Off', 'keyboard or gamepad']])}</div>
       <div class="px"><h3>Save</h3>
@@ -1494,7 +1494,7 @@
 
   const gfxPref = () => { try { return localStorage.getItem('rut_gfx') || '3d'; } catch (e) { return '3d'; } };
   const gfxLabel = g => ({ auto: 'Auto', ultra: 'Ultra 1440p', '3d': 'Full 3D (WebGL)', high: 'High', med: 'Medium', low: 'Low', potato: 'Potato' }[g || (function () { try { return localStorage.getItem('rut_gfx'); } catch (e) { return null; } })() || '3d'] || 'Auto');
-  const camLabel = mode => ({ fc: 'FC27', tv: 'TV', wide: 'Wide', close: 'Close' }[mode] || 'FC27');
+  const camLabel = mode => ({ fc: 'FC27', tv: 'TV', wide: 'Wide', close: 'Close' }[mode] || 'TV');
   const TEMPO = 1.2, RUSH_PITCH = [70, 50];                               // v316 (JODIO): matches you play run 20% faster; Rush is 5v5 on a small pitch
   function startMatch(mode) {
     if (App.rushOnce && mode !== 'sim') { App.rushOnce = false; mode = 'rush' + mode; }
@@ -2102,7 +2102,7 @@
     const recOn = !!(RUT.Rec && hu && humans.length === 1 && !o.online && !o.training && !o.duel && !o.rush);       // v108: your local matches are recorded (set-up + your inputs), so highlights can be replayed exactly
     const mcfg = {
       balance: (hu && humans.length === 1 && !o.online) ? (lv => [humans[0] === 0 ? 0 : lv, humans[0] === 1 ? 0 : lv])(Engine.AIBal ? Engine.AIBal.level(D().aiBal) : (RUT.AIBal ? RUT.AIBal.level(D().aiBal) : 0)) : undefined,   // v306 (JODIO): AI balancer
-      home: sm(o.home), away: sm(o.away), tacGain: own ? [CLUB_GAIN, 0] : undefined, coach: own ? [coachK(), null] : undefined, train: own ? [trainBoost(), null] : undefined, autoCoach: false ? [humans[0] === 0, humans[0] === 1] : undefined, plays: (own && !humans.length && !o.online && !o.training && !o.duel && (D().plays || []).some(pl => pl.on)) ? [playsCfg(), null] : undefined, humans, halfSeconds: o.halfSeconds || App.halfSeconds, setPieces: (!o.online && !o.training && !o.duel && humans.length === 1 && humans[0] === 0) ? [spCfg(), null] : undefined, knockout: o.knockout, extraTime: !!o.extraTime, camera: App.camMode || 'fc', seed: o.seed,
+      home: sm(o.home), away: sm(o.away), tacGain: own ? [CLUB_GAIN, 0] : undefined, coach: own ? [coachK(), null] : undefined, train: own ? [trainBoost(), null] : undefined, autoCoach: false ? [humans[0] === 0, humans[0] === 1] : undefined, plays: (own && !humans.length && !o.online && !o.training && !o.duel && (D().plays || []).some(pl => pl.on)) ? [playsCfg(), null] : undefined, humans, halfSeconds: o.halfSeconds || App.halfSeconds, setPieces: (!o.online && !o.training && !o.duel && humans.length === 1 && humans[0] === 0) ? [spCfg(), null] : undefined, knockout: o.knockout, extraTime: !!o.extraTime, camera: App.camMode || 'tv', seed: o.seed,
       penAsk: (humans.length === 1 && !o.online && !o.training) ? (mm, cb) => askPens(mm, wrap, humans[0], cb) : undefined,
       training: o.training || null, duel: !!o.duel, rush: !!o.rush, pitch: o.pitch || App.pitch || 'huge', surface: (o.phys || physCfg()).surface, ballModel: (o.phys || physCfg()).ballModel, assist: (o.phys || physCfg()).assist, styles: o.styles, brain: o.brain || (gfxPref() === 'ultra' ? 'ultra' : 'std'),
       press: (hu && humans.length === 1 && !o.online && RUT.AIBal) ? (pr => [humans[0] === 0 ? 0 : pr, humans[0] === 1 ? 0 : pr])(RUT.AIBal.pressure(D().aiBal)) : undefined,   // v309 (JODIO): smarter AI when you win 2+ of the last 3
