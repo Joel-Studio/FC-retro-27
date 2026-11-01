@@ -1106,7 +1106,7 @@ window.RUT = window.RUT || {};
     const d = len(gx - p.x, PH2 - p.y);
     let type = this.shotType(p, opt); const loose = b.owner !== p;
     let greenPS = false;   // v325 (JODIO): a human's Power Shot / Finesse Shot only fire when the bar is released in the green zone, and then the ball rises higher
-    if (bar != null && (type === 'power' || type === 'finesse')) { const zz = this.shotZone(p); if (bar >= zz.lo && bar <= zz.hi) greenPS = true; else type = 'normal'; }
+    if (bar != null && (type === 'power' || type === 'finesse')) { const zz = this.shotZone(p); if (bar >= zz.lo && bar <= zz.hi) greenPS = true; else if (bar < zz.lo) { type = 'low'; if (!this.headless) this.fx({ type: 'text', x: p.x, y: p.y - 3, text: 'LOW DRIVEN', color: '#ffd040', life: 0.9 }); } else type = 'normal'; }   // v329: below green = a low driven shot with a pop-up
     const AS = ASSIST[opt.assist || this.assist];
     const finesse = type === 'finesse', powerPS = type === 'power', low = type === 'low', chip = type === 'chip', volley = type === 'volley', head = type === 'header';
     const gk = this.players.find(o => o.isGK && o.team !== p.team);
