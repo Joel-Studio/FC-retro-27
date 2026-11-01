@@ -1288,7 +1288,8 @@ window.RUT = window.RUT || {};
         const T = Math.abs(dx) / Math.max(1, Math.abs(Math.cos(ang)) * speed), zT = vz * T - 4.905 * T * T;
         if (zT > GOAL_H - 0.3) vz = (GOAL_H * 0.65 + 4.905 * T * T) / T; } }
     // v182 (JODIO: "very long full-power shots: 0% chance of a goal"): from 30 m or more at full power it always flies over the bar
-    if (!isPen && !chip && !head && d >= 30 && power >= 0.95) { const T = d / Math.max(8, speed); vz = Math.max(vz, (6 + 4.905 * T * T) / T); }
+    if (!isPen && !chip && !head && d >= 30 && power >= 0.95 && !opt.onFrame) { const T = d / Math.max(8, speed); vz = Math.max(vz, (6 + 4.905 * T * T) / T); }
+    if (opt.onFrame && !head) { const T = Math.abs(gx - p.x) / Math.max(1, Math.abs(Math.cos(ang)) * speed), zT = vz * T - 4.905 * T * T; if (zT > GOAL_H - 0.45) vz = (GOAL_H * 0.55 + 4.905 * T * T) / T; }   // v342 (JODIO): a Range Finder strike never flies over the bar
     if (bar != null) { p.cool.plant = 0.12; p.vx *= 0.8; p.vy *= 0.8; }                               // v327 (JODIO): shots can be hit on the run: he barely breaks stride
     if (curlComp && !chip && Math.abs(gx - p.x) > 4) {   // v223 (JODIO): the launch angle is solved on the real flight (spin fading, drag, bounces), so a curler aimed at the far post bends in and finishes at the far post instead of drifting back to the middle
       const dx = gx - p.x, tgt = p.y + Math.tan(ang + curlComp) * dx;
