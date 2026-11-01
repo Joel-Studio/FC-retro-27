@@ -456,7 +456,7 @@
     }
 
     /* ---- camera ---- */
-    const CAM = { fc: { fov: 42, h: 122, back: 38 }, tv: { fov: 37, h: 36, back: 68 }, wide: { fov: 41, h: 24, back: 36 }, close: { fov: 46, h: 13, back: 22 } };   // v309 (JODIO): zoomed out more (wider field of view)   // v172: about 40% higher (JODIO: "make the view higher")
+    const CAM = { fc: { fov: 42, h: 70, back: 34, curve: 40 }, tv: { fov: 37, h: 36, back: 68 }, wide: { fov: 41, h: 24, back: 36 }, close: { fov: 46, h: 13, back: 22 } };   // v309 (JODIO): zoomed out more (wider field of view)   // v172: about 40% higher (JODIO: "make the view higher")
     const camTarget = new T.Vector3(), camPos = new T.Vector3();
     let curW = 0, curH = 0;
     const mProj = new T.Vector3();
@@ -467,7 +467,7 @@
       const c = CAM[view.mode] || CAM.tv;
       if (camera.fov !== c.fov) { camera.fov = c.fov; camera.updateProjectionMatrix(); }
       const tx = view.camX - PW2, tz = (view.camY - PH2) * view.fy;
-      camTarget.set(tx, 0, tz); camPos.set(tx, c.h, tz + c.back);
+      camTarget.set(tx, 0, tz); camPos.set(tx, c.h, tz + c.back + (c.curve ? c.curve * Math.pow(Math.min(1, Math.abs(tx) / PW2), 2) : 0));   // v323: the FC27 camera tilts from steep over midfield to about 45 degrees toward the goals
       // v183 (JODIO's FC27 pictures): direct free kicks and penalties use a low camera behind the ball looking at the goal; it glides in and out
       spBlend += ((view.spCam ? 1 : 0) - spBlend) * Math.min(1, (view.dt || 0.016) * 4);
       if (view.spCam) spLast = view.spCam;

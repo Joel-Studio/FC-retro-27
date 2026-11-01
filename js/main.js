@@ -263,6 +263,7 @@
   }
   setInterval(() => siteLinks(true), 10000);
   /* v254 (JODIO: the data from Wix / Vercel did not reach the artifact): the code is built INSIDE the click and handed to the clipboard as a promise, so it is always fresh and the browser keeps the click's permission; the message says "copied" only when it really was. */
+  document.addEventListener('click', e => { const rb = e.target.closest && e.target.closest('[data-rush]'); if (rb && !rb.disabled) { App.rushOnce = true; setTimeout(() => { App.rushOnce = false; }, 2500); } }, true);   // v323: a Rush button flags the next match as Rush 5v5
   document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a.site-go[data-k="claude"]'); if (!a || !RUT.Auth.user) return;
     const build = async () => { State.save(true); return RUT.Auth.exportCode(''); };
     const done = ok => toast(ok ? 'Club copied. On the Claude page just press Ctrl+V (or Paste my club): your club comes in by itself.' : 'Could not copy automatically: open Settings > Account > Show transfer code, copy it and paste it on the Claude page.', ok ? 'good' : 'bad');
@@ -1307,11 +1308,11 @@
       <select id="sty-opp">${styleOptions(App.oppStyle, true)}</select>
       <p class="dim" style="font-size:8px;line-height:1.9">${App.oppStyle !== 'auto' ? esc(styleBlurb(App.oppStyle)) : esc(styleBlurb('auto'))}</p>
       <label><input type="checkbox" id="ko" ${App.knockout ? 'checked' : ''}> Knockout tie (draw → penalty shootout, ABAB + sudden death)</label>
-      <label>Game mode</label>
-      <select id="gm-mode"><option value="normal" ${App.rushMode ? '' : 'selected'}>Normal 11 v 11</option><option value="rush" ${App.rushMode ? 'selected' : ''}>Rush 5 v 5 (small pitch, 60 s halves)</option></select>
       <div class="row mt">
         <button class="btn y" data-act="match" data-mode="play" ${ready ? '' : 'disabled'}>▶ Play (you control)</button>
         <button class="btn c" data-act="match" data-mode="watch" ${ready ? '' : 'disabled'}>Watch AI vs AI</button>
+        <button class="btn y" data-act="match" data-mode="play" data-rush="1" ${ready ? '' : 'disabled'}>Rush 5v5 (you control)</button>
+        <button class="btn c" data-act="match" data-mode="watch" data-rush="1" ${ready ? '' : 'disabled'}>Rush 5v5 Watch</button>
         <button class="btn" data-act="match" data-mode="sim" ${ready ? '' : 'disabled'}>Quick Sim</button>
       </div>
       <div class="mt cas-promo"><h3>Online Match · 2 players, 2 computers</h3><p class="dim" style="font-size:8px">Host a game and share the game code, or enter your friend's code, and play each other with your own club XI on the huge pitch.</p>
@@ -1496,7 +1497,8 @@
   const camLabel = mode => ({ fc: 'FC27', tv: 'TV', wide: 'Wide', close: 'Close' }[mode] || 'FC27');
   const TEMPO = 1.2, RUSH_PITCH = [70, 50];                               // v316 (JODIO): matches you play run 20% faster; Rush is 5v5 on a small pitch
   function startMatch(mode) {
-    if (mode === 'rush' || (App.rushMode && (mode === 'play' || mode === 'watch'))) { const st = D(), ra = Engine.buildOpponent(App.difficulty); runMatch({ tag: 'Rush 5v5', home: { name: st.clubName, short: 'RFC', cards: State.matchCards() }, away: ra, humans: mode === 'watch' ? [] : [0], knockout: true, rush: true, pitch: RUSH_PITCH, halfSeconds: 60, noIntro: true, styles: [myTac(), pickStyle(App.oppStyle)], onEnd: res => finishMatch(res, ra), onQuit: quitMatch }); return; }
+    if (App.rushOnce && mode !== 'sim') { App.rushOnce = false; mode = 'rush' + mode; }
+    if (mode === 'rush' || mode === 'rushplay' || mode === 'rushwatch') { const st = D(), ra = Engine.buildOpponent(App.difficulty); runMatch({ tag: 'Rush 5v5', home: { name: st.clubName, short: 'RFC', cards: State.matchCards() }, away: ra, humans: mode === 'rushwatch' ? [] : [0], knockout: true, rush: true, pitch: RUSH_PITCH, halfSeconds: 60, noIntro: true, styles: [myTac(), pickStyle(App.oppStyle)], onEnd: res => finishMatch(res, ra), onQuit: quitMatch }); return; }
     const st = D();
     const home = { name: st.clubName, short: 'RFC', cards: State.matchCards() };
     const away = Engine.buildOpponent(App.difficulty), styles = [myTac(), pickStyle(App.oppStyle)];
@@ -1739,7 +1741,7 @@
     const fx = L.teams.map((tm, i) => { const res = L.me[i], isNx = i === nx;
       return `<div class="row between lg-fx"><span><b>${esc(tm.name)}</b> <span class="dim" style="font-size:7px">${Math.round(tm.ovr)} OVR · ${esc(styleName(tm.tac))}</span></span>
         ${res ? `<span class="${res[0] > res[1] ? 'good' : res[0] < res[1] ? 'bad' : 'gold'}">${res[0]} - ${res[1]}</span>`
-          : isNx ? `<span><span class="gold" style="font-size:7px">NEXT</span> <button class="btn sm y" data-act="lg-play" data-i="${i}" data-mode="play" ${ready ? '' : 'disabled'}>Play</button> <button class="btn sm c" data-act="lg-play" data-i="${i}" data-mode="watch" ${ready ? '' : 'disabled'}>Watch</button></span>`
+          : isNx ? `<span><span class="gold" style="font-size:7px">NEXT</span> <button class="btn sm y" data-act="lg-play" data-i="${i}" data-mode="play" ${ready ? '' : 'disabled'}>Play</button> <button class="btn sm y" data-act="lg-play" data-i="${i}" data-mode="play" data-rush="1" ${ready ? '' : 'disabled'}>Rush</button> <button class="btn sm c" data-act="lg-play" data-i="${i}" data-mode="watch" ${ready ? '' : 'disabled'}>Watch</button></span>`
           : '<span class="dim">-</span>'}</div>`; }).join('');
     return `<h2>League ${esc(g.code)} <span class="dim" style="font-size:9px">season ${g.season}${g.titles ? ' · A1 top-2 finishes: ' + g.titles : ''}</span></h2>
       <div class="row mb">${LG().ORDER.map(c => `<span class="btn sm ${c === g.code ? 'y' : ''}" style="pointer-events:none;opacity:${LG().ORDER.indexOf(c) <= LG().ORDER.indexOf(g.code) ? 1 : 0.45}">${c}</span>`).join('')}</div>
@@ -1791,7 +1793,7 @@
     const status = U.won ? `<p class="good">Champions of Europe! +${fmt(K.stage.win)} coins.</p>` : U.out ? `<p class="bad">Knocked out${U.ko && U.ko.rank > 24 ? ` (${ord(U.ko.rank)} in the league phase)` : ''}.</p>` : '';
     const play = nx ? `<div class="mt"><p style="font-size:9px"><b>Next: ${fmtS(nx.stage)}${nx.stage === 'lp' ? ' matchday ' + (nx.md + 1) + '/8' : ''}</b> v <b>${esc(nx.club.name)}</b> <span class="dim">${Math.round(nx.club.ovr * 10) / 10} OVR</span></p>
       <p class="dim" style="font-size:8px">Matches left today: <b class="${left > 0 ? 'good' : 'bad'}">${Math.max(0, left)}/${K.perDay}</b></p>
-      <button class="btn y" data-act="ucl-play" data-mode="play" ${ready && left > 0 ? '' : 'disabled'}>Play</button> <button class="btn c" data-act="ucl-play" data-mode="watch" ${ready && left > 0 ? '' : 'disabled'}>Watch (AI plays)</button>${ready ? '' : '<p class="bad">Your XI needs 11 players.</p>'}</div>` : '';
+      <button class="btn y" data-act="ucl-play" data-mode="play" ${ready && left > 0 ? '' : 'disabled'}>Play</button> <button class="btn y" data-act="ucl-play" data-mode="play" data-rush="1" ${ready && left > 0 ? '' : 'disabled'}>Rush</button> <button class="btn c" data-act="ucl-play" data-mode="watch" ${ready && left > 0 ? '' : 'disabled'}>Watch (AI plays)</button>${ready ? '' : '<p class="bad">Your XI needs 11 players.</p>'}</div>` : '';
     return `<div class="grid cols-2"><div class="px"><h3>Champions League <span class="dim" style="font-size:8px">season ${U.season} · ${fmtS(U.stage === 'out' ? 'lp' : U.stage)} · earned ${fmt(U.earned)}</span></h3>${status}${play}
         <h3 class="mt">League phase</h3>${fx}${ko}
         ${U.won || U.out ? '<button class="btn y mt" data-act="ucl-start">New Champions League season</button>' : '<button class="btn sm mt" data-act="ucl-quit">Leave this season</button>'}</div>
@@ -1826,7 +1828,7 @@
     const tbl = `<table class="lg"><tr><th>#</th><th style="text-align:left">Club</th><th>OVR</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th></tr>${rows.map(r => `<tr class="${r.me ? 'me' : ''} ${r.rank <= 4 ? 'up' : r.rank >= 19 ? 'dn' : ''}"><td>${r.rank}</td><td style="text-align:left">${r.me ? esc(r.name) + ' (you)' : `<a href="#" data-act="t5-squad" data-n="${esc(r.name)}">${esc(r.name)}</a>`}</td><td>${r.me ? '' : Math.round(r.ovr * 10) / 10}</td><td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${r.gf}</td><td>${r.ga}</td><td>${r.gd > 0 ? '+' : ''}${r.gd}</td><td><b>${r.pts}</b></td></tr>`).join('')}</table>`;
     const resCell = res => `<span class="${res[0] > res[1] ? 'good' : res[0] < res[1] ? 'bad' : 'gold'}">${res[0]}-${res[1]}</span>`;
     const fx = L.teams.map((tm, i) => { const cells = L.me[i].map((res, leg) => res ? resCell(res)
-        : nx && nx[0] === i && nx[1] === leg ? `<span><span class="gold" style="font-size:7px">NEXT · MD ${nx[2] != null ? nx[2] + 1 : ''}</span> <button class="btn sm y" data-act="t5-play" data-i="${i}" data-leg="${leg}" data-mode="play" ${ready ? '' : 'disabled'}>Play</button> <button class="btn sm c" data-act="t5-play" data-i="${i}" data-leg="${leg}" data-mode="watch" ${ready ? '' : 'disabled'}>Watch</button></span>`
+        : nx && nx[0] === i && nx[1] === leg ? `<span><span class="gold" style="font-size:7px">NEXT · MD ${nx[2] != null ? nx[2] + 1 : ''}</span> <button class="btn sm y" data-act="t5-play" data-i="${i}" data-leg="${leg}" data-mode="play" ${ready ? '' : 'disabled'}>Play</button> <button class="btn sm y" data-act="t5-play" data-i="${i}" data-leg="${leg}" data-mode="play" data-rush="1" ${ready ? '' : 'disabled'}>Rush</button> <button class="btn sm c" data-act="t5-play" data-i="${i}" data-leg="${leg}" data-mode="watch" ${ready ? '' : 'disabled'}>Watch</button></span>`
         : '<span class="dim">-</span>');
       return `<div class="row between lg-fx"><span><b>${esc(tm.name)}</b> <span class="dim" style="font-size:7px">${Math.round((L.rounds ? T.strength(tm.name) : tm.ovr) * 10) / 10} OVR · ${esc(styleName(tm.tac))}</span></span><span class="row" style="gap:10px">${cells.join('')}</span></div>`; }).join('');
     const lr = T.lastRound(), news = T.news().slice(0, 14);
@@ -2055,6 +2057,7 @@
   }
 
   function runMatch(o) {
+    if (App.rushOnce && !o.online && !o.training && !o.duel) { App.rushOnce = false; o.rush = true; o.pitch = RUSH_PITCH; o.halfSeconds = 60; o.noIntro = true; o.tag = (o.tag ? o.tag + ' · ' : '') + 'Rush 5v5'; }   // v323: Rush buttons next to Play / Watch everywhere
     const humans = o.humans || [], two = humans.length > 1 && !o.online;
     const canTac = humans.length === 1 && !o.online && !o.training && !o.duel && !o.rush;      // v113: tactic changes during the match (by button / keys 1-9) and the auto coach
     const btnTac = canTac ? '<button class="btn sm y" data-mact="tac">Tactics</button>' : '';
