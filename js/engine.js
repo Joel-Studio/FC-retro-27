@@ -1993,7 +1993,7 @@ window.RUT = window.RUT || {};
         if (this.assist === 'full') this.shoot(p, aim, pw, power, { type, ty: fty });
         else {
           const tt = type === 'power' ? 0.3 : type === 'chip' || type === 'finesse' ? 0.24 : type === 'low' ? 0.18 : 0.2;
-          c.strike = { aim, pw, bar: power, type, ty: fty, t: 0, T: this.t - (b.gotT == null ? -9 : b.gotT) < 0.35 ? tt * 0.6 : tt, press: null };   // a first-time strike has no wind-up
+          c.strike = { aim, pw, bar: power, type, ty: fty, t: 0, T: b.airZ > 1.2 && this.t - (b.airT || -9) < 0.45 ? 0.04 : this.t - (b.gotT == null ? -9 : b.gotT) < 0.35 ? tt * 0.6 : tt, press: null };   // v337 (JODIO): a ball headed out of the air goes at once, no wind-up   // a first-time strike has no wind-up
           p.cool.plant = 0.08; p.vx *= 0.8; p.vy *= 0.8;
         }
       }
@@ -5724,7 +5724,7 @@ void main(){
     if ((lv = gtLv(p, 'timef')) && this.inBox(p, 1 - p.team) && age < 0.5 + 0.2 * lv && Math.abs(p.x - gx) < 14 && this.gtGo(p, 'timef', 2.5)) {
       this.gtPop(p, 'timef'); this.shoot(p, 0, (lv > 1 ? 0.9 : 0.84) + this.rng() * 0.1, null, { auto: true, assist: 'full', type: 'low' }); if (b.shot && b.shot.by === p) b.shot.gte = lv; return;
     }
-    if ((lv = gtLv(p, 'range')) && (this.inBox(p, 1 - p.team) ? dg > 8 : dg >= 17 && dg <= 27 + 5 * lv) && Math.abs(p.y - PH2) < (this.inBox(p, 1 - p.team) ? 16 : 20) && !this.laneBlocked(p, { x: gx, y: PH2 }, true) && press > 3 && age > 0.15 && this.gtGo(p, 'range', 7 - lv)) {
+    if ((lv = gtLv(p, 'range')) && !this.inBox(p, 1 - p.team) && dg >= 17 && dg <= 27 + 5 * lv && Math.abs(p.y - PH2) < 20 && !this.laneBlocked(p, { x: gx, y: PH2 }, true) && press > 3 && age > 0.15 && this.gtGo(p, 'range', 7 - lv)) {
       this.gtPop(p, 'range'); this.shoot(p, 0, 0.88 + 0.08 * lv, null, { auto: true, assist: 'full', long: dg > 22 }); if (b.shot && b.shot.by === p) b.shot.gte = lv; return;
     }
     const mates = this.players.filter(o => o.team === p.team && o !== p && !o.isGK && !o.dummy);
