@@ -190,8 +190,8 @@
   function updateHeader() {
     animateCoins();
     $('#hdr-club').textContent = D().clubName;
-    const names = { home: 'Home', club: 'Club', squad: 'Squad & Chemistry', play: 'Kick Off', casual: 'Casual Match', online: 'Online Match', rules: 'Match Rules', playstyles: 'PlayStyles Guide', gametraits: 'Gametraits Guide', market: 'Transfer Market', bdorgal: 'Ballon d\'Or', sbc: 'Squad Building Challenges', 'sbc-build': 'SBC Builder', evo: 'Evolutions', store: 'Store', promoshop: 'Promo Shop', pstats: 'Player Stats', unassigned: 'Unassigned', settings: 'Settings', tactics: 'Tactics', staff: 'Staff & Training', league: 'League', top5: 'Top 5 Leagues', quests: 'Quests' };
-    const parent = { top5: 'League', squad: 'Club', staff: 'Club', evo: 'Club', unassigned: 'Club', rules: 'Play', playstyles: 'Club', gametraits: 'Club', casual: 'Play', online: 'Play', 'sbc-build': 'SBCs', promoshop: 'Market', bdorgal: 'Market', pstats: 'Club' }[App.view];
+    const names = { home: 'Home', trophies: 'Trophy Room', friends: 'Friends', club: 'Club', squad: 'Squad & Chemistry', play: 'Kick Off', casual: 'Casual Match', online: 'Online Match', rules: 'Match Rules', playstyles: 'PlayStyles Guide', gametraits: 'Gametraits Guide', market: 'Transfer Market', bdorgal: 'Ballon d\'Or', sbc: 'Squad Building Challenges', 'sbc-build': 'SBC Builder', evo: 'Evolutions', store: 'Store', promoshop: 'Promo Shop', pstats: 'Player Stats', unassigned: 'Unassigned', settings: 'Settings', tactics: 'Tactics', staff: 'Staff & Training', league: 'League', top5: 'Top 5 Leagues', quests: 'Quests' };
+    const parent = { top5: 'League', squad: 'Club', staff: 'Club', evo: 'Club', unassigned: 'Club', rules: 'Play', playstyles: 'Club', gametraits: 'Club', trophies: 'Club', friends: 'Club', casual: 'Play', online: 'Play', 'sbc-build': 'SBCs', promoshop: 'Market', bdorgal: 'Market', pstats: 'Club' }[App.view];
     $('#crumbs').innerHTML = `<a href="#" data-act="nav" data-v="home">Home</a>${parent ? ' › ' + parent : ''} › <b>${esc(names[App.view] || '')}</b>`;
     const mv = { club: 'squad', tactics: 'squad', evo: 'squad', staff: 'squad', casual: 'play', online: 'play', rivals: 'play', league: 'play', top5: 'play', promoshop: 'market', sbc: 'store', 'sbc-build': 'store' }[App.view] || App.view;
     document.querySelectorAll('#mnav [data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === mv));   // v214: phone tab bar
@@ -218,6 +218,7 @@
   function render() {
     fc27Type();
     updateHeader();
+    if (!App._dailyShown && RUT.Progress && State.data && !$('#auth-root')) { App._dailyShown = true; const r = RUT.Progress.daily(); if (r) setTimeout(() => { modal(`<h3>Daily login: day ${r.n}</h3><p style="font-size:13px;line-height:1.7">+${fmt(r.coins)} coins${r.pack ? ' and a ' + (r.pack === 'prime' ? 'Prime' : 'Gold') + ' pack' : ''}. Keep your streak going: come back tomorrow for more.</p><div class="row mt"><button class="btn y" data-act="close">Nice</button><button class="btn" data-act="nav" data-v="trophies">Trophy room</button></div>`); updateHeader(); }, 900); }   // v344: login streak
     const fn = VIEWS[App.view] || VIEWS.home;
     const v = $('#view'); v.innerHTML = bigTxt(fn());
     v.classList.remove('enter'); void v.offsetWidth; v.classList.add('enter'); // page transition
@@ -1876,6 +1877,25 @@
   }
 
   /* ------------------------------ QUESTS -------------------------------- */
+  /** v344 (JODIO): trophy room: club level, login streak and achievements */
+  VIEWS.trophies = function () {
+    const Pg = RUT.Progress, i = Pg.info(), list = Pg.list(), done = list.filter(a => a.done).length;
+    const dots = [1, 2, 3, 4, 5, 6, 7].map(n => { const on = ((i.streak - 1) % 7) + 1 >= n && i.streak > 0, r = Pg.dayReward(n); return `<div style="flex:1;min-width:64px;padding:8px 4px;text-align:center;border:1px solid ${on ? '#ffd400' : '#334'};border-radius:8px;background:${on ? 'rgba(255,212,0,.12)' : 'transparent'}"><div class="${on ? 'gold' : 'dim'}" style="font-size:11px">Day ${n}</div><div style="font-size:11px">${fmt(r.coins)}${n === 7 ? '<br>+ Gold pack' : ''}</div></div>`; }).join('');
+    const rows = list.map(a => `<div class="mt" style="padding:8px;border:1px solid ${a.done ? '#ffd400' : '#334'};border-radius:8px"><div class="row between"><b class="${a.done ? 'gold' : ''}">${a.done ? '&#127942; ' : ''}${esc(a.name)}</b><span class="dim" style="font-size:11px">${fmt(a.coins)} coins</span></div><div class="dim" style="font-size:11px">${esc(a.desc)} (${a.v}/${a.goal})</div><div style="background:#1c2434;height:6px;border-radius:3px;margin:4px 0"><div style="height:100%;border-radius:3px;background:${a.done ? '#ffd400' : '#26c281'};width:${Math.round(a.v / a.goal * 100)}%"></div></div>${a.claimed ? '<span class="dim" style="font-size:11px">Claimed</span>' : a.done ? `<button class="btn sm y" data-act="ach-claim" data-id="${a.id}">Claim ${fmt(a.coins)}</button>` : ''}</div>`).join('');
+    return `<h2>Trophy Room</h2>
+      <div class="px"><h3>Club level ${i.lv}</h3><div style="background:#1c2434;height:12px;border-radius:6px"><div style="height:100%;border-radius:6px;background:linear-gradient(90deg,#c9961a,#ffd400);width:${i.pct}%"></div></div><p class="dim" style="font-size:11px">${fmt(i.xp)} XP, ${fmt(i.hi - i.xp)} to level ${i.lv + 1}. Every match you play earns XP: more for goals and wins. Each new level pays coins.</p></div>
+      <div class="px mt"><h3>Login streak: ${i.streak} day${i.streak === 1 ? '' : 's'} <span class="dim" style="font-size:11px">best ${i.best}</span></h3><div class="row" style="gap:6px;flex-wrap:wrap">${dots}</div><p class="dim" style="font-size:11px">Open the game every day to keep it going. Miss a day and it starts again. Day 14 pays a Gold pack, day 21 a Prime pack.</p></div>
+      <div class="px mt"><h3>Achievements ${done}/${list.length}</h3>${rows}</div>`;
+  };
+  VIEWS.friends = function () {
+    const F = RUT.Friends, list = F.list().sort((a, b) => (b.last || 0) - (a.last || 0) || a.name.localeCompare(b.name));
+    const rows = list.map(f => { const n = f.w + f.d + f.l; return `<div class="mt" style="padding:8px;border:1px solid #334;border-radius:8px"><div class="row between"><b>${esc(f.name)}</b><span class="dim" style="font-size:11px">${n ? `W${f.w} D${f.d} L${f.l} · goals ${f.gf}-${f.ga}` : 'No matches yet'}</span></div><div class="row mt" style="gap:6px"><button class="btn sm y" data-act="fr-invite" data-n="${esc(f.name)}">Invite to play</button><button class="btn sm" data-act="fr-copy" data-n="${esc(f.name)}">Copy message</button><button class="btn sm r" data-act="fr-remove" data-n="${esc(f.name)}">Remove</button></div></div>`; }).join('');
+    return `<h2>Friends</h2>
+      <div class="px"><h3>Add a friend</h3><p class="dim" style="font-size:11px">Type their exact club name. Your friend code is your club name: <b class="gold">${esc(D().clubName)}</b>. Friends are saved with your club.</p>
+        <div class="row" style="gap:6px"><input id="fr-name" placeholder="CLUB NAME" maxlength="20" style="width:200px" autocomplete="off"><button class="btn y" data-act="fr-add">Add friend</button></div><p id="fr-msg" class="dim" style="font-size:11px"></p></div>
+      <div class="px mt"><h3>Your friends (${list.length})</h3>${rows || '<p class="dim" style="font-size:11px">No friends yet. Add a club above, or tap Add friend after an online match.</p>'}
+        <p class="dim" style="font-size:11px">Invite to play opens Online, makes a game code and copies a message you can send to your friend. The head-to-head record updates after each online match against them.</p></div>`;
+  };
   VIEWS.quests = function () {
     const Q = RUT.Quests, tab = App.questTab || 'all', all = Q.list(), ready = all.filter(q => q.ready).length;
     const shown = all.filter(q => tab === 'all' || q.cat === tab);
@@ -2522,10 +2542,12 @@
     };
     setTimeout(go, 400);
   }
+  function frCopy(name, code) { const t = 'Hi ' + name + ', join my FC Retro 27 match! Open the game, go to Play > Online, tap Join a game and type the code ' + code + '. Club: ' + D().clubName; try { navigator.clipboard.writeText(t).then(() => toast('Invite message copied. Send it to ' + name, 'good'), () => toast(t)); } catch (e) { toast(t); } }
   function onlineResult(res, home, away, me) {
     const st2 = res.stats, mine = res.score[me], theirs = res.score[1 - me], O = App.online;
     let rv = ''; if (O && O.quick && O.quick.kind) { const ch = O.quick.kind === 'champs', c = Math.round((ch ? Math.round(champPay(mine, theirs) * EARN) : rivCoins(mine, theirs)) * State.weekendK()); State.addCoins(c, (ch ? 'Champions' : 'Rivals') + ' match'); rv = `<p class="gold">+${fmt(c)} coins</p>` + (ch ? champFees(mine, theirs) : '') + rivRecord(O.quick.kind, mine, theirs); State.save(); }
-    modal(`<h1>${mine > theirs ? 'YOU WIN!' : mine < theirs ? 'YOU LOSE' : 'DRAW'}</h1>
+    let frH = ''; if (O && O.theirClub && RUT.Friends && !(O.quick && O.quick.kind)) { const f = RUT.Friends.record(O.theirClub, mine, theirs); frH = f ? `<p class="gold" style="font-size:9px">Friend ${esc(f.name)}: W${f.w} D${f.d} L${f.l}</p>` : `<p><button class="btn sm c" id="fr-addopp" data-act="fr-addopp">Add ${esc(O.theirClub)} as a friend</button></p>`; }
+    modal(`<h1>${mine > theirs ? 'YOU WIN!' : mine < theirs ? 'YOU LOSE' : 'DRAW'}</h1>${frH}
       <h2>${esc(home.name)} ${res.score[0]} - ${res.score[1]} ${esc(away.name)}</h2>
       ${[['Possession', st2.possession[0] + '%', st2.possession[1] + '%'], ['Shots', st2.shots[0], st2.shots[1]], ['On target', st2.onTarget[0], st2.onTarget[1]], ['Passes', st2.passes[0], st2.passes[1]], ['Tackles', st2.tackles[0], st2.tackles[1]]]
         .map(r => `<div class="row between"><span>${r[1]}</span><span class="dim">${r[0]}</span><span>${r[2]}</span></div>`).join('')}
@@ -2759,6 +2781,7 @@
     s.matches++; s.goalsFor += res.score[0]; s.goalsAgainst += res.score[1];
     if (res.won) s.wins++; else if (res.draw) s.draws++; else s.losses++;
     State.addCoins(coins, 'Match ' + res.score.join('-') + ' vs ' + away.name);
+    try { if (RUT.Progress) { const hg = App.match && App.match.hdrGoals ? App.match.hdrGoals[0] : 0; for (let k = 0; k < hg; k++) RUT.Progress.onHeader(); const pr = RUT.Progress.onMatch(res); setTimeout(() => toast('+' + pr.gain + ' XP' + (pr.lv1 > pr.lv0 ? ' · LEVEL ' + pr.lv1 + '! +' + pr.pay.toLocaleString() + ' coins' : ''), 'good'), 1200); } } catch (e) { console.warn(e); }   // v344
     const lossFee = !res.won && !res.draw ? chargeCoins(xo && xo.lossFee != null ? xo.lossFee : LOSS_FEE, 'Match lost') : 0;
     const evoNotes = Evo.onMatch({ won: res.won, goalsFor: res.score[0], goalsAgainst: res.score[1] });
     try { const qd = Object.assign({ mode: 'friendly', level: App.difficulty }, xo && xo.q); RUT.Quests.event('match', Object.assign(qd, { won: res.won, draw: res.draw, gf: res.score[0], ga: res.score[1] })); } catch (e) { /* quests are optional */ }
@@ -3428,6 +3451,12 @@
     'ucl-play': el => uclMatch(el.dataset.mode),
     't5-change': () => { const R = T5().root(); R.cur = null; R.lg = null; State.save(); render(); },
     'q-tab': el => { App.questTab = el.dataset.t; render(); },
+    'fr-add': async () => { const i = $('#fr-name'), msg = $('#fr-msg'); if (!i) return; if (msg) msg.textContent = 'Checking...'; const r = await RUT.Friends.add(i.value); if (r.ok) { toast(r.msg, 'good'); render(); } else if (msg) msg.textContent = r.msg; },
+    'fr-remove': el => { if (RUT.Friends.remove(el.dataset.n)) render(); },
+    'fr-invite': el => { App.inviteFriend = el.dataset.n; if (!onlineSquadReady()) autoBuildSquad(); onlineStartSession('host', Net ? Net.newCode() : ''); App.view = 'online'; render(); setTimeout(() => { const O = App.online; if (O && O.code) frCopy(el.dataset.n, O.code); }, 300); },
+    'fr-copy': el => { const O = App.online; if (O && O.code) frCopy(el.dataset.n, O.code); else toast('Tap Invite to play first: it makes the game code.', 'bad'); },
+    'fr-addopp': () => { const O = App.online, n = O && O.theirClub; if (n && RUT.Friends.addKnown(n)) { toast(n + ' added to friends.', 'good'); const b = $('#fr-addopp'); if (b) b.remove(); } },
+    'ach-claim': el => { const a = RUT.Progress.claim(el.dataset.id); if (a) { toast('Achievement: ' + a.name + ' +' + a.coins.toLocaleString() + ' coins', 'good'); updateHeader(); render(); } },
     'q-claim': el => { const r = RUT.Quests.claim(el.dataset.id); toast(r.msg, r.ok ? 'good' : 'bad'); updateHeader(); render(); },
     'q-claimall': () => { const r = RUT.Quests.claimAll(); toast(r.n ? `Claimed ${r.n} quests: +${fmt(r.coins)} coins${Object.keys(r.packs).length ? ' + ' + RUT.Quests.packText(r.packs) : ''}` : 'Nothing to claim', r.n ? 'good' : 'bad'); updateHeader(); render(); },
     'lg-next': () => { const m = LG().advance(); if (m) { toast(m, 'good'); updateHeader(); } render(); },

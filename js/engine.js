@@ -3991,6 +3991,7 @@ window.RUT = window.RUT || {};
 
   P.goal = function (team) {
     this.score[team]++;
+    { const hs = this.ball.shot; if (hs && hs.type === 'header') { this.hdrGoals = this.hdrGoals || [0, 0]; this.hdrGoals[team]++; } }   // v344: for the Header king achievement
     if (this.cfg.onGoal && !this.headless) this.cfg.onGoal(team, this.score.slice());   // screen side effects only (fees, tickers); never touches the sim
     const sh = this.ball.last && this.ball.last.team === team ? this.ball.last : null;
     this.ev('goal', sh, { team });

@@ -348,5 +348,6 @@ window.RUT = window.RUT || {};
       render(); document.body.appendChild(root);
     },
   };
+  Auth.idOf = idOf;
   RUT.Auth = Auth;
 })();
