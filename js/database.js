@@ -1119,6 +1119,14 @@ window.RUT = window.RUT || {};
     const sho = SUB_MAP.sho || []; if (sho.length) c.face.sho = Math.max(c.face.sho, Math.round(sho.reduce((a, k) => a + (c.sub[k] || 0), 0) / sho.length));
     c.value = valuation(c.rating, c.face, c.playStyles, c.position, c.rare);
   });
+  // v326 (JODIO): Haaland and Ronaldo: heading accuracy and jumping equal their finishing, and +1 overall (promo copies are built from these cards)
+  players.forEach(c => {
+    if (c.name !== 'Erling Haaland' && c.name !== 'Cristiano Ronaldo') return;
+    const f = c.sub.finishing || 0; c.sub.headingAccuracy = Math.max(c.sub.headingAccuracy || 0, f); c.sub.jumping = Math.max(c.sub.jumping || 0, f);
+    c.rating = Math.min(99, c.rating + 1);
+    ['def', 'phy'].forEach(g => { const ks = SUB_MAP[g] || []; if (ks.length) c.face[g] = Math.max(c.face[g] || 0, Math.round(ks.reduce((a, k) => a + (c.sub[k] || 0), 0) / ks.length)); });
+    c.value = valuation(c.rating, c.face, c.playStyles, c.position, c.rare);
+  });
   all.forEach(capFace);
   // v157 (JODIO): the value of every normal (non-special) card under 89 is 30% lower (promo cards are made after this and are untouched)
   all.forEach(c => { if (!c.promo && c.rating < 89) c.value = roundToIncrement(c.value * 0.7); });
