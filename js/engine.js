@@ -1176,6 +1176,8 @@ window.RUT = window.RUT || {};
       speed = (6 + 14 * nrm(0.35 * (s.headingAccuracy || 55) + 0.25 * (s.jumping || 55) + 0.25 * (s.strength || 55) + 0.15 * (s.positioning || 55))) * (0.5 + 0.5 * power) * (0.55 + 0.45 * jt * win);
       err *= 1 + (1 - jt) * 0.9 + (1 - win) * 0.7;
       speed *= 1 + 0.12 * (p.pf['Precision Header'] || 0) + 0.15 * (p.pf['Power Header'] || 0);   // v166: Power Header+ heads it harder
+      speed *= 1.35;   // v327 (JODIO): headers are faster
+      err *= 1 - 0.4 * clamp((nrm(s.headingAccuracy || 55) - 0.6) / 0.4, 0, 1);   // good heading accuracy: a true header
     }
     let skied = 0, timeCut = 1;
     if (bar != null) {
@@ -1234,7 +1236,7 @@ window.RUT = window.RUT || {};
     if (low) tspin = 0.6;
     ang += this.gauss() * err * (elite ? 0.35 : 1);
     // assisted shots are pulled back onto the frame (most of the time for good finishers; poor ones can still miss)
-    if (humanAs && (!head || elite)) {
+    if (humanAs && (!head || elite || nrm(s.headingAccuracy || 55) > 0.8)) {
       const fullA = autoA || this.assist === 'full', keep = elite || netShot ? 1 : this.assist === 'semi' && !autoA ? clamp(0.8 + 0.18 * fin, 0.8, 0.99) : clamp((fullA ? 0.6 : 0.3) + (fullA ? 0.38 : 0.4) * fin, 0.2, 0.97);   // semi assist keeps about 80-97% of shots on frame
       const yG = p.y + Math.tan(ang) * (gx - p.x), lim = GOAL_HALF - 0.35;
       if (Math.abs(yG - PH2) > lim && Math.cos(ang) * dir > 0 && this.rng() < keep) ang = Math.atan2(PH2 + clamp(yG - PH2, -lim, lim) - p.y, gx - p.x);
@@ -1247,7 +1249,7 @@ window.RUT = window.RUT || {};
     let lift = (bar != null || longS ? (humanAs ? 9 : 11) * (1 + 0.015 * Math.max(0, d - 20)) : 1.6) * clamp((power - 0.45) / 0.55, 0, 1) * (1.15 - 0.75 * fin) * (low ? 0.25 : 1) * 2;   // v137: shots fly up to 2x as high
     let vz = (low ? 0.3 : 0.6 + this.rng() * 2.2 * (1 - fin * 0.7)) + lift + skied + (greenPS ? 1.1 : 0);
     if (volley) vz = 0.3 + this.rng() * 1.2 * (1 - fin) + lift * 0.6 + Math.max(0, b.z - 0.5) * -0.8;       // taken on the half-turn: keeps down if it is hit cleanly
-    if (head) vz = -(0.6 + 2.6 * nrm(s.headingAccuracy) * jt) + (1 - jt) * 3.2 + this.gauss() * 0.5 * (1 - fin);   // nodded down; a mistimed jump sends it up
+    if (head) vz = -(0.6 + 2.6 * nrm(s.headingAccuracy) * jt) * (1 + 0.5 * clamp((nrm(s.headingAccuracy || 55) - 0.6) / 0.4, 0, 1)) + (1 - jt) * 3.2 + this.gauss() * 0.5 * (1 - fin);   // v327: a good header is driven down and bounces up past the keeper   // nodded down; a mistimed jump sends it up
     if (scuff) vz *= 0.5;
     if (finesse && curlComp && !chip && !isPen && Math.abs(p.y - PH2) > 2 && Math.abs(gx - p.x) > 4) {   // v223 (JODIO): a finesse shot to the far post finishes at the far post: aim error may push it wide, not back into the middle
       const dx = gx - p.x, ay = p.y + Math.tan(ang) * dx, fs = Math.sign(PH2 - p.y);
@@ -1278,7 +1280,7 @@ window.RUT = window.RUT || {};
         if (zT > GOAL_H - 0.3) vz = (GOAL_H * 0.65 + 4.905 * T * T) / T; } }
     // v182 (JODIO: "very long full-power shots: 0% chance of a goal"): from 30 m or more at full power it always flies over the bar
     if (!isPen && !chip && !head && d >= 30 && power >= 0.95) { const T = d / Math.max(8, speed); vz = Math.max(vz, (6 + 4.905 * T * T) / T); }
-    if (bar != null) { p.cool.plant = 0.5; p.vx *= 0.3; p.vy *= 0.3; }                               // plants the feet: no running on through the strike
+    if (bar != null) { p.cool.plant = 0.12; p.vx *= 0.8; p.vy *= 0.8; }                               // v327 (JODIO): shots can be hit on the run: he barely breaks stride
     if (curlComp && !chip && Math.abs(gx - p.x) > 4) {   // v223 (JODIO): the launch angle is solved on the real flight (spin fading, drag, bounces), so a curler aimed at the far post bends in and finishes at the far post instead of drifting back to the middle
       const dx = gx - p.x, tgt = p.y + Math.tan(ang + curlComp) * dx;
       for (let it = 0; it < 3; it++) { const yc = this.curlCross(p.x, p.y, Math.cos(ang) * speed, Math.sin(ang) * speed, vz, spin, tspin, gx); if (yc == null || Math.abs(tgt - yc) < 0.05) break; ang += dir * Math.atan2(tgt - yc, Math.abs(dx)); }
@@ -1298,7 +1300,7 @@ window.RUT = window.RUT || {};
   P.firstTime = function (p, aim, power, human) {
     const b = this.ball;
     b.gotT = this.t; b.gotSp = Math.sqrt(b.vx * b.vx + b.vy * b.vy + b.vz * b.vz);
-    p.cool.plant = 0.2;
+    p.cool.plant = 0.06;
     this.shoot(p, aim, power, null, { human: !!human, assist: this.assist });
   };
   /** SHOOT pressed without the ball: strike a loose ball in the attacking third at once, or arm a first-time strike for when it arrives. */
@@ -1950,7 +1952,7 @@ window.RUT = window.RUT || {};
       const k = c.strike; k.t += dt;
       if (b.owner !== p || p.cool.stun > 0) c.strike = null;
       else {
-        p.cool.plant = Math.max(p.cool.plant, 0.1); p.sprinting = false; p.tx = 0; p.ty = 0;
+        p.sprinting = false; p.tx *= 0.6; p.ty *= 0.6;   // v327: the wind-up happens on the move
         if (k.t >= k.T) {
           c.strike = null; c.grace = 0.18;
           const AS = ASSIST[this.assist], dd = k.press == null ? null : k.T - k.press;
@@ -1983,7 +1985,7 @@ window.RUT = window.RUT || {};
         else {
           const tt = type === 'power' ? 0.3 : type === 'chip' || type === 'finesse' ? 0.24 : type === 'low' ? 0.18 : 0.2;
           c.strike = { aim, pw, bar: power, type, ty: fty, t: 0, T: this.t - (b.gotT == null ? -9 : b.gotT) < 0.35 ? tt * 0.6 : tt, press: null };   // a first-time strike has no wind-up
-          p.cool.plant = 0.3; p.vx *= 0.3; p.vy *= 0.3;
+          p.cool.plant = 0.08; p.vx *= 0.8; p.vy *= 0.8;
         }
       }
     } else {
