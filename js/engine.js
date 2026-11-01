@@ -794,6 +794,7 @@ window.RUT = window.RUT || {};
     if (prev && prev.team !== p.team) { this.lostAt[prev.team] = this.t; this.wonAt[p.team] = this.t; }
     if (b.passTo && prev && this.pstat) { if (prev.team === p.team) { if (p !== prev) this.pst(prev, 'pc'); } else this.pst(p, 'int'); }
     if (b.indirect && p !== b.indirect) b.indirect = null;
+    b.airZ = b.owner ? 0 : b.z; b.airT = this.t;   // v332: a ball taken out of the air (a cross) can still be headed at goal for a moment
     b.owner = p; b.last = p; b.z = 0; b.vz = 0; b.spin = 0; b.tspin = 0; b.shot = null; b.trailType = null; b.passTo = null; b.cross = null; b.gotT = this.t; b.gotSp = this._inSp || 0;
     const c = this.ctls[p.team]; if (c) c.controlled = p;
   };
@@ -967,7 +968,7 @@ window.RUT = window.RUT || {};
     const lofted = !through && (o.lob || (o.power == null && (dd > 28 || (dd > 12 && this.laneBlocked(p, { x: tx, y: ty }) > 0))));
     let vz = 0;
     const boxCross = lofted && !p.isGK && dd > 14 && this.inBox({ x: tx, y: ty }, 1 - p.team);
-    const whip = (p.pf['Whipped Pass'] || 0) && lofted && (crossing || boxCross || Math.abs(p.y - PH2) > 14);          // v105: a curled cross with added pace
+    const whip = (p.pf['Whipped Pass'] || (boxCross && target && (target.card.position === 'ST' || target.card.position === 'CF' || target.slot >= 8) ? 0.9 : 0)) && lofted && (crossing || boxCross || Math.abs(p.y - PH2) > 14);          // v105: a curled cross with added pace
     if (boxCross) {                                                                // v92: a long ball to a man in the box is a high cross that arrives at head height
       const T = clamp(0.8 + dd / 20, 1.3, 2.9) * (whip ? 0.9 : 1), dg = this.ballM.drag;
       vz = (2.1 + 4.9 * T * T) / T; speed = dd / T * 1.04;
@@ -1023,7 +1024,7 @@ window.RUT = window.RUT || {};
     this.stats.passes[p.team]++;
     this.ev('pass', p, { d: dd, tx, lob: lofted, thru: !!through, cross: !!boxCross || !!crossing });
     if (this.learn) { const sc = this.scout[p.team]; sc.passes++; if (d > 26 || o.lob || through) sc.longP++; }
-    this.psIconAny(p, [whip && 'Whipped Pass', ptrail === 'trivela' && 'Inventive', ptrail === 'trivela' && 'Trivela', 'Pinged Pass', through && 'Incisive Pass', d > 30 && 'Long Ball Pass', d < 20 && 'Tiki Taka',
+    this.psIconAny(p, [whip && p.pf['Whipped Pass'] && 'Whipped Pass', ptrail === 'trivela' && 'Inventive', ptrail === 'trivela' && 'Trivela', 'Pinged Pass', through && 'Incisive Pass', d > 30 && 'Long Ball Pass', d < 20 && 'Tiki Taka',
       this.sp && this.sp.kind === 'THROW IN' && this.sp.taker === p && 'Long Throw', p.isGK && 'Far Throw'], 'ball');   // v166: the logo of the PlayStyle+ that shaped this pass rides over him until it arrives
     const c = this.ctls[p.team]; if (c) { c.pendingReceiver = target; target.autoUntil = this.t + 4; target.hlUntil = this.t + 2.2; }   // the receiver runs onto the ball by himself until it reaches him
   };
@@ -1086,6 +1087,7 @@ window.RUT = window.RUT || {};
     if (opt.type) return opt.type;
     const z = this.ball.owner === p ? 0 : this.ball.z;
     if (z > 1.35) return 'header';
+    if (this.ball.owner === p && this.ball.airZ > 1.2 && this.t - this.ball.airT < 0.45) return 'header';   // v332 (JODIO): timed finishing from a cross is a header, with his heading accuracy
     if (z > 0.3) return 'volley';
     if ((p.pf['Finesse Shot'] || 0)) return 'finesse';
     if ((p.pf['Power Shot'] || 0)) return 'power';
@@ -1109,6 +1111,7 @@ window.RUT = window.RUT || {};
     if (bar != null && (type === 'power' || type === 'finesse')) { const zz = this.shotZone(p); if (bar >= zz.lo && bar <= zz.hi) greenPS = true; else if (bar < zz.lo) { type = 'low'; if (!this.headless) this.fx({ type: 'text', x: p.x, y: p.y - 3, text: 'LOW DRIVEN', color: '#ffd040', life: 0.9 }); } else type = 'normal'; }   // v329: below green = a low driven shot with a pop-up
     const AS = ASSIST[opt.assist || this.assist];
     const finesse = type === 'finesse', powerPS = type === 'power', low = type === 'low', chip = type === 'chip', volley = type === 'volley', head = type === 'header';
+    if (head && b.z < 1.75) b.z = 1.75;   // v332 (JODIO): the header leaves from the head, not the feet
     const gk = this.players.find(o => o.isGK && o.team !== p.team);
     let ty = opt.ty != null ? opt.ty : PH2 + aim * (GOAL_HALF - 0.55);
     const netShot = opt.ty != null && !this.penaltyKick && this.rng() < (this.ctlOf(p) && (opt.assist || this.assist) === 'full' ? 0.65 : 0.9);   // v309 (JODIO): full auto nerfed, fewer of its shots are forced on frame   // v138: 9 in 10 semi / full-auto shots go into the net even when he is not facing the goal
