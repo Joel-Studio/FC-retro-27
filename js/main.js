@@ -2059,9 +2059,40 @@
     draw();
   }
 
+  /** v329 (JODIO): before a Rush match, pick your 4 outfield players, where each plays on the pitch, and how each moves when you are not controlling him. */
+  const RUSH_MOVES = { '': 'Normal (his role)', stay: 'Stay back and defend', mark: 'Mark their striker', goal: 'Run to goal and shoot', shoot: 'Shoot on sight', wide: 'Stay wide', support: 'Stay close to the ball', press: 'Press the ball' };
+  function rushSetup(o, go) {
+    const cards = o.home.cards || [], lab = State.FORMATION, seen = {};
+    const slotName = i => { const l = lab[i] || 'POS'; seen[l] = (seen[l] || 0) + 1; return l; };
+    const names = []; for (let i = 1; i <= 10; i++) names[i] = slotName(i);
+    const ord = names.map((l, i) => i && names.filter(x => x === l).length > 1 ? l + ' ' + (names.slice(1, i + 1).filter(x => x === l).length) : l);
+    const pool = []; for (let i = 1; i <= 10; i++) if (cards[i]) pool.push(cards[i]); (State.benchCards() || []).forEach(c => { if (c && c.position !== 'GK' && !pool.some(x => x.name === c.name) && !(cards[0] && cards[0].name === c.name)) pool.push(c); });   // v329: the whole club can play Rush, not only the XI
+    const top = pool.map((c, i) => i).sort((a, b) => pool[b].rating - pool[a].rating);
+    const prev = App.rushPrev || {}, defI = top.slice(0, 4), defS = [2, 5, 8, 10];
+    const rows = [0, 1, 2, 3].map(r => {
+      const pi = prev.i && pool[prev.i[r]] ? prev.i[r] : defI[r], sl = prev.slot ? prev.slot[r] : (defS[r]), mv = prev.order ? prev.order[r] : '';
+      return `<tr><td class="gold">${r + 1}</td>
+        <td><select data-rs="i${r}">${top.map(i => `<option value="${i}" ${i === pi ? 'selected' : ''}>${esc(pool[i].name)} (${pool[i].rating}, ${esc(pool[i].position)})</option>`).join('')}</select></td>
+        <td><select data-rs="s${r}">${ord.map((l, i) => i ? `<option value="${i}" ${i === sl ? 'selected' : ''}>${esc(l)}</option>` : '').join('')}</select></td>
+        <td><select data-rs="o${r}">${Object.entries(RUSH_MOVES).map(([k, n]) => `<option value="${k}" ${k === mv ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></td></tr>`; }).join('');
+    modal(`<h3>Rush 5v5: set up your team</h3><p class="dim" style="font-size:9px;line-height:1.8">Your keeper stays in goal. Pick four outfield players, where each one plays, and how he moves while you control someone else. Each player and each position can be used once.</p>
+      <table class="tbl" style="width:100%"><tr><th>#</th><th>Player</th><th>Position</th><th>Movement</th></tr>${rows}</table>
+      <div class="row mt"><button class="btn y" id="rs-go">Kick off</button><button class="btn" id="rs-auto">Best four, auto</button></div>`);
+    const val = k => document.querySelector(`[data-rs="${k}"]`).value;
+    document.getElementById('rs-auto').onclick = () => { o.rushSetup = null; App.rushPrev = null; closeModal(); go(); };
+    document.getElementById('rs-go').onclick = () => {
+      const i = [0, 1, 2, 3].map(r => +val('i' + r)), slot = [0, 1, 2, 3].map(r => +val('s' + r)), order = [0, 1, 2, 3].map(r => val('o' + r));
+      if (new Set(i).size < 4) { toast('Pick four different players.', 'bad'); return; }
+      if (new Set(slot).size < 4) { toast('Give each player his own position.', 'bad'); return; }
+      App.rushPrev = { i, slot, order }; o.rushSetup = [0, 1, 2, 3].map(r => ({ card: pool[i[r]], slot: slot[r], order: order[r] }));
+      closeModal(); go();
+    };
+  }
+
   function runMatch(o) {
-    if (!o.online && !o.training && RUT.MenuFX) RUT.MenuFX.enter();   // v328: "Entering the grounds"
     if (App.rushOnce && !o.online && !o.training && !o.duel) { App.rushOnce = false; o.rush = true; o.pitch = RUSH_PITCH; o.halfSeconds = 60; o.noIntro = true; o.tag = (o.tag ? o.tag + ' · ' : '') + 'Rush 5v5'; }   // v323: Rush buttons next to Play / Watch everywhere
+    if (o.rush && !o._rushSet && !o.online && o.home && o.home.name === D().clubName) { rushSetup(o, () => { o._rushSet = true; runMatch(o); }); return; }   // v329: pick positions and movement first
+    if (!o.online && !o.training && RUT.MenuFX) RUT.MenuFX.enter();   // v328: "Entering the grounds"
     const humans = o.humans || [], two = humans.length > 1 && !o.online;
     const canTac = humans.length === 1 && !o.online && !o.training && !o.duel && !o.rush;      // v113: tactic changes during the match (by button / keys 1-9) and the auto coach
     const btnTac = canTac ? '<button class="btn sm y" data-mact="tac">Tactics</button>' : '';
@@ -2108,7 +2139,7 @@
       balance: (hu && humans.length === 1 && !o.online) ? (lv => [humans[0] === 0 ? 0 : lv, humans[0] === 1 ? 0 : lv])(Engine.AIBal ? Engine.AIBal.level(D().aiBal) : (RUT.AIBal ? RUT.AIBal.level(D().aiBal) : 0)) : undefined,   // v306 (JODIO): AI balancer
       home: sm(o.home), away: sm(o.away), tacGain: own ? [CLUB_GAIN, 0] : undefined, coach: own ? [coachK(), null] : undefined, train: own ? [trainBoost(), null] : undefined, autoCoach: false ? [humans[0] === 0, humans[0] === 1] : undefined, plays: (own && !humans.length && !o.online && !o.training && !o.duel && (D().plays || []).some(pl => pl.on)) ? [playsCfg(), null] : undefined, humans, halfSeconds: o.halfSeconds || App.halfSeconds, setPieces: (!o.online && !o.training && !o.duel && humans.length === 1 && humans[0] === 0) ? [spCfg(), null] : undefined, knockout: o.knockout, extraTime: !!o.extraTime, camera: App.camMode || 'tv', seed: o.seed,
       penAsk: (humans.length === 1 && !o.online && !o.training) ? (mm, cb) => askPens(mm, wrap, humans[0], cb) : undefined,
-      training: o.training || null, duel: !!o.duel, rush: !!o.rush, pitch: o.pitch || App.pitch || 'huge', surface: (o.phys || physCfg()).surface, ballModel: (o.phys || physCfg()).ballModel, assist: (o.phys || physCfg()).assist, styles: o.styles, brain: o.brain || (gfxPref() === 'ultra' ? 'ultra' : 'std'),
+      training: o.training || null, duel: !!o.duel, rush: !!o.rush, rushSetup: o.rushSetup || null, pitch: o.pitch || App.pitch || 'huge', surface: (o.phys || physCfg()).surface, ballModel: (o.phys || physCfg()).ballModel, assist: (o.phys || physCfg()).assist, styles: o.styles, brain: o.brain || (gfxPref() === 'ultra' ? 'ultra' : 'std'),
       press: (hu && humans.length === 1 && !o.online && RUT.AIBal) ? (pr => [humans[0] === 0 ? 0 : pr, humans[0] === 1 ? 0 : pr])(RUT.AIBal.pressure(D().aiBal)) : undefined,   // v309 (JODIO): smarter AI when you win 2+ of the last 3
       onEnd: res => { if (hu && humans.length === 1 && !o.online && RUT.AIBal) { const hw = humans[0] === 0 ? res.won : (!res.won && !res.draw); D().aiBal = RUT.AIBal.push(D().aiBal, hw ? 1 : res.draw ? 0.5 : 0); State.save(); }   // v306: the balancer remembers how you did
         if (own) recordPlayerStats(res, o.away); if (recOn) saveRec(m, o); playsLive(m); setTimeout(() => { m.stop(); wrap.remove(); App.match = null; o.onEnd(res); }, 1800); },

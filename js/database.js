@@ -1127,6 +1127,8 @@ window.RUT = window.RUT || {};
     ['def', 'phy'].forEach(g => { const ks = SUB_MAP[g] || []; if (ks.length) c.face[g] = Math.max(c.face[g] || 0, Math.round(ks.reduce((a, k) => a + (c.sub[k] || 0), 0) / ks.length)); });
     c.value = valuation(c.rating, c.face, c.playStyles, c.position, c.rare);
   });
+  // v329 (JODIO): every Ronaldo card is 5% faster in pace (sprint speed, acceleration, the PAC face number), capped at 99
+  players.forEach(c => { if (c.name !== 'Cristiano Ronaldo') return; ['sprintSpeed', 'acceleration', 'speed'].forEach(k => { if (c.sub[k] != null) c.sub[k] = Math.min(99, Math.round(c.sub[k] * 1.05)); }); if (c.face && c.face.pac != null) c.face.pac = Math.min(99, Math.round(c.face.pac * 1.05)); c.value = valuation(c.rating, c.face, c.playStyles, c.position, c.rare); });
   all.forEach(capFace);
   // v157 (JODIO): the value of every normal (non-special) card under 89 is 30% lower (promo cards are made after this and are untouched)
   all.forEach(c => { if (!c.promo && c.rating < 89) c.value = roundToIncrement(c.value * 0.7); });

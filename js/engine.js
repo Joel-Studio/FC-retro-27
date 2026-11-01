@@ -361,7 +361,8 @@ window.RUT = window.RUT || {};
     this.surf = SURF[cfg.surface] || SURF.dry;                            // pitch condition and match ball: part of the match setup (same on both sides online)
     this.ballM = BALLS[cfg.ballModel] || BALLS.match;
     this.assist = ASSIST[cfg.assist] ? cfg.assist : 'semi';
-    if (cfg.rush) [cfg.home, cfg.away].forEach(t => { const c = t.cards, o = c.slice(1, 11).filter(Boolean).sort((a, b) => b.rating - a.rating).slice(0, 4), k = [c[0]]; [2, 5, 8, 10].forEach((sl, i) => { k[sl] = o[i]; }); t.cards = k; });   // v316 Rush 5v5: a keeper (slot 0) and your four best outfield players in slots 2, 5, 8, 10
+    if (cfg.rush) [cfg.home, cfg.away].forEach((t, ti) => { const c = t.cards, o = c.slice(1, 11).filter(Boolean).sort((a, b) => b.rating - a.rating).slice(0, 4), k = [c[0]]; const su = ti === 0 && Array.isArray(cfg.rushSetup) && cfg.rushSetup.length === 4 ? cfg.rushSetup : null;   // v329 (JODIO): the user picks the 4 outfield players, their pitch slots and orders before a Rush match
+      if (su) su.forEach(r => { const cd = r.card || c[r.i]; if (cd && r.slot >= 1 && r.slot <= 10) k[r.slot] = r.order ? Object.assign({}, cd, { order: r.order }) : cd; }); else [2, 5, 8, 10].forEach((sl, i) => { k[sl] = o[i]; }); t.cards = k; });   // v316 Rush 5v5: a keeper (slot 0) and your four best outfield players in slots 2, 5, 8, 10
     if (cfg.duel) [cfg.home, cfg.away].forEach(t => { const c = t.cards, k = [c[0]]; k[9] = c[1]; t.cards = k; });   // 1v1 duel: a keeper (slot 0) and one outfield player (slot 9) each
     if (Array.isArray(cfg.balance)) {   // v306: the balancer's lift for the AI sides (levels from AIBal.level, 0 for a human side)
       const b0 = cfg.balance; cfg.home = Object.assign({}, cfg.home, { cards: AIBal.lift(cfg.home.cards, AIBal.add(b0[0] || 0)) }); cfg.away = Object.assign({}, cfg.away, { cards: AIBal.lift(cfg.away.cards, AIBal.add(b0[1] || 0)) });
@@ -2813,6 +2814,11 @@ window.RUT = window.RUT || {};
         const tgt = this.players.filter(o => o.team === p.team && o !== p && !o.isGK && Math.abs(o.y - PH2) < 13 && Math.abs(gx - o.x) > 7 && Math.abs(gx - o.x) < 26 && Math.abs(gx - o.x) > Math.abs(gx - p.x) + 2 && dist(o, p) > 5)
           .map(o => { let open = 1e9; this.players.forEach(q => { if (q.team !== p.team) open = Math.min(open, dist(q, o)); }); return { o, sc: Math.min(open, 9) - this.laneBlocked(p, o) * 4 }; }).sort((a, c) => c.sc - a.sc)[0];
         if (tgt && tgt.sc > 1.5) { this.pass(p, tgt.o, false, { power: 0.6 }); return; }
+      }
+      if (!p.isGK && !this.ctlOf(p) && Math.abs(p.y - PH2) > 0.2 * PITCH_H && dGoal > 14 && dGoal < 56 * PSC) {   // v329 (JODIO): a striker in the box gets a cross to head: a wide carrier looks for him first
+        const stb = this.players.filter(o => o.team === p.team && o !== p && !o.isGK && (o.slot >= FC.fwdFrom || o.card.position === 'ST' || o.card.position === 'CF') && Math.abs(o.y - PH2) < 15 && Math.abs(gx - o.x) < 20 * PSC && Math.abs(gx - o.x) < dGoal - 3)
+          .map(o => { let open = 1e9; this.players.forEach(q => { if (q.team !== p.team) open = Math.min(open, dist(q, o)); }); return { o, sc: Math.min(open, 8) + nrm(o.card.sub.headingAccuracy || 55) * 3 }; }).sort((x, y) => y.sc - x.sc)[0];
+        if (stb && this.rng() < 0.45 + 0.4 * nrm(s.crossing || 55)) { this.pass(p, stb.o, false, { power: 0.8, lob: true }); return; }
       }
       const crossK = Math.max(TK.cross, tr.has('crs') ? 0.45 : 0, wingAI ? 0.4 : 0);
       const lw = LA && isWinger;   // League A wingers cross from further out and wider
