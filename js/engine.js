@@ -1296,6 +1296,7 @@ window.RUT = window.RUT || {};
     this.stats.shots[p.team]++;
     if (!isPen) this.ev('shot', p, { head: !!head, volley: !!volley, chip: !!chip });
     if (this.learn && !isPen) { const sc = this.scout[p.team]; sc.shots++; if (Math.abs(p.x - (this.teams[p.team].dir > 0 ? PITCH_W : 0)) > 0.19 * PITCH_W) sc.longS++; }
+    if (head && (p.pf['Precision Header'] || 0) >= 1 && !this.headless) this.fx({ type: 'text', x: p.x, y: p.y - 3.4, text: 'PRECISION HEADER+', color: '#9fd8ff', life: 1.1 });   // v332 (JODIO): the PlayStyle pops up when used
     this.psIconAny(p, [powerPS && 'Power Shot', finesse && 'Finesse Shot', chip && 'Chip Shot', low && 'Low Driven Shot', volley && 'Acrobatic', head && 'Power Header', head && 'Precision Header', this.pressure(p) >= 1 && 'Gamechanger'], 'ball');   // v166: stays until the shot is over
     if (scuff && !this.headless) this.fx({ type: 'text', x: p.x, y: p.y - 3.2, text: 'SCUFFED', color: '#c0c0c0', life: 0.7 });
   };
