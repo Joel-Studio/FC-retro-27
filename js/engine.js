@@ -1111,6 +1111,7 @@ window.RUT = window.RUT || {};
     const gx = dir > 0 ? PITCH_W : 0;
     const d = len(gx - p.x, PH2 - p.y);
     let type = this.shotType(p, opt); const loose = b.owner !== p;
+    if (type !== 'header' && !this.penaltyKick && !(this.sp && this.sp.taker === p) && ((b.owner === p && b.airZ > 1.2 && this.t - b.airT < 0.5) || (b.owner !== p && b.z > 0.9 && b.last && b.last !== p && b.last.team === p.team && !b.shot))) type = 'header';   // v339 (JODIO): a finish off a cross or long ball is a header (Precision Header+ or not), never a low driven shot
     let greenPS = false;   // v325 (JODIO): a human's Power Shot / Finesse Shot only fire when the bar is released in the green zone, and then the ball rises higher
     if (bar != null && (type === 'power' || type === 'finesse')) { const zz = this.shotZone(p); if (bar >= zz.lo && bar <= zz.hi) greenPS = true; else if (bar < zz.lo) { type = 'low'; if (!this.headless) this.fx({ type: 'text', x: p.x, y: p.y - 3, text: 'LOW DRIVEN', color: '#ffd040', life: 0.9 }); } else type = 'normal'; }   // v329: below green = a low driven shot with a pop-up
     const AS = ASSIST[opt.assist || this.assist];
@@ -5722,7 +5723,7 @@ void main(){
     const press = opps.reduce((m, o) => Math.min(m, dist(o, p)), 99);
     let lv;
     if ((lv = gtLv(p, 'timef')) && this.inBox(p, 1 - p.team) && age < 0.5 + 0.2 * lv && Math.abs(p.x - gx) < 14 && this.gtGo(p, 'timef', 2.5)) {
-      this.gtPop(p, 'timef'); this.shoot(p, 0, (lv > 1 ? 0.9 : 0.84) + this.rng() * 0.1, null, { auto: true, assist: 'full', type: 'low' }); if (b.shot && b.shot.by === p) b.shot.gte = lv; return;
+      this.gtPop(p, 'timef'); this.shoot(p, 0, (lv > 1 ? 0.9 : 0.84) + this.rng() * 0.1, null, { auto: true, assist: 'full', type: b.airZ > 1.2 && this.t - b.airT < 0.5 ? null : 'low' }); if (b.shot && b.shot.by === p) b.shot.gte = lv; return;
     }
     if ((lv = gtLv(p, 'range')) && !this.inBox(p, 1 - p.team) && dg >= 17 && dg <= 27 + 5 * lv && Math.abs(p.y - PH2) < 20 && !this.laneBlocked(p, { x: gx, y: PH2 }, true) && press > 3 && age > 0.15 && this.gtGo(p, 'range', 7 - lv)) {
       this.gtPop(p, 'range'); this.shoot(p, 0, 0.88 + 0.08 * lv, null, { auto: true, assist: 'full', long: dg > 22, onFrame: true });   // v338 (JODIO): Range Finder strikes are always on target if (b.shot && b.shot.by === p) b.shot.gte = lv; return;
