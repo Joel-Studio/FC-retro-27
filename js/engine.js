@@ -3847,6 +3847,7 @@ window.RUT = window.RUT || {};
     }
     if (!p.isGK && !b.shot && !this.training) {                        // a finisher meets the ball in the box: strike it first time
       const ctl = this.ctlOf(p);
+      if (!opp && (p.pf['Precision Header'] || 0) > 0 && b.z > 1.1 && (b.cross || (b.passTo && b.passTo.p === p)) && Math.abs(p.x - (this.teams[p.team].dir > 0 ? PITCH_W : 0)) < 0.28 * PITCH_W && this.phase === 'play') { this.firstTime(p, 0, 0.85, !!ctl); return; }   // v341 (JODIO): Precision Header (+ or not) always heads a cross or long ball at goal
       if (ctl && ctl.arm && ctl.arm.until > this.t) { const a = ctl.arm; ctl.arm = null; this.firstTime(p, a.aim, 0.8, true); return; }
       if (!ctl && !opp && this.aiFirstTime(p, sp)) return;
     }
@@ -5672,7 +5673,7 @@ void main(){
       const tg = b.passTo && b.passTo.p;
       if (!tg || b.owner || b.shot || this.t - (b._sureT || (b._sureT = this.t)) > 6) { b.sure = false; b._sureT = 0; }
       else { const sp = len(b.vx, b.vy), dx = tg.x - b.x, dy = tg.y - b.y, d = Math.hypot(dx, dy) || 1;
-        if (d < 2.6 && b.z < 3.2) { b.sure = false; b._sureT = 0; this.giveBall(tg); }
+        if (d < 2.6 && b.z < 3.2) { b.sure = false; b._sureT = 0; if (b.z > 1.1 && (tg.pf['Precision Header'] || 0) > 0 && !tg.isGK && Math.abs(tg.x - (this.teams[tg.team].dir > 0 ? PITCH_W : 0)) < 0.28 * PITCH_W) this.firstTime(tg, 0, 0.85, !!this.ctlOf(tg)); else this.giveBall(tg); }   // v341: a Precision Header man heads a curled cross at goal instead of taking it in
         else if (sp > 2) { const k = 0.3, sp2 = Math.max(sp, 11); b.vx += (dx / d * sp2 - b.vx) * k; b.vy += (dy / d * sp2 - b.vy) * k; } }
     } else b._sureT = 0;
     if (car !== this._gtO) { this._gtO = car; this._gtT = this.t; if (b.sure && car) b.sure = false; }
