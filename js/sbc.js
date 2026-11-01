@@ -286,7 +286,7 @@ window.RUT = window.RUT || {};
     const r = sbc.reward; if (!r || r.type !== 'card') return null;
     try { return (r.promo === 'nlpofm' || r.promo === 'clpromo' || r.promo === 'lpotm' || r.promo === 'lpotw') ? RUT.DB.registerPromo(r.baseId, r.promo, r.boost) : RUT.DB.get(r.baseId); } catch (e) { return null; }
   }
-  function feeOf(sbc) { const c = rewardCard(sbc); return c && c.rating >= 91 ? 400000 + 55000 * (c.rating - 91) : 0; }   // v192 (JODIO): fee 400,000 (+55,000 per point above 91)
+  function feeOf(sbc) { const c = rewardCard(sbc); return c && c.rating >= 91 ? 200000 : 0; }   // v340 (JODIO): every 91+ reward costs a flat 200,000   // v192 (JODIO): fee 400,000 (+55,000 per point above 91)
 
   /* v241 (JODIO): pack SBCs can be done again after each daily refresh or paid reset (once per period) */
   const period = () => { daily(); const d = RUT.State.data.sbcDay; return d.d + '#' + (d.r || 0); };
