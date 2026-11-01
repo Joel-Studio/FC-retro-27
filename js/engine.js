@@ -3347,7 +3347,7 @@ window.RUT = window.RUT || {};
     const b = this.ball, o = b.owner;
     if (!o) return;
     const sp = len(o.vx, o.vy), k = clamp(sp / Math.max(1, o.sprintMax), 0, 1);
-    const off = 0.62 + 0.3 * k, sw = Math.sin((o.anim || 0) * 1.1) * 0.1 * k;
+    const pulse = 0.5 + 0.5 * Math.sin((o.anim || 0) * 2.2), off = 0.55 + k * (0.2 + 0.6 * pulse * pulse), sw = Math.sin((o.anim || 0) * 1.1) * 0.1 * k;   // v322 (JODIO, FC27 video): on the run the ball is knocked a little ahead with each stride and drawn back in, instead of being glued to the boot
     const tx = o.x + o.fx * off - o.fy * sw + (o.skOx || 0), ty = o.y + o.fy * off + o.fx * sw + (o.skOy || 0);
     if (snap || !dt || o.skill) { b.x = tx; b.y = ty; }
     else { const f = 1 - Math.exp(-(22 + 20 * nrm(o.card.sub.ballControl)) * dt); b.x += (tx - b.x) * f; b.y += (ty - b.y) * f; }
