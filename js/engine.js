@@ -456,7 +456,7 @@ window.RUT = window.RUT || {};
     this.ctls = [null, null];
     humans.forEach((t, i) => { this.ctls[t] = newCtl(t, humans.length > 1 ? (i ? 'p2' : 'p1') : 'all', i); });
     this.human = humans.length ? humans[0] : null;
-    this.cam = { x: PW2, y: PH2 }; this.camMode = CAMS[cfg.camera] ? cfg.camera : 'tv'; this.gfx = 'auto'; this.tagMode = 2;   // name tags: 0 off, 1 all players, 2 only the ones you control + the ball carrier
+    this.cam = { x: PW2, y: PH2 }; this.camMode = CAMS[cfg.camera] ? cfg.camera : 'fc'; this.gfx = 'auto'; this.tagMode = 2;   // name tags: 0 off, 1 all players, 2 only the ones you control + the ball carrier
     this.speed = 1; this.tempo = 1; this.over = false;
     this.ticker = 'KICK OFF!'; this.tickerT = 3;
     this.training = cfg.training || null;
@@ -4042,11 +4042,12 @@ window.RUT = window.RUT || {};
   // back, about 47 m of pitch across the middle of the screen and players near true scale. WIDE is the closer
   // high view, CLOSE the zoomed-in arcade view. Actor sizes divide by ZOOM; FY = how much the camera follows the ball up/down.
   const CAMS = {
+    fc: { F: 850, H: 36, BACK: 97, ROW: 128, Z: 2.4, FY: 0.5 },   // v321: FC27 broadcast-style high camera (only the 3D renderer has its own settings for it)
     tv: { F: 850, H: 36, BACK: 97, ROW: 128, Z: 2.4, FY: 0.5 },
     wide: { F: 400, H: 26, BACK: 40, ROW: 150, Z: 1.55, FY: 0.7 },
     close: { F: 380 * 1.8, H: 16, BACK: 45, ROW: 165, Z: 1.8, FY: 0.7 },
   };
-  const CAM_ORDER = ['tv', 'wide', 'close'];
+  const CAM_ORDER = ['fc', 'tv', 'wide', 'close'];
   // Graphics: canvas resolution (share of 1080 lines) per preset. Auto starts high and steps down by itself when frames run long.
   const GFX_Q = { ultra: 1440 / 1080, '3d': 1, high: 1, med: 0.67, low: 0.5, potato: 0.34 }, Q_STEPS = [1, 0.83, 0.67, 0.5, 0.34];
   const GFX_ORDER = ['3d'];   // v167 (JODIO): full 3D only (the 2D looks stay only as the fallback when the browser has no WebGL)

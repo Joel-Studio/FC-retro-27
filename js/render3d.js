@@ -456,7 +456,7 @@
     }
 
     /* ---- camera ---- */
-    const CAM = { tv: { fov: 37, h: 36, back: 68 }, wide: { fov: 41, h: 24, back: 36 }, close: { fov: 46, h: 13, back: 22 } };   // v309 (JODIO): zoomed out more (wider field of view)   // v172: about 40% higher (JODIO: "make the view higher")
+    const CAM = { fc: { fov: 42, h: 100, back: 32 }, tv: { fov: 37, h: 36, back: 68 }, wide: { fov: 41, h: 24, back: 36 }, close: { fov: 46, h: 13, back: 22 } };   // v309 (JODIO): zoomed out more (wider field of view)   // v172: about 40% higher (JODIO: "make the view higher")
     const camTarget = new T.Vector3(), camPos = new T.Vector3();
     let curW = 0, curH = 0;
     const mProj = new T.Vector3();
