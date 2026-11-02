@@ -4068,15 +4068,15 @@ window.RUT = window.RUT || {};
   // high view, CLOSE the zoomed-in arcade view. Actor sizes divide by ZOOM; FY = how much the camera follows the ball up/down.
   const CAMS = {
     // v355 (JODIO): the 2D looks use the same on-screen size as the 3D camera. F = 3D pixels per metre at the focus point (view height / (2 tan(fov/2)) / camera distance) x BACK, so a player and the ball are the same size in every graphics mode
-    fc: { F: 587, H: 36, BACK: 97, ROW: 128, Z: 2.4, FY: 0.5 },
-    tv: { F: 680, H: 36, BACK: 97, ROW: 128, Z: 2.4, FY: 0.5 },
-    wide: { F: 444, H: 26, BACK: 40, ROW: 150, Z: 1.55, FY: 0.7 },
-    close: { F: 745, H: 16, BACK: 45, ROW: 165, Z: 1.8, FY: 0.7 },
+    fc: { F: 835, H: 36.7, BACK: 97, ROW: 128, Z: 2.4, FY: 0.5 },
+    tv: { F: 1034, H: 29.6, BACK: 97, ROW: 128, Z: 2.4, FY: 0.5 },
+    wide: { F: 625, H: 16.6, BACK: 40, ROW: 150, Z: 1.55, FY: 0.7 },
+    close: { F: 1100, H: 9.95, BACK: 45, ROW: 165, Z: 1.8, FY: 0.7 },
   };
   const CAM_ORDER = ['tv', 'fc', 'wide', 'close'];
   // Graphics: canvas resolution (share of 1080 lines) per preset. Auto starts high and steps down by itself when frames run long.
   const GFX_Q = { ultra: 1440 / 1080, '3d': 1, high: 1, med: 0.67, low: 0.5, potato: 0.34 }, Q_STEPS = [1, 0.83, 0.67, 0.5, 0.34];
-  const GFX_ORDER = ['3d'];   // v167 (JODIO): full 3D only (the 2D looks stay only as the fallback when the browser has no WebGL)
+  const GFX_ORDER = ['3d', 'high', 'med', 'low', 'potato', 'auto'];   // v360 (JODIO): the in-game Gfx button cycles every look again (it was stuck on 3D)
   let ZOOM, CAM_F, CAM_H, CAM_HOR, CAM_BACK, CAM_FY;
   function useCam(mode) { const c = CAMS[mode] || CAMS.tv; ZOOM = c.Z; CAM_F = c.F; CAM_H = c.H; CAM_BACK = c.BACK; CAM_FY = c.FY; CAM_HOR = c.ROW + VOFF - c.H * c.F / c.BACK; }
   useCam('tv');
