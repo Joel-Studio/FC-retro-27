@@ -3261,8 +3261,24 @@
     packFX(def, () => (res.walkout ? walkout(res) : revealPack(res, def)));
   }
 
+  /** v356 (JODIO): Future Star pack opening, FC26 style (no ball): the foil pack glides in, charges, a seam of light splits it, both halves fly apart and light beams in rating colours shoot up. Click to skip. */
+  function fsPackFX(def, done) {
+    const el = document.createElement('div'); el.className = 'fsp';
+    const beams = Array.from({ length: 9 }, (_, i) => `<i class="fsp-b" style="--i:${i};--x:${(i - 4) * 11}%;--c:${['#ff6ad5', '#ffffff', '#b04cff', '#ff9ae6', '#ffffff', '#b04cff', '#ff6ad5', '#ffffff', '#ff9ae6'][i]}"></i>`).join('');
+    const dots = Array.from({ length: 50 }, () => `<i class="fsp-d" style="--x:${Math.round(Math.random() * 100)}%;--dl:${(Math.random() * 2.2).toFixed(2)}s;--s:${(1 + Math.random() * 3).toFixed(1)}px"></i>`).join('');
+    const face = `<div class="fsp-star">&#9733;</div><div class="fsp-nm">FUTURE<br>STAR</div><div class="fsp-ct">${def.count} ITEMS</div>`;
+    el.innerHTML = `<div class="fsp-bg"></div>${dots}<div class="fsp-stage"><div class="fsp-pack"><div class="fsp-half top"><div class="fsp-art">${face}</div></div><div class="fsp-half bot"><div class="fsp-art">${face}</div></div><div class="fsp-seam"></div><div class="fsp-sheen"></div></div>${beams}<div class="fsp-flash"></div></div><div class="skip">click to skip</div>`;
+    document.body.appendChild(el);
+    let went = false, ended = false, t1, t2;
+    const end = () => { if (ended) return; ended = true; clearTimeout(t1); clearTimeout(t2); el.remove(); done(); };
+    const go = () => { if (went) return; went = true; clearTimeout(t1); el.classList.add('go'); t2 = setTimeout(end, 2600); };
+    if (!window.RUT_PFX_HOLD) t1 = setTimeout(go, 2600);
+    el.addEventListener('click', () => (went ? end() : go()));
+  }
+
   /** v155: 3D pack opening (CSS 3D). The pack spins in, shakes, its front tears open in a flash and the cards follow. The Ballon d'Or pack is golden with a flying golden ball. Click to speed up or skip. */
   function packFX(def, done) {
+    if (/^fstar/.test(def.id)) return fsPackFX(def, done);
     const gold = def.tier === 'bdor', fsP = /^fstar/.test(def.id), el = document.createElement('div');
     el.className = 'pfx' + (gold ? ' gold' : '') + (fsP ? ' fs' : '');
     const sp = Array.from({ length: gold ? 70 : 44 }, () => { const a = Math.random() * 6.283, d = 160 + Math.random() * 420; return `<i class="spark" style="--x:${Math.round(Math.cos(a) * d)}px;--y:${Math.round(Math.sin(a) * d * .7)}px;--z:${Math.round(Math.random() * 500)}px;--d:${(0.55 + Math.random() * .4).toFixed(2)}s;${gold ? 'background:#ffd04a;' : fsP ? 'background:#ff6ad5;' : ''}"></i>`; }).join('');
@@ -3355,9 +3371,10 @@
     const c = res.best;
     const el = document.createElement('div');
     el.className = 'walkout';
-    const glKind = c.promo === 'fstar' ? 'fstar' : (c.promo === 'bdor' || c.promo === 'award' || (res.packId === 'bdor' || res.packId === 'bdorg')) ? 'bdor' : (c.promo === 'clpromo' || c.cl) ? 'cl' : null;   // v160: the Ballon d'Or and Champions League cards are revealed on a 3D trophy
+    const glKind = c.promo === 'fstar' ? null : (c.promo === 'bdor' || c.promo === 'award' || (res.packId === 'bdor' || res.packId === 'bdorg')) ? 'bdor' : (c.promo === 'clpromo' || c.cl) ? 'cl' : null;   // v160: the Ballon d'Or and Champions League cards are revealed on a 3D trophy
     el.innerHTML = `${glKind ? '<canvas class="pfx-gl"></canvas>' : ''}<canvas class="fw"></canvas><div class="stage"></div><p class="dim" style="position:absolute;bottom:20px;z-index:2">click to skip</p>`;
     if (glKind) el.classList.add('gl', 'wo-' + glKind);
+    if (c.promo === 'fstar') el.classList.add('wo-fstar');
     document.body.appendChild(el);
     const stage = el.querySelector('.stage');
     let gl = null;
