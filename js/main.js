@@ -3261,8 +3261,99 @@
     packFX(def, () => (res.walkout ? walkout(res) : revealPack(res, def)));
   }
 
-  /** v356 (JODIO): Future Star pack opening, FC26 style (no ball): the foil pack glides in, charges, a seam of light splits it, both halves fly apart and light beams in rating colours shoot up. Click to skip. */
+  /** v357 (JODIO): the Future Star pack in real 3D, about 10 s: a star tunnel, the foil pack flies in and the camera orbits it, it charges and cracks along a light seam, then glowing cards, rings and sparks burst past the camera. Click once to jump to the crack, again to skip. */
   function fsPackFX(def, done) {
+    const fallback = () => fsPackCSS(def, done);
+    if (!RUT.load3D) return fallback();
+    Promise.resolve(RUT.load3D()).then(() => { if (window.THREE) { try { fsPackGL(def, done); return; } catch (e) { if (window.console) console.warn('Future Star 3D pack failed', e); } } fallback(); }, fallback);
+  }
+  function fsPackGL(def, done) {
+    const T = window.THREE, el = document.createElement('div'); el.className = 'fsp3';
+    el.innerHTML = '<canvas></canvas><div class="fsp3-cap c1">FUTURE STAR</div><div class="fsp3-cap c2">THE NEXT GENERATION</div><div class="fsp3-cap c3">OPENING...</div><div class="fsp3-flash"></div><div class="fsp3-out"></div><div class="skip">click to skip</div>';
+    document.body.appendChild(el);
+    const cv = el.querySelector('canvas'), W = innerWidth, H = innerHeight;
+    const renderer = new T.WebGLRenderer({ canvas: cv, antialias: !window.RUT_LITE, alpha: false }); renderer.setPixelRatio(window.RUT_LITE ? 1 : Math.min(devicePixelRatio || 1, 1.5)); renderer.setSize(W, H, false); renderer.setClearColor(0x0e0414, 1); renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.9;
+    const scene = new T.Scene(); scene.fog = new T.FogExp2(0x1a0828, 0.018);
+    const cam = new T.PerspectiveCamera(50, W / H, 0.1, 200);
+    scene.add(new T.AmbientLight(0xffffff, 0.3));
+    const key = new T.PointLight(0xffffff, 5, 40), rimA = new T.PointLight(0xff4fd0, 9, 40), rimB = new T.PointLight(0x9a4cff, 9, 40); scene.add(key, rimA, rimB);
+    // the pack's foil face
+    const fc = document.createElement('canvas'); fc.width = 512; fc.height = 800; const g = fc.getContext('2d');
+    const gr = g.createLinearGradient(0, 0, 512, 800); gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.3, '#ffb3ec'); gr.addColorStop(0.65, '#c050ff'); gr.addColorStop(1, '#5a1a8a'); g.fillStyle = gr; g.fillRect(0, 0, 512, 800);
+    g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 3; for (let k = -800; k < 1300; k += 46) { g.beginPath(); g.moveTo(k, 800); g.lineTo(k + 800, 0); g.stroke(); }
+    g.textAlign = 'center'; g.fillStyle = '#fff'; g.shadowColor = '#ff6ad5'; g.shadowBlur = 26; g.font = '170px serif'; g.fillText('★', 256, 310);
+    g.shadowBlur = 0; g.font = 'bold 62px "Press Start 2P", monospace'; g.fillStyle = '#4a0a5a'; g.fillText('FUTURE', 256 + 4, 450 + 4); g.fillText('STAR', 256 + 4, 530 + 4); g.fillStyle = '#fff'; g.fillText('FUTURE', 256, 450); g.fillText('STAR', 256, 530);
+    g.font = 'bold 22px "Press Start 2P", monospace'; g.fillStyle = '#4a0a5a'; g.fillText(def.count + ' ITEMS', 256, 640);
+    g.strokeStyle = '#fff'; g.lineWidth = 14; g.strokeRect(7, 7, 498, 786);
+    const tex = new T.CanvasTexture(fc); tex.anisotropy = 4;
+    const tTop = tex.clone(), tBot = tex.clone(); tTop.needsUpdate = tBot.needsUpdate = true; tTop.repeat.set(1, 0.5); tTop.offset.set(0, 0.5); tBot.repeat.set(1, 0.5); tBot.offset.set(0, 0);
+    const edge = new T.MeshStandardMaterial({ color: 0xffd9f6, metalness: 0.9, roughness: 0.25, emissive: 0x5a0a52, emissiveIntensity: 0.5, transparent: true });
+    const face = m => new T.MeshStandardMaterial({ map: m, metalness: 0.35, roughness: 0.45, emissive: 0x4a1a60, emissiveIntensity: 0.2, transparent: true });
+    const back = new T.MeshStandardMaterial({ color: 0x7a2ab0, metalness: 0.8, roughness: 0.3, transparent: true });
+    const PW = 2.2, PH = 3.4, PD = 0.36;
+    const halfTop = new T.Mesh(new T.BoxGeometry(PW, PH / 2, PD), [edge, edge, edge, edge, face(tTop), back]); halfTop.position.y = PH / 4;
+    const halfBot = new T.Mesh(new T.BoxGeometry(PW, PH / 2, PD), [edge, edge, edge, edge, face(tBot), back]); halfBot.position.y = -PH / 4;
+    const pack = new T.Group(); pack.add(halfTop, halfBot); scene.add(pack);
+    const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), r = x.createRadialGradient(64, 64, 0, 64, 64, 64); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.35, 'rgba(255,140,230,.6)'); r.addColorStop(1, 'rgba(255,100,220,0)'); x.fillStyle = r; x.fillRect(0, 0, 128, 128); return new T.CanvasTexture(c); })();
+    const halo = new T.Sprite(new T.SpriteMaterial({ map: glowTex, blending: T.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.35 })); halo.scale.set(9, 9, 1); halo.position.z = -0.5; pack.add(halo);
+    const seam = new T.Mesh(new T.PlaneGeometry(PW * 1.5, 0.09), new T.MeshBasicMaterial({ color: 0xffffff, blending: T.AdditiveBlending, transparent: true, opacity: 0, depthWrite: false })); seam.position.z = PD / 2 + 0.02; pack.add(seam);
+    // star tunnel
+    const NS = 900, sp = new Float32Array(NS * 3); for (let i = 0; i < NS; i++) { const a = Math.random() * 6.283, r = 3 + Math.random() * 22; sp[i * 3] = Math.cos(a) * r; sp[i * 3 + 1] = Math.sin(a) * r * 0.7; sp[i * 3 + 2] = -90 + Math.random() * 100; }
+    const sg = new T.BufferGeometry(); sg.setAttribute('position', new T.BufferAttribute(sp, 3));
+    const stars = new T.Points(sg, new T.PointsMaterial({ color: 0xffd6f6, size: 0.22, transparent: true, opacity: 0.95, blending: T.AdditiveBlending, depthWrite: false })); scene.add(stars);
+    // rings, burst sparks, three cards
+    const rings = [0, 1, 2].map(k => { const r = new T.Mesh(new T.TorusGeometry(1, 0.03, 8, 90), new T.MeshBasicMaterial({ color: [0xff6ad5, 0xffffff, 0xb04cff][k], blending: T.AdditiveBlending, transparent: true, opacity: 0, depthWrite: false })); r.visible = false; scene.add(r); return r; });
+    const NB = 320, bp = new Float32Array(NB * 3), bv = []; for (let i = 0; i < NB; i++) { const a = Math.random() * 6.283, b = Math.acos(2 * Math.random() - 1), v = 3 + Math.random() * 9; bv.push([Math.sin(b) * Math.cos(a) * v, Math.sin(b) * Math.sin(a) * v, Math.cos(b) * v]); }
+    const bg = new T.BufferGeometry(); bg.setAttribute('position', new T.BufferAttribute(bp, 3));
+    const burst = new T.Points(bg, new T.PointsMaterial({ color: 0xffc2ee, size: 0.16, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false })); scene.add(burst);
+    const cardTex = col => { const c = document.createElement('canvas'); c.width = 200; c.height = 300; const x = c.getContext('2d'), r = x.createLinearGradient(0, 0, 200, 300); r.addColorStop(0, '#fff'); r.addColorStop(0.4, col); r.addColorStop(1, '#4a0a6a'); x.fillStyle = r; x.fillRect(0, 0, 200, 300); x.strokeStyle = '#fff'; x.lineWidth = 8; x.strokeRect(4, 4, 192, 292); x.fillStyle = 'rgba(255,255,255,.85)'; x.font = '90px serif'; x.textAlign = 'center'; x.fillText('★', 100, 150); x.fillStyle = 'rgba(255,255,255,.5)'; x.fillRect(30, 200, 140, 10); x.fillRect(50, 225, 100, 10); return new T.CanvasTexture(c); };
+    const cards = ['#ff6ad5', '#ffffff', '#b04cff'].map((col, i) => { const m = new T.Mesh(new T.PlaneGeometry(1.5, 2.2), new T.MeshBasicMaterial({ map: cardTex(col), transparent: true, side: T.DoubleSide, opacity: 0 })); m.visible = false; const gl2 = new T.Sprite(new T.SpriteMaterial({ map: glowTex, blending: T.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.8 })); gl2.scale.set(5, 6, 1); gl2.position.z = -0.1; m.add(gl2); scene.add(m); return m; });
+    const ease = x => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3), clamp01 = x => Math.min(1, Math.max(0, x));
+    let t = 0, last = performance.now(), raf = 0, ended = false, burstOn = false, flashed = false;
+    const capEls = ['c1', 'c2', 'c3'].map(c => el.querySelector('.' + c)), flashEl = el.querySelector('.fsp3-flash'), outEl = el.querySelector('.fsp3-out');
+    const end = () => { if (ended) return; ended = true; cancelAnimationFrame(raf); try { renderer.dispose(); } catch (e) { /* gone */ } el.remove(); done(); };
+    el.addEventListener('click', () => { if (t < 6.2) t = 6.2; else end(); });
+    const loop = () => {
+      if (ended) return; raf = requestAnimationFrame(loop);
+      const now = performance.now(), dt = Math.min(0.05, (now - last) / 1000); last = now; if (!window.RUT_PFX_HOLD) t += dt;
+      // star tunnel speed: very fast at the start, slow once the pack has arrived
+      const spd = (t < 2.2 ? 70 * (1 - ease(t / 2.2)) + 6 : 4) * (t > 6.3 ? 6 : 1), a = sg.attributes.position.array;
+      for (let i = 0; i < NS; i++) { a[i * 3 + 2] += spd * dt; if (a[i * 3 + 2] > 12) a[i * 3 + 2] = -90; } sg.attributes.position.needsUpdate = true;
+      // pack
+      const arr = ease(t / 2.2), orb = clamp01((t - 2.2) / 3.3), eo = orb * orb * (3 - 2 * orb);
+      let shake = 0; if (t > 4) shake = (t < 5.5 ? (t - 4) / 1.5 * 0.05 : 0.09) * (t < 6.3 ? 1 : 0);
+      pack.position.set((Math.random() - 0.5) * shake, Math.sin(t * 1.7) * 0.12 + (Math.random() - 0.5) * shake, -60 * (1 - arr));
+      pack.rotation.set(Math.sin(t * 0.9) * 0.12, (1 - arr) * 9 + Math.sin(t * 0.7) * 0.25 * (1 - eo * 0.8), (1 - arr) * 0.6 + Math.sin(t * 1.1) * 0.04);
+      const charge = clamp01((t - 5.4) / 0.9); pack.scale.setScalar(1 + charge * 0.14);
+      halo.material.opacity = 0.3 + charge * 0.6 + (t > 6.3 ? -clamp01((t - 6.3) / 1.2) * 0.9 : 0);
+      // camera: flies in, orbits, then pushes through the burst
+      let cx, cy, cz, roll = 0;
+      if (t < 2.2) { cx = 0; cy = 0.3; cz = 14 - 5 * ease(t / 2.2); }
+      else if (t < 6.3) { const ang = -1.5 * (1 - eo), rad = 9 - 3.2 * eo; cx = Math.sin(ang) * rad; cz = Math.cos(ang) * rad; cy = 0.4 + Math.sin(orb * 3.1416) * 1.6; roll = Math.sin(ang) * 0.12; }
+      else { const u = clamp01((t - 6.3) / 2.7); cx = Math.sin(u * 2.2) * 0.8; cy = 0.3 + Math.sin(u * 3) * 0.4; cz = 7.2 - u * 1.8; roll = Math.sin(u * 4) * 0.08; }
+      cam.position.set(cx, cy, cz); cam.lookAt(0, 0, 0); cam.rotation.z += roll; cam.fov = 50 + (t > 6.3 ? Math.sin(clamp01((t - 6.3) / 0.4) * 3.14) * 12 : 0) + charge * 6; cam.updateProjectionMatrix();
+      key.position.set(Math.cos(t * 1.3) * 6, 3, Math.sin(t * 1.3) * 6 + 4); key.intensity = 5 + charge * 14; rimA.position.set(-5, 2, -3); rimB.position.set(5, -2, 3);
+      // crack
+      const ck = clamp01((t - 6.3) / 1.1), cke = ck * ck;
+      seam.material.opacity = t < 6.3 ? charge * 0.7 : (1 - clamp01((t - 6.3) / 0.7)); seam.scale.x = 0.3 + (t < 6.3 ? charge : 1) * 0.7 + (t > 6.3 ? ck * 1.2 : 0);
+      halfTop.position.y = PH / 4 + cke * 7; halfTop.rotation.z = cke * -0.6; halfBot.position.y = -PH / 4 - cke * 7; halfBot.rotation.z = cke * 0.6;
+      [edge, back].forEach(m => { m.opacity = 1 - clamp01((ck - 0.5) * 2); }); halfTop.material[4].opacity = halfBot.material[4].opacity = 1 - clamp01((ck - 0.5) * 2);
+      if (t >= 6.3 && !flashed) { flashed = true; burstOn = true; flashEl.classList.add('on'); rings.forEach(r => { r.visible = true; }); burst.material.opacity = 1; cards.forEach(c => { c.visible = true; }); }
+      if (burstOn) {
+        const bt = t - 6.3, pa = bg.attributes.position.array; for (let i = 0; i < NB; i++) { pa[i * 3] = bv[i][0] * bt; pa[i * 3 + 1] = bv[i][1] * bt; pa[i * 3 + 2] = bv[i][2] * bt; } bg.attributes.position.needsUpdate = true; burst.material.opacity = Math.max(0, 1 - bt / 2.6);
+        rings.forEach((r, k) => { const rt = bt - k * 0.25; if (rt < 0) { r.material.opacity = 0; return; } r.scale.setScalar(0.5 + rt * 7); r.material.opacity = Math.max(0, 0.9 - rt * 0.45); r.rotation.set(1.2 + k * 0.4, k * 0.5, rt); });
+        cards.forEach((c, i) => { const ct = bt - 0.15 - i * 0.22; if (ct < 0) { c.material.opacity = 0; return; } const th = ct * 2.1 + i * 2.09, rr = Math.min(1, ct / 1.2) * (2.6 - i * 0.2); c.position.set(Math.cos(th) * rr, Math.sin(th * 0.8) * rr * 0.55, Math.min(1, ct / 1.6) * 1.2 - i * 0.2); c.rotation.set(Math.sin(ct * 2) * 0.4, ct * 1.6, Math.cos(ct * 1.5) * 0.3); c.scale.setScalar(0.3 + 0.55 * ease(ct / 1.1)); c.material.opacity = Math.min(1, ct * 3) * (1 - clamp01((t - 8.9) / 0.6)); });
+      }
+      capEls[0].classList.toggle('on', t > 0.9 && t < 2.9); capEls[1].classList.toggle('on', t > 3.0 && t < 5.4); capEls[2].classList.toggle('on', t > 5.4 && t < 6.5);
+      if (t > 9) outEl.style.opacity = clamp01((t - 9) / 0.9);
+      renderer.render(scene, cam);
+      if (t >= 10) end();
+    };
+    loop();
+  }
+  /** (fallback without WebGL) */
+  /** v356 (JODIO): Future Star pack opening, FC26 style (no ball): the foil pack glides in, charges, a seam of light splits it, both halves fly apart and light beams in rating colours shoot up. Click to skip. */
+  function fsPackCSS(def, done) {
     const el = document.createElement('div'); el.className = 'fsp';
     const beams = Array.from({ length: 9 }, (_, i) => `<i class="fsp-b" style="--i:${i};--x:${(i - 4) * 11}%;--c:${['#ff6ad5', '#ffffff', '#b04cff', '#ff9ae6', '#ffffff', '#b04cff', '#ff6ad5', '#ffffff', '#ff9ae6'][i]}"></i>`).join('');
     const dots = Array.from({ length: 50 }, () => `<i class="fsp-d" style="--x:${Math.round(Math.random() * 100)}%;--dl:${(Math.random() * 2.2).toFixed(2)}s;--s:${(1 + Math.random() * 3).toFixed(1)}px"></i>`).join('');
