@@ -10,7 +10,7 @@
 
   /** Moments: a short match (60 s halves) against an AI squad with one thing to achieve. */
   const MOMENTS = [
-    { id: 'm1', name: 'Win it', desc: 'Beat a 78-88 rated squad.', lo: 78, hi: 88, stars: 1, coins: 6000, ok: r => r.score[0] > r.score[1] },
+    { id: 'm1', name: 'Win it', desc: 'Beat a 78-88 rated squad.', lo: 78, hi: 88, stars: 1, coins: 6000, ok: r => r.won || r.score[0] > r.score[1] },
     { id: 'm2', name: 'Clean sheet', desc: 'Win without conceding.', lo: 78, hi: 88, stars: 1, coins: 7000, ok: r => r.score[0] > r.score[1] && r.score[1] === 0 },
     { id: 'm3', name: 'Goal rush', desc: 'Score 3 or more goals.', lo: 76, hi: 86, stars: 1, coins: 7000, ok: r => r.score[0] >= 3 },
     { id: 'm4', name: 'Two goal cushion', desc: 'Win by 2 goals or more.', lo: 80, hi: 90, stars: 2, coins: 10000, ok: r => r.score[0] - r.score[1] >= 2 },

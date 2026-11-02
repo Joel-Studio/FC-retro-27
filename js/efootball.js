@@ -24,5 +24,16 @@
     /** After a cup match. Returns { won, prize, over, champion }. */
     result(res) { const c = this.state(), r = ROUNDS[c.round]; if (!c.alive || !r) return null; if (res.won || res.score[0] > res.score[1]) { RUT.State.addCoins(r.coins, 'Cup ' + r.name); if (r.pack) { const po = S().packsOwned; po[r.pack] = (po[r.pack] || 0) + 1; } c.round++; const champion = c.round >= ROUNDS.length; if (champion) { c.alive = false; c.round = 0; } RUT.State.save(); return { won: true, prize: r.coins, pack: r.pack, champion, over: champion }; } c.alive = false; c.round = 0; RUT.State.save(); return { won: false, prize: 0, over: true }; },
   };
-  RUT.Scout = Scout; RUT.Cup = Cup;
+  /** Campaign (eFootball style): ten fixtures against rising squads. Win 3 points, draw 1. Prizes at the end by points; losses cost nothing. */
+  const FIX = [[72, 80], [74, 82], [76, 84], [78, 86], [80, 88], [82, 90], [84, 92], [86, 93], [88, 95], [90, 96]];
+  const CAMP_PRIZE = [{ pts: 10, coins: 30000 }, { pts: 18, coins: 90000 }, { pts: 24, coins: 200000, pack: 'gold' }, { pts: 30, coins: 400000, pack: 'prime' }];
+  const Camp = {
+    FIX, PRIZE: CAMP_PRIZE,
+    state() { const d = S(); return d.camp || (d.camp = { i: 0, pts: 0, log: [] }); },
+    tier() { const f = FIX[Math.min(this.state().i, FIX.length - 1)]; return { lo: f[0], hi: f[1] }; },
+    done() { return this.state().i >= FIX.length; },
+    result(res) { const c = this.state(); if (this.done()) return null; const w = res.won || res.score[0] > res.score[1], d = !w && res.score[0] === res.score[1], p = w ? 3 : d ? 1 : 0; c.pts += p; c.log.push(w ? 'W' : d ? 'D' : 'L'); c.i++; let pay = null; if (c.i >= FIX.length) { pay = CAMP_PRIZE.filter(x => c.pts >= x.pts).pop() || null; if (pay) { RUT.State.addCoins(pay.coins, 'Campaign prize'); if (pay.pack) { const po = S().packsOwned; po[pay.pack] = (po[pay.pack] || 0) + 1; } } } RUT.State.save(); return { p, pay, over: c.i >= FIX.length }; },
+    restart() { S().camp = { i: 0, pts: 0, log: [] }; RUT.State.save(); },
+  };
+  RUT.Scout = Scout; RUT.Cup = Cup; RUT.Camp = Camp;
 })();
