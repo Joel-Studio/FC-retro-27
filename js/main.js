@@ -686,22 +686,29 @@
   }
   /** v363 (JODIO): card pickers. A search box and a grid of the real 3D cards instead of a word list. opts = { title, note, top (html above the search), rows [{id,c}], act, slot, pos, extra(c) } */
   function cardPickerModal(o) {
-    App.pk = { rows: o.rows, act: o.act, slot: o.slot, pos: o.pos, extra: o.extra };
-    modal(`<h2>${o.title}</h2>${o.note ? `<p class="dim" style="font-size:10px">${o.note}</p>` : ''}${o.top ? `<div class="row mb">${o.top}</div>` : ''}
-      <div class="row mb pk-bar"><input id="pk-q" type="search" placeholder="Search name, club, nation, position or rating" autocomplete="off" style="flex:1;min-width:180px">${o.pos ? '<label class="dim" style="font-size:10px"><input type="checkbox" id="pk-fit"> fits ' + esc(o.pos) + ' only</label>' : ''}<span class="dim" id="pk-n" style="font-size:10px"></span></div>
+    App.pk = { rows: o.rows, act: o.act, slot: o.slot, pos: o.pos, extra: o.extra, grp: o.pos ? 'fit' : 'all', sort: o.sort || 'def' };
+    const chips = [['all', 'All'], ...(o.pos ? [['fit', 'Fits ' + o.pos]] : []), ['GK', 'GK'], ['DEF', 'Defenders'], ['MID', 'Midfield'], ['ATT', 'Attackers']];
+    modal(`<div class="pk-head"><div><h2>${o.title}</h2>${o.note ? `<p class="pk-note">${o.note}</p>` : ''}</div>${o.top ? `<div class="pk-acts">${o.top}</div>` : ''}</div>
+      <div class="pk-tools"><label class="pk-search"><span class="pk-mag">&#9906;</span><input id="pk-q" type="text" placeholder="Search a player, club, nation or rating" autocomplete="off" spellcheck="false"></label>
+        <select id="pk-sort" class="pk-sort"><option value="def">${o.sortLabel || 'Best fit first'}</option><option value="ovr">Rating: high to low</option><option value="name">Name: A to Z</option></select>
+        <span class="pk-n" id="pk-n"></span></div>
+      <div class="pk-chips" id="pk-chips">${chips.map(([k, l]) => `<button type="button" class="pk-chip ${App.pk.grp === k ? 'on' : ''}" data-pkg="${k}">${esc(l)}</button>`).join('')}</div>
       <div class="pk-grid" id="pk-grid"></div>`, 'pkm');
     pkRender();
     setTimeout(() => { const q = $('#pk-q'); if (q && !('ontouchstart' in window)) q.focus(); }, 50);
   }
+  const PK_GRP = { GK: ['GK'], DEF: ['CB', 'LB', 'RB', 'LWB', 'RWB'], MID: ['CDM', 'CM', 'CAM', 'LM', 'RM'], ATT: ['ST', 'CF', 'LW', 'RW'] };
   function pkRender() {
     const K = App.pk, g = $('#pk-grid'); if (!K || !g) return;
-    const q = (($('#pk-q') || {}).value || '').toLowerCase().trim().split(/\s+/).filter(Boolean), fit = $('#pk-fit') && $('#pk-fit').checked;
-    const hit = K.rows.filter(x => (!fit || x.c.altPositions.includes(K.pos) || x.c.position === K.pos) && q.every(t => (x.c.name + ' ' + x.c.club + ' ' + x.c.nation + ' ' + x.c.position + ' ' + x.c.rating + ' ' + x.c.league).toLowerCase().includes(t)));
-    const shown = hit.slice(0, 60), n = $('#pk-n'); if (n) n.textContent = hit.length > shown.length ? 'showing ' + shown.length + ' of ' + hit.length + ': type to narrow' : hit.length + ' players';
-    g.innerHTML = shown.map(x => `<div class="pk-i">${cardHTML(x.c, { mini: true, attrs: `data-act="${K.act}" data-slot="${K.slot}" data-item="${x.id}"` })}<small>${esc(x.c.name)}${State.isInSquad(x.id) ? ' <b class="dim">(XI)</b>' : ''}${K.extra ? '<br>' + K.extra(x.c) : ''}</small></div>`).join('') || '<p class="dim">No player matches.</p>';
+    const q = (($('#pk-q') || {}).value || '').toLowerCase().trim().split(/\s+/).filter(Boolean), sort = ($('#pk-sort') || {}).value || 'def';
+    let hit = K.rows.filter(x => (K.grp === 'all' || (K.grp === 'fit' ? (x.c.altPositions.includes(K.pos) || x.c.position === K.pos) : PK_GRP[K.grp].includes(x.c.position))) && q.every(t => (x.c.name + ' ' + x.c.club + ' ' + x.c.nation + ' ' + x.c.position + ' ' + x.c.rating + ' ' + x.c.league).toLowerCase().includes(t)));
+    if (sort === 'ovr') hit = hit.slice().sort((a, b) => b.c.rating - a.c.rating); else if (sort === 'name') hit = hit.slice().sort((a, b) => a.c.name.localeCompare(b.c.name));
+    const shown = hit.slice(0, 60), n = $('#pk-n'); if (n) n.textContent = hit.length > shown.length ? shown.length + ' of ' + hit.length + ' shown' : hit.length + (hit.length === 1 ? ' player' : ' players');
+    g.innerHTML = shown.map(x => `<div class="pk-i">${cardHTML(x.c, { mini: true, attrs: `data-act="${K.act}" data-slot="${K.slot}" data-item="${x.id}"` })}<div class="pk-nm">${esc(x.c.name)}</div><div class="pk-sub">${K.extra ? K.extra(x.c) : x.c.position + ' · ' + x.c.rating}${State.isInSquad(x.id) ? ' <i class="pk-xi">XI</i>' : ''}</div></div>`).join('') || '<div class="pk-empty">No player matches. Try another word or filter.</div>';
   }
   document.addEventListener('input', e => { if (e.target && (e.target.id === 'pk-q')) { clearTimeout(pkRender.t); pkRender.t = setTimeout(pkRender, 120); } });
-  document.addEventListener('change', e => { if (e.target && e.target.id === 'pk-fit') pkRender(); });
+  document.addEventListener('change', e => { if (e.target && e.target.id === 'pk-sort') pkRender(); });
+  document.addEventListener('click', e => { const c = e.target.closest && e.target.closest('.pk-chip'); if (!c || !App.pk) return; App.pk.grp = c.dataset.pkg; document.querySelectorAll('.pk-chip').forEach(x => x.classList.toggle('on', x === c)); pkRender(); });
   function benchPicker(i) {
     const st = D(), b = st.squad.bench, taken = new Set(st.squad.slots.concat(b).filter(Boolean));
     const rows = st.club.filter(id => !taken.has(id)).map(id => ({ id, c: State.card(id) })).filter(x => x.c).sort((x, y) => y.c.rating - x.c.rating);
