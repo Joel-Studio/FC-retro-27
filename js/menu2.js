@@ -45,5 +45,5 @@
       </div>
       <div class="m2-tiles m2-tiles3">${tile('play', 'Kick Off', 'Play a match', 'play')}${tile('quests', 'Moments', 'Daily challenges', 'quest')}${tile('store', 'Store', 'Open packs', 'store')}${tile('market', 'Transfer Market', 'Buy and sell', 'market')}</div>${hints}</section>`;
   }
-  RUT.Menu2 = { tile, home, on: () => !!LAYOUT[n], n, NAMES };
+  RUT.Menu2 = { tile, art, home, on: () => !!LAYOUT[n], n, NAMES };
 })();

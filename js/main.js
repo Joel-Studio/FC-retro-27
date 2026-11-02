@@ -190,14 +190,14 @@
   function updateHeader() {
     animateCoins();
     $('#hdr-club').textContent = D().clubName;
-    const names = { home: 'Home', trophies: 'Trophy Room', clubhub: 'Club', friends: 'Friends', moments: 'Moments', cup: 'Knockout Cup', scout: 'Daily Scout', compare: 'Compare Players', battles: 'Squad Battles', penalties: 'Penalty Shootout', club: 'Club', squad: 'Squad & Chemistry', play: 'Kick Off', casual: 'Casual Match', online: 'Online Match', rules: 'Match Rules', playstyles: 'PlayStyles Guide', gametraits: 'Gametraits Guide', market: 'Transfer Market', bdorgal: 'Ballon d\'Or', sbc: 'Squad Building Challenges', 'sbc-build': 'SBC Builder', evo: 'Evolutions', store: 'Store', promoshop: 'Promo Shop', pstats: 'Player Stats', unassigned: 'Unassigned', settings: 'Settings', tactics: 'Tactics', staff: 'Staff & Training', league: 'League', top5: 'Top 5 Leagues', quests: 'Quests' };
+    const names = { home: 'Home', trophies: 'Trophy Room', clubhub: 'Club', playhub: 'Play', leaguehub: 'League', markethub: 'Market', sbchub: 'SBCs', friends: 'Friends', moments: 'Moments', cup: 'Knockout Cup', scout: 'Daily Scout', compare: 'Compare Players', battles: 'Squad Battles', penalties: 'Penalty Shootout', club: 'Club', squad: 'Squad & Chemistry', play: 'Kick Off', casual: 'Casual Match', online: 'Online Match', rules: 'Match Rules', playstyles: 'PlayStyles Guide', gametraits: 'Gametraits Guide', market: 'Transfer Market', bdorgal: 'Ballon d\'Or', sbc: 'Squad Building Challenges', 'sbc-build': 'SBC Builder', evo: 'Evolutions', store: 'Store', promoshop: 'Promo Shop', pstats: 'Player Stats', unassigned: 'Unassigned', settings: 'Settings', tactics: 'Tactics', staff: 'Staff & Training', league: 'League', top5: 'Top 5 Leagues', quests: 'Quests' };
     const parent = { top5: 'League', squad: 'Club', staff: 'Club', evo: 'Club', unassigned: 'Club', rules: 'Play', playstyles: 'Club', gametraits: 'Club', trophies: 'Club', friends: 'Club', moments: 'Play', cup: 'Play', scout: 'Play', compare: 'Play', battles: 'Play', penalties: 'Play', casual: 'Play', online: 'Play', 'sbc-build': 'SBCs', promoshop: 'Market', bdorgal: 'Market', pstats: 'Club' }[App.view];
     $('#crumbs').innerHTML = `<a href="#" data-act="nav" data-v="home">Home</a>${parent ? ' › ' + parent : ''} › <b>${esc(names[App.view] || '')}</b>`;
-    const mv = { club: 'squad', tactics: 'squad', evo: 'squad', staff: 'squad', casual: 'play', online: 'play', rivals: 'play', league: 'play', top5: 'play', promoshop: 'market', sbc: 'store', 'sbc-build': 'store' }[App.view] || App.view;
+    const mv = hubOf(App.view);
     document.querySelectorAll('#mnav [data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === mv));   // v214: phone tab bar
     document.querySelectorAll('#tabs .dd > button').forEach(b => {
-      b.classList.toggle('on', b.dataset.view === App.view || (App.view === 'top5' && b.dataset.view === 'league') || (App.view === 'unassigned' && b.dataset.view === 'home') || (App.view === 'sbc-build' && b.dataset.view === 'sbc') || ((App.view === 'casual' || App.view === 'online') && b.dataset.view === 'play'));
-      if (b.dataset.view === 'clubhub') { const n = RUT.Progress ? RUT.Progress.ready() : 0; b.innerHTML = 'Club ▾' + (n ? `<span class="badge">${n}</span>` : ''); }
+      b.classList.toggle('on', b.dataset.view === hubOf(App.view) || (App.view === 'unassigned' && b.dataset.view === 'home'));
+      if (b.dataset.view === 'clubhub') { const n = RUT.Progress ? RUT.Progress.ready() : 0; b.innerHTML = 'Club' + (n ? `<span class="badge">${n}</span>` : ''); }
       if (b.dataset.view === 'quests') { const n = RUT.Quests ? RUT.Quests.readyCount() : 0; b.innerHTML = 'Quests' + (n ? `<span class="badge">${n}</span>` : ''); }
       if (b.dataset.view === 'home' && b.parentElement.classList.contains('dd')) b.innerHTML = 'Home' + (D().unassigned.length ? `<span class="badge">${D().unassigned.length}</span>` : '');
     });
@@ -1907,15 +1907,27 @@
     const tiers = B.TIERS.map(t => `<div class="mt" style="padding:8px;border:1px solid #334;border-radius:8px"><div class="row between"><b>${t.name}</b><span class="dim" style="font-size:11px">squads ${t.lo}-${t.hi}</span></div><div class="dim" style="font-size:11px">Win +${t.win} pts, draw +${t.draw}, ${fmt(t.coins)} coins per win. 90 s halves.</div><button class="btn sm y" data-act="sb-play" data-t="${t.id}">Play</button></div>`).join('');
     return `<h2>Squad Battles</h2><div class="px"><h3>This week: ${s.pts} points (${s.played} played)</h3><p class="dim" style="font-size:11px">Beat AI squads to earn rank points. Rewards unlock as your points grow and the table resets every Monday.</p>${steps}</div><div class="px mt"><h3>Choose a battle</h3>${tiers}</div>`;
   };
-  VIEWS.clubhub = function () {   // v348 (JODIO): Club opens its own FC 27 style menu: tiles for the club pages, Evolutions in place of SBCs
-    const st = D(), M = RUT.Menu2, tr = RUT.Progress ? RUT.Progress.ready() : 0, un = st.unassigned.length;
-    if (!M || !M.tile) return `<h2>Club</h2><div class="row" style="gap:8px;flex-wrap:wrap">${[['club', 'My Club'], ['squad', 'Squad'], ['tactics', 'Tactics'], ['staff', 'Staff & Training'], ['pstats', 'Player Stats'], ['evo', 'Evolutions'], ['unassigned', 'Unassigned'], ['trophies', 'Trophy Room'], ['friends', 'Friends']].map(x => `<button class="btn" data-act="nav" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>`;
-    const row = list => `<div class="m2-tiles m2-tiles3">${list.map(t => M.tile(t[0], t[1], t[2], t[3], t[4] ? `<span class="m2-bdg">${t[4]}</span>` : '')).join('')}</div>`;
-    return `<section class="m2 m2-c"><div class="m2-bar"><b>Club</b></div>
-      ${row([['evo', 'Evolutions', 'Upgrade your cards', 'evo'], ['squad', 'Squad', 'XI, subs and chemistry', 'squad'], ['tactics', 'Tactics', 'Style and set pieces', 'squad'], ['staff', 'Staff & Training', 'Coaches and sessions', 'club']])}
-      ${row([['club', 'My Club', 'All your players', 'club'], ['pstats', 'Player Stats', 'Goals, ratings, form', 'quest'], ['unassigned', 'Unassigned', 'Items to place', 'store', un], ['trophies', 'Trophy Room', 'Level, streak, achievements', 'sbc', tr]])}
-      ${row([['friends', 'Friends', 'Head to head', 'market'], ['playstyles', 'PlayStyles Guide', 'What each one does', 'play'], ['gametraits', 'Gametraits Guide', 'What each one does', 'quest']])}</section>`;
+  /* v349 (JODIO): Club, Play, League, Market and SBCs each open their own FC 27 style tile page (no dropdown menus under the buttons). */
+  const HUBS = {
+    clubhub: ['Club', [['evo', 'Evolutions', 'Upgrade your cards', 'evo'], ['squad', 'Squad', 'XI, subs and chemistry', 'squad'], ['tactics', 'Tactics', 'Style and set pieces', 'squad'], ['staff', 'Staff & Training', 'Coaches and sessions', 'club'],
+      ['club', 'My Club', 'All your players', 'club'], ['pstats', 'Player Stats', 'Goals, ratings, form', 'quest'], ['unassigned', 'Unassigned', 'Items to place', 'store', 'un'], ['trophies', 'Trophy Room', 'Level, streak, achievements', 'sbc', 'tr'],
+      ['friends', 'Friends', 'Head to head', 'market'], ['playstyles', 'PlayStyles Guide', 'What each one does', 'play'], ['gametraits', 'Gametraits Guide', 'What each one does', 'quest']]],
+    playhub: ['Play', [['play', 'Kick Off', 'Play a match', 'play'], ['casual', 'Casual Match', 'Pick any two teams', 'squad'], ['online', 'Online Match', 'Quick match or invite', 'market'], ['rivals', 'Rivals & Champions', 'Divisions and finals', 'sbc'],
+      ['moments', 'Moments', 'Challenges with rewards', 'quest'], ['cup', 'Knockout Cup', 'Three rounds, big prizes', 'store'], ['battles', 'Squad Battles', 'Weekly rank vs AI', 'evo'], ['penalties', 'Penalty Shootout', 'Score and save', 'play'],
+      ['scout', 'Daily Scout', 'Free player every day', 'club', 'sc'], ['compare', 'Compare Players', 'Side by side stats', 'squad'], ['play', 'Testing Ground', 'Practise freely', 'evo', '', { train: 1 }], ['rules', 'Match Rules', 'How it plays', 'quest']]],
+    leaguehub: ['League', [['league', 'League', 'Your season', 'play'], ['top5', 'Top 5 Leagues', 'PL, LaLiga, Serie A and more', 'squad', '', { t5: 'lg' }], ['top5', 'Champions League', 'Europe\'s best', 'store', '', { t5: 'ucl' }]]],
+    markethub: ['Market', [['market', 'Search', 'Find players', 'market', '', { mt: 'search' }], ['market', 'Transfer List', 'Your listings', 'sbc', '', { mt: 'tl' }], ['market', 'Watchlist', 'Players you follow', 'quest', '', { mt: 'wl' }], ['promoshop', 'Promo Shop', 'Promo players', 'store'], ['bdorgal', 'Ballon d\'Or', 'The 2026 nominees', 'club']]],
+    sbchub: ['SBCs', [['sbc', 'Challenges', 'Build squads for rewards', 'sbc'], ['store', 'Store', 'Open packs', 'store'], ['promoshop', 'Promo Shop', 'Promo players', 'market']]],
   };
+  const HUB_OF = { clubhub: 'club squad tactics staff pstats evo playstyles gametraits unassigned trophies friends', playhub: 'play casual online rivals moments cup scout compare battles penalties rules', leaguehub: 'league top5', markethub: 'market promoshop bdorgal', sbchub: 'sbc sbc-build' };
+  const hubOf = v => Object.keys(HUB_OF).find(k => HUB_OF[k].split(' ').includes(v)) || v;
+  const hubPage = key => {
+    const M = RUT.Menu2, st = D(), badge = { un: st.unassigned.length, tr: RUT.Progress ? RUT.Progress.ready() : 0, sc: RUT.Scout && !RUT.Scout.state().taken ? 1 : 0 }, H = HUBS[key], items = H[1];
+    const tile = t => { const ex = t[5] || {}, bd = t[4] ? badge[t[4]] : 0; return `<button class="m2-tile" data-act="hub-go" data-v="${t[0]}"${ex.mt ? ` data-mt="${ex.mt}"` : ''}${ex.t5 ? ` data-t5="${ex.t5}"` : ''}${ex.train ? ' data-train="1"' : ''}><b>${esc(t[1])}</b><small>${esc(t[2])}</small>${M && M.art ? M.art(t[3]) : ''}${bd ? `<span class="m2-bdg">${bd}</span>` : ''}</button>`; };
+    let rows = ''; for (let i = 0; i < items.length; i += 4) rows += `<div class="m2-tiles m2-tiles3">${items.slice(i, i + 4).map(tile).join('')}</div>`;
+    return `<section class="m2 m2-c"><div class="m2-bar"><b>${H[0]}</b></div>${rows}</section>`;
+  };
+  Object.keys(HUBS).forEach(k => { VIEWS[k] = () => hubPage(k); });
   VIEWS.scout = function () {
     const S = RUT.Scout.state(), cards = S.offers.map(id => DB.get(id));
     return `<h2>Daily Scout</h2><div class="px"><p class="dim" style="font-size:11px">A scout shows 3 players every day, picked for your club level. Take one for free (it goes to Unassigned), or turn them all down for 2,000 coins.</p>${S.taken ? '<p class="gold">You have chosen today. Come back tomorrow.</p>' : `<div class="row" style="gap:14px;flex-wrap:wrap">${cards.map((c, i) => `<div style="text-align:center">${cardHTML(c)}<br><button class="btn sm y" data-act="scout-take" data-i="${i}">Sign ${esc(c.name.split(' ').slice(-1)[0])}</button></div>`).join('')}</div><p><button class="btn sm" data-act="scout-skip">Turn them down (+2,000 coins)</button></p>`}</div>`;
@@ -3530,6 +3542,7 @@
     'pen-shoot': () => { const P = App.pen; if (!P || P.phase !== 'power') return; clearInterval(P.tm); const ks = Math.random() < 0.3 ? 1 : Math.random() < 0.5 ? 0 : 2, r = RUT.Pen.kick(P.aim, P.pow || 0, ks, Math.random()); P.my.push(r === 'goal' ? 'goal' : 'x'); penAdvance(r, r === 'goal' ? 'GOAL!' : r === 'miss' ? 'Over the bar!' : 'Saved!', r === 'goal'); },
     'pen-dive': el => { const P = App.pen; if (!P || P.phase !== 'dive') return; const ss = Math.random() < 0.25 ? 1 : Math.random() < 0.5 ? 0 : 2, r = RUT.Pen.defend(+el.dataset.s, ss, Math.random()); P.ai.push(r === 'goal' ? 'goal' : 'x'); penAdvance(r, r === 'goal' ? 'They score.' : 'SAVED!', r !== 'goal'); },
     'pen-next': () => { const P = App.pen; if (!P) return; if (P.last) { penFinish(); return; } const mg = P.my.length, ag = P.ai.length; if (mg === ag) { P.phase = 'aim'; render(); } else { P.phase = 'dive'; render(); } },
+    'hub-go': el => { if (el.dataset.train) { startTraining(); return; } if (el.dataset.mt) App.marketTab = el.dataset.mt; if (el.dataset.v === 'top5') App.t5tab = el.dataset.t5 || 'lg'; setView(el.dataset.v); },
     'scout-take': el => { const c = RUT.Scout.take(+el.dataset.i); if (c) { toast(c.name + ' signed. Find him in Unassigned.', 'good'); render(); updateHeader(); } },
     'scout-skip': () => { if (RUT.Scout.skip()) { toast('+2,000 coins', 'good'); updateHeader(); render(); } },
     'cup-enter': () => { const e = RUT.Cup.enter(); if (e) { toast(e, 'bad'); return; } updateHeader(); render(); },
