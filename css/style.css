@@ -1689,3 +1689,7 @@ html, body, button, input, select, textarea { font-size-adjust: none; }   /* v21
 @keyframes fsp3f { 0% { opacity: .95; } 100% { opacity: 0; } }
 .fsp3-out { position: absolute; inset: 0; background: #14061c; opacity: 0; pointer-events: none; }
 .fsp3 .skip { position: absolute; bottom: 18px; width: 100%; text-align: center; color: #ff9ae6; opacity: .7; font-size: 12px; }
+
+.fse-res { position: absolute; left: 0; width: 100%; bottom: 3%; text-align: center; font-family: "Press Start 2P", monospace; color: #fff; opacity: 0; transform: translateY(20px) scale(.9); transition: opacity .6s .5s, transform .7s .5s; pointer-events: none; text-shadow: 0 0 20px #ff6ad5, 3px 3px 0 #6a1f80; }
+.fse-res.on { opacity: 1; transform: none; }
+.fse-n { font-size: clamp(24px, 6vw, 56px); } .fse-s { font-size: clamp(9px, 1.8vw, 15px); margin-top: 14px; line-height: 1.8; color: #ffd6f6; }

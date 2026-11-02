@@ -2866,7 +2866,8 @@
     State.addCoins(coins, 'Match ' + res.score.join('-') + ' vs ' + away.name);
     try { if (RUT.Progress) { const hg = App.match && App.match.hdrGoals ? App.match.hdrGoals[0] : 0; for (let k = 0; k < hg; k++) RUT.Progress.onHeader(); const pr = RUT.Progress.onMatch(res); setTimeout(() => toast('+' + pr.gain + ' XP' + (pr.lv1 > pr.lv0 ? ' · LEVEL ' + pr.lv1 + '! +' + pr.pay.toLocaleString() + ' coins' : ''), 'good'), 1200); } } catch (e) { console.warn(e); }   // v344
     const lossFee = !res.won && !res.draw ? chargeCoins(xo && xo.lossFee != null ? xo.lossFee : LOSS_FEE, 'Match lost') : 0;
-    const evoNotes = Evo.onMatch({ won: res.won, goalsFor: res.score[0], goalsAgainst: res.score[1] });
+    const evoNotes = Evo.onMatch({ won: res.won, goalsFor: res.score[0], goalsAgainst: res.score[1], players: res.players });
+    if (Evo.fsDone && Evo.fsDone.length) { const q = Evo.fsDone.splice(0); setTimeout(() => q.forEach((d, i) => setTimeout(() => fsEvoFX(d), i * 7500)), 900); }   // v358: 3D evolve scene
     try { const qd = Object.assign({ mode: 'friendly', level: App.difficulty }, xo && xo.q); RUT.Quests.event('match', Object.assign(qd, { won: res.won, draw: res.draw, gf: res.score[0], ga: res.score[1] })); } catch (e) { /* quests are optional */ }
     evoNotes.forEach(n => toast(n, 'good'));
     const lgNote = xo && xo.after ? xo.after(res) : '';
@@ -3261,6 +3262,60 @@
     packFX(def, () => (res.walkout ? walkout(res) : revealPack(res, def)));
   }
 
+  /** v358 (JODIO): 3D scene when a Future Star finishes an evolution: the card floats in a dark stage, energy rings and sparks spiral into it, it flashes and spins, and the new rating, the step and any new PlayStyle show. d = { name, pos, before, after, step, evo, ps }. Click to skip. */
+  function fsEvoFX(d) {
+    const run = () => {
+      const T = window.THREE;
+      const el = document.createElement('div'); el.className = 'fsp3 fse';
+      el.innerHTML = `<canvas></canvas><div class="fsp3-cap c1 on" style="top:9%">EVOLVING...</div><div class="fsp3-cap c2" style="top:9%">${esc(d.evo.toUpperCase())}</div><div class="fse-res"><div class="fse-n">+${Math.max(0, d.after - d.before)} OVR</div><div class="fse-s">${esc(d.name.toUpperCase())} · ${d.before} → ${d.after}${d.ps && d.ps.length ? '<br>NEW: ' + esc(d.ps.join(', ')) : ''}</div></div><div class="fsp3-flash"></div><div class="fsp3-out"></div><div class="skip">click to skip</div>`;
+      document.body.appendChild(el);
+      const cv = el.querySelector('canvas'), W = innerWidth, H = innerHeight;
+      const renderer = new T.WebGLRenderer({ canvas: cv, antialias: !window.RUT_LITE }); renderer.setPixelRatio(window.RUT_LITE ? 1 : Math.min(devicePixelRatio || 1, 1.5)); renderer.setSize(W, H, false); renderer.setClearColor(0x0e0414, 1); renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.95;
+      const scene = new T.Scene(), cam = new T.PerspectiveCamera(48, W / H, 0.1, 100); scene.fog = new T.FogExp2(0x1a0828, 0.03);
+      scene.add(new T.AmbientLight(0xffffff, 0.45)); const l1 = new T.PointLight(0xff5ad8, 14, 30), l2 = new T.PointLight(0x9a4cff, 14, 30); l1.position.set(-4, 2, 4); l2.position.set(4, -2, 3); scene.add(l1, l2);
+      const face = rating => { const c = document.createElement('canvas'); c.width = 400; c.height = 600; const g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 400, 600); gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.3, '#ffb3ec'); gr.addColorStop(0.7, '#b04cff'); gr.addColorStop(1, '#4a1a7a'); g.fillStyle = gr; g.fillRect(0, 0, 400, 600);
+        g.strokeStyle = 'rgba(255,255,255,.3)'; g.lineWidth = 3; for (let k = -600; k < 900; k += 40) { g.beginPath(); g.moveTo(k, 600); g.lineTo(k + 600, 0); g.stroke(); }
+        g.textAlign = 'center'; g.fillStyle = '#4a0a5a'; g.font = 'bold 150px "Barlow Condensed", Impact, sans-serif'; g.fillText(String(rating), 200, 190); g.font = 'bold 54px "Barlow Condensed", Impact, sans-serif'; g.fillText(d.pos, 200, 250);
+        g.font = '170px serif'; g.fillStyle = 'rgba(255,255,255,.9)'; g.shadowColor = '#ff6ad5'; g.shadowBlur = 30; g.fillText('★', 200, 420); g.shadowBlur = 0;
+        g.fillStyle = '#4a0a5a'; g.font = 'bold 44px "Barlow Condensed", Impact, sans-serif'; g.fillText(d.name.toUpperCase().slice(0, 18), 200, 500); g.font = '20px "Press Start 2P", monospace'; g.fillText('FUTURE STAR', 200, 550);
+        g.strokeStyle = '#fff'; g.lineWidth = 14; g.strokeRect(7, 7, 386, 586); return new T.CanvasTexture(c); };
+      const edge = new T.MeshStandardMaterial({ color: 0xffd9f6, metalness: 0.9, roughness: 0.3, emissive: 0x5a0a52, emissiveIntensity: 0.4 });
+      const mkFace = tx => new T.MeshStandardMaterial({ map: tx, metalness: 0.35, roughness: 0.45, emissive: 0x4a1a60, emissiveIntensity: 0.25 });
+      const fMat = mkFace(face(d.before)), back = new T.MeshStandardMaterial({ color: 0x7a2ab0, metalness: 0.8, roughness: 0.3 });
+      const card = new T.Mesh(new T.BoxGeometry(2.4, 3.6, 0.14), [edge, edge, edge, edge, fMat, back]); scene.add(card);
+      const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), r = x.createRadialGradient(64, 64, 0, 64, 64, 64); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.35, 'rgba(255,140,230,.6)'); r.addColorStop(1, 'rgba(255,100,220,0)'); x.fillStyle = r; x.fillRect(0, 0, 128, 128); return new T.CanvasTexture(c); })();
+      const halo = new T.Sprite(new T.SpriteMaterial({ map: glowTex, blending: T.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.3 })); halo.scale.set(9, 11, 1); halo.position.z = -0.6; card.add(halo);
+      const rings = [0, 1, 2, 3].map(k => { const r = new T.Mesh(new T.TorusGeometry(1, 0.025, 8, 90), new T.MeshBasicMaterial({ color: [0xff6ad5, 0xffffff, 0xb04cff, 0xffc2ee][k], blending: T.AdditiveBlending, transparent: true, opacity: 0, depthWrite: false })); scene.add(r); return r; });
+      const NP = 420, pos = new Float32Array(NP * 3), ph = []; for (let i = 0; i < NP; i++) ph.push({ a: Math.random() * 6.283, r: 3 + Math.random() * 5, h: (Math.random() - 0.5) * 8, sp: 0.6 + Math.random() }); const pg = new T.BufferGeometry(); pg.setAttribute('position', new T.BufferAttribute(pos, 3));
+      const pts = new T.Points(pg, new T.PointsMaterial({ color: 0xffc2ee, size: 0.12, transparent: true, opacity: 0.95, blending: T.AdditiveBlending, depthWrite: false })); scene.add(pts);
+      const clamp01 = x => Math.min(1, Math.max(0, x)), ease = x => 1 - Math.pow(1 - clamp01(x), 3);
+      let t = 0, last = performance.now(), raf = 0, ended = false, swapped = false;
+      const flashEl = el.querySelector('.fsp3-flash'), outEl = el.querySelector('.fsp3-out'), c1 = el.querySelector('.c1'), c2 = el.querySelector('.c2'), res = el.querySelector('.fse-res');
+      const end = () => { if (ended) return; ended = true; cancelAnimationFrame(raf); try { renderer.dispose(); } catch (e) { /* gone */ } el.remove(); };
+      el.addEventListener('click', end);
+      const SW = 3.6;   // the flash and the rating swap
+      const loop = () => {
+        if (ended) return; raf = requestAnimationFrame(loop);
+        const now = performance.now(), dt = Math.min(0.05, (now - last) / 1000); last = now; if (!window.RUT_PFX_HOLD) t += dt;
+        const arr = ease(t / 1.2), charge = clamp01((t - 1.2) / (SW - 1.2)), after = clamp01((t - SW) / 1.2);
+        card.position.set(0, 0.7 + Math.sin(t * 1.6) * 0.1 + (1 - arr) * -4, 0); card.scale.setScalar((0.6 + 0.4 * arr) * (1 + charge * 0.12) * (1 + (1 - ease(after * 2)) * (t > SW ? 0.25 : 0)));
+        card.rotation.set(Math.sin(t * 0.8) * 0.12, (1 - arr) * 6 + Math.sin(t * 0.9) * 0.3 + charge * charge * 12.6 + (t > SW ? Math.sin((t - SW) * 0.9) * 0.2 - 0 : 0), 0);
+        halo.material.opacity = 0.25 + charge * 0.7 - (t > SW ? clamp01((t - SW) / 1.5) * 0.5 : 0);
+        for (let i = 0; i < NP; i++) { const q = ph[i], k = t < SW ? Math.max(0.05, 1 - charge * 0.92) : 1 + (t - SW) * 1.2, a = q.a + t * q.sp * (1 + charge * 3); pos[i * 3] = Math.cos(a) * q.r * k; pos[i * 3 + 1] = q.h * (t < SW ? k : 1 + (t - SW)) + Math.sin(t + i) * 0.1; pos[i * 3 + 2] = Math.sin(a) * q.r * k * 0.7; } pg.attributes.position.needsUpdate = true;
+        rings.forEach((r, k) => { if (t < SW) { const u = (charge * 3 + k * 0.7) % 1; r.position.set(0, -2.6 + u * 5.2, 0); r.rotation.x = Math.PI / 2; r.scale.setScalar(2.2 - u * 1.2 + k * 0.2); r.material.opacity = charge * (0.9 * Math.sin(u * 3.14)); } else { const rt = t - SW - k * 0.18; if (rt < 0) { r.material.opacity = 0; return; } r.position.set(0, 0, 0); r.rotation.set(1.1 + k * 0.4, k * 0.6, rt * 1.5); r.scale.setScalar(0.5 + rt * 7); r.material.opacity = Math.max(0, 0.9 - rt * 0.5); } });
+        const ang = t * 0.35 + (t > SW ? (t - SW) * 0.3 : 0), rad = 8.5 - 2.2 * ease(t / 3) - (t > SW ? Math.min(1.2, (t - SW) * 0.5) : 0);
+        cam.position.set(Math.sin(ang) * 2.2, 0.4 + Math.sin(t * 0.7) * 0.4, rad); cam.lookAt(0, 0, 0); cam.fov = 48 + charge * 8 + (t > SW ? Math.sin(clamp01((t - SW) / 0.35) * 3.14) * 14 : 0); cam.updateProjectionMatrix();
+        l1.position.set(Math.cos(t * 1.5) * 5, 2, Math.sin(t * 1.5) * 5 + 3); l1.intensity = 14 + charge * 30;
+        if (t >= SW && !swapped) { swapped = true; fMat.map = face(d.after); fMat.needsUpdate = true; flashEl.classList.add('on'); c1.classList.remove('on'); c2.classList.add('on'); res.classList.add('on'); }
+        if (t > 8) outEl.style.opacity = clamp01((t - 8) / 0.8);
+        renderer.render(scene, cam); if (t >= 9) end();
+      };
+      loop();
+    };
+    if (!RUT.load3D) return;
+    Promise.resolve(RUT.load3D()).then(() => { if (window.THREE) { try { run(); } catch (e) { if (window.console) console.warn('Evolve 3D failed', e); } } });
+  }
+  RUT.fsEvoFX = fsEvoFX;
   /** v357 (JODIO): the Future Star pack in real 3D, about 10 s: a star tunnel, the foil pack flies in and the camera orbits it, it charges and cracks along a light seam, then glowing cards, rings and sparks burst past the camera. Click once to jump to the crack, again to skip. */
   function fsPackFX(def, done) {
     const fallback = () => fsPackCSS(def, done);

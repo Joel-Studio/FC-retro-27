@@ -370,6 +370,15 @@ window.RUT = window.RUT || {};
       boosts: { rating: 4, face: { pac: 3, sho: 4, pas: 4, dri: 4, def: 3, phy: 3 }, sub: { finishing: 4, vision: 4, ballControl: 4, dribbling: 4, composure: 5, reactions: 4, shortPassing: 4 }, ps: ['First Touch+', 'Technical+'] } },
   ];
   /* v351 (JODIO): 30 Future Star evolutions: six position groups x five tiers, only for Future Star cards. Tier N needs tier N-1 done. A card never passes its potential (card.pot). */
+  /* v358 (JODIO): Future Star evolution tasks follow the position. Keys starting p_ count that player's own stat in the match (goals, assists, key passes, dribbles, tackles won, interceptions, passes, saves); the others are team results. */
+  const FS_TASKS = {
+    st: [['p_goal', 'Score ', ' goals', [2, 4, 6, 9, 12]], ['p_sot', 'Hit the target ', ' times', [3, 6, 9, 13, 18]]],
+    wg: [['p_skill', 'Complete ', ' dribbles', [5, 10, 15, 22, 30]], ['p_ast', 'Make ', ' assists', [1, 2, 4, 6, 8]]],
+    am: [['p_key', 'Create ', ' chances (key passes)', [3, 6, 10, 15, 21]], ['p_ast', 'Make ', ' assists', [1, 2, 4, 6, 8]]],
+    cm: [['p_pc', 'Complete ', ' passes', [15, 35, 60, 90, 130]], ['p_int', 'Make ', ' interceptions', [2, 4, 7, 10, 14]]],
+    fb: [['p_tkw', 'Win ', ' tackles', [3, 6, 10, 15, 21]], ['p_key', 'Create ', ' chances (key passes)', [1, 3, 5, 8, 11]]],
+    cb: [['cleanSheets', 'Keep ', ' clean sheets', [1, 2, 3, 5, 7]], ['p_int', 'Make ', ' interceptions', [3, 6, 10, 15, 21]]],
+  };
   const FS_GROUPS = [
     { key: 'st', name: 'Striker', pos: ['ST', 'CF'], face: { sho: 3, pac: 2, dri: 2, phy: 1 }, sub: { finishing: 4, positioning: 4, shotPower: 3, acceleration: 2, ballControl: 2 }, ps: [null, null, 'Finesse Shot+', null, 'First Touch+'] },
     { key: 'wg', name: 'Winger', pos: ['LW', 'RW', 'LM', 'RM'], face: { pac: 3, dri: 3, pas: 1, sho: 1 }, sub: { acceleration: 3, sprintSpeed: 3, dribbling: 4, agility: 3, crossing: 2 }, ps: [null, null, 'Trickster+', null, 'Whipped Pass+'] },
@@ -379,18 +388,18 @@ window.RUT = window.RUT || {};
     { key: 'cb', name: 'Defender', pos: ['CB'], face: { def: 4, phy: 3, pac: 1, pas: 1 }, sub: { standingTackle: 4, slidingTackle: 3, defAwareness: 4, strength: 4, heading: 3 }, ps: [null, null, 'Bruiser+', null, 'Anticipate+'] },
   ];
   const FS_TIERS = [
-    { n: 1, label: 'Rising', ovr: 2, cost: 0, obj: [['played', 'Play 2 matches', 2]] },
-    { n: 2, label: 'Prospect', ovr: 3, cost: 20000, obj: [['played', 'Play 4 matches', 4], ['won', 'Win 2 matches', 2]] },
-    { n: 3, label: 'Breakthrough', ovr: 3, cost: 60000, obj: [['played', 'Play 6 matches', 6], ['goals', 'Score 6 team goals', 6]] },
-    { n: 4, label: 'Star', ovr: 4, cost: 150000, obj: [['played', 'Play 8 matches', 8], ['won', 'Win 5 matches', 5], ['goals', 'Score 10 team goals', 10]] },
-    { n: 5, label: 'Prime', ovr: 4, cost: 300000, obj: [['played', 'Play 10 matches', 10], ['won', 'Win 7 matches', 7], ['goals', 'Score 14 team goals', 14]] },
+    { n: 1, label: 'Rising', ovr: 2, cost: 100000, obj: [['played', 'Play 2 matches', 2]] },
+    { n: 2, label: 'Prospect', ovr: 3, cost: 250000, obj: [['played', 'Play 4 matches', 4], ['won', 'Win 2 matches', 2]] },
+    { n: 3, label: 'Breakthrough', ovr: 3, cost: 500000, obj: [['played', 'Play 6 matches', 6]] },
+    { n: 4, label: 'Star', ovr: 4, cost: 900000, obj: [['played', 'Play 8 matches', 8], ['won', 'Win 5 matches', 5]] },
+    { n: 5, label: 'Prime', ovr: 4, cost: 1500000, obj: [['played', 'Play 10 matches', 10], ['won', 'Win 7 matches', 7]] },
   ];
   FS_GROUPS.forEach(g => FS_TIERS.forEach(t => {
     const mult = 0.5 + t.n * 0.25, scale = o => { const r = {}; Object.keys(o).forEach(k => { r[k] = Math.max(1, Math.round(o[k] * mult)); }); return r; };
     EVOS.push({ id: 'fs_' + g.key + '_' + t.n, fs: true, tier: t.n, group: g.key, name: g.name + ' ' + t.n + ': ' + t.label, desc: 'Future Star ' + g.name.toLowerCase() + ' upgrade, step ' + t.n + ' of 5.', cost: t.cost,
       eligible: c => c.promo === 'fstar' && g.pos.includes(c.position) && (c.fsTier || 0) === t.n - 1,
       eligText: 'Future Star ' + g.pos.join(' / ') + ' · ' + (t.n > 1 ? 'step ' + (t.n - 1) + ' done' : 'any Future Star'),
-      objectives: t.obj.map(o => ({ key: o[0], label: o[1], target: o[2] })),
+      objectives: t.obj.map(o => ({ key: o[0], label: o[1], target: o[2] })).concat(FS_TASKS[g.key].map(q => ({ key: q[0], label: q[1] + q[3][t.n - 1] + q[2], target: q[3][t.n - 1] }))),
       boosts: { rating: t.ovr, face: scale(g.face), sub: scale(g.sub), ps: g.ps[t.n - 1] ? [g.ps[t.n - 1]] : [] } });
   }));
   const MAX_ACTIVE_EVOS = 3;
@@ -425,17 +434,22 @@ window.RUT = window.RUT || {};
       p.goals = (p.goals || 0) + result.goalsFor;
       p.won = (p.won || 0) + (result.won ? 1 : 0);
       p.cleanSheets = (p.cleanSheets || 0) + (result.goalsAgainst === 0 ? 1 : 0);
+      { const me = (result.players || []).find(x => x.t === 0 && x.n === RUT.State.card(st.items[itemId]).name), PM = { p_goal: 'goal', p_sot: 'sot', p_skill: 'skill', p_ast: 'ast', p_key: 'key', p_pc: 'pc', p_int: 'int', p_tkw: 'tkw', p_save: 'save' };
+        if (me) Object.keys(PM).forEach(k => { p[k] = (p[k] || 0) + (me[PM[k]] || 0); }); }
       if (evo.objectives.every(o => (p[o.key] || 0) >= o.target)) {
         const it = st.items[itemId];
         it.evo = it.evo || { applied: [], boosts: { rating: 0, face: {}, sub: {}, ps: [] } };
         const b = it.evo.boosts;
-        b.rating += evo.boosts.rating;
+        const c0 = RUT.State.card(it); let gain = evo.boosts.rating;
+        if (evo.fs && c0.pot) { const gap = Math.max(0, c0.pot - c0.rating), left = Math.max(1, 3 - (c0.fsTier || 0)); gain = Math.min(gain, Math.max(1, Math.ceil(gap / left))); }   // v358: a Future Star needs at least 3 evolutions to reach his potential
+        b.rating += gain;
         Object.entries(evo.boosts.face).forEach(([k, v]) => { b.face[k] = (b.face[k] || 0) + v; });
         Object.entries(evo.boosts.sub).forEach(([k, v]) => { b.sub[k] = (b.sub[k] || 0) + v; });
         b.ps = Array.from(new Set(b.ps.concat(evo.boosts.ps)));
         it.evo.applied.push(evo.id);
         delete st.evos.active[itemId];
         done.push(RUT.State.card(it).name + ' completed ' + evo.name + '!');
+        if (evo.fs) { const c1 = RUT.State.card(it); (RUT.Evo.fsDone = RUT.Evo.fsDone || []).push({ name: c1.name, pos: c1.position, before: c0.rating, after: c1.rating, step: evo.tier, evo: evo.name, ps: evo.boosts.ps }); }
         RUT.State.log('Evolution complete: ' + RUT.State.card(it).name + ' (' + evo.name + ')');
         try { RUT.Quests && RUT.Quests.event('evo'); } catch (e) { /* quests are optional */ }
       }
