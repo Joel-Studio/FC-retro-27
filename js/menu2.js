@@ -38,10 +38,10 @@
       <div class="m2-row">
         <div class="m2-feat">${n === 5 && c.feat ? `<div class="m2-showcard">${c.feat}</div>` : ''}
           <h1 class="m2-h">${n === 5 ? 'MOMENTS' : 'SINGLE NATION TOURNAMENT'}</h1><div class="m2-tag">${n === 5 ? 'DAILY CHALLENGES · QUESTS · EARN PACKS' : '4 ROUNDS · GOLDEN GOAL · MYSTERY BALL'}</div>
-          <p>${n === 5 ? 'Complete Moments to earn coins and packs every day. Build your club while the Ballon d\'Or 2026 stars are on show.' : 'Compete in the live event to complete objectives and earn rewards!'}</p>
+          <p>${n === 5 ? 'Complete Moments to earn coins and packs every day. Build your club while the ' + (c.fs ? 'Future Stars are' : 'Ballon d\'Or 2026 stars are') + ' on show.' : 'Compete in the live event to complete objectives and earn rewards!'}</p>
           <div class="m2-info"><span><i>Your Club</i><b>${esc(c.club)}</b></span><span><i>Rating</i><b>${c.rating}</b></span><span><i>Record</i><b>${c.rec}</b></span></div>
           <button class="m2-go" data-act="nav" data-v="${n === 5 ? 'quests' : 'play'}">${n === 5 ? 'Enter Moments' : 'View Tournament'}</button></div>
-        ${n === 5 && c.top10 ? `<aside class="m2-rew m2-bd"><b>Ballon d'Or 2026</b><small>Top 10 showcase</small><div class="m2-top10">${c.top10}</div><button class="m2-go sm" data-act="nav" data-v="bdorgal">See all nominees</button></aside>` : `<aside class="m2-rew"><b>Reward</b><small>Single Nation Tournament</small>${art('store')}<span>1x Rare Mega Pack (Untradeable)</span><small>Completed Objectives 0 / 4</small></aside>`}
+        ${n === 5 && c.top10 ? `<aside class="m2-rew m2-bd"><b>${c.fs ? 'Future Stars 2026' : "Ballon d'Or 2026"}</b><small>${c.fs ? 'Top 10 of 30 young stars' : 'Top 10 showcase'}</small><div class="m2-top10">${c.top10}</div><button class="m2-go sm" data-act="nav" data-v="${c.fs ? 'fsevo' : 'bdorgal'}">${c.fs ? 'Future Star Evolutions' : 'See all nominees'}</button></aside>` : `<aside class="m2-rew"><b>Reward</b><small>Single Nation Tournament</small>${art('store')}<span>1x Rare Mega Pack (Untradeable)</span><small>Completed Objectives 0 / 4</small></aside>`}
       </div>
       <div class="m2-tiles m2-tiles3">${tile('play', 'Kick Off', 'Play a match', 'play')}${tile('quests', 'Moments', 'Daily challenges', 'quest')}${tile('store', 'Store', 'Open packs', 'store')}${tile('market', 'Transfer Market', 'Buy and sell', 'market')}</div>${hints}</section>`;
   }
