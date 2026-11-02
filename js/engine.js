@@ -491,6 +491,18 @@ window.RUT = window.RUT || {};
   P.ctlOf = function (p) { const c = p && this.ctls[p.team]; return c && c.controlled === p ? c : null; };
 
   /* --------------------------- set pieces -------------------------------- */
+  /** v362: the depth band (metres on a 105 m pitch, from his own goal) of the squares a player's role covers, in and out of possession. Cached until his role changes. */
+  P.zoneBand = function (p) {
+    if (p._zbTr === p.tr && p._zb) return p._zb;
+    const f = FORMATIONS[this.tac[p.team].formation].pts[p.slot]; if (!f) return null;
+    const X = f[1] / 68 * 100, Y = Math.min(100, f[0] / 64 * 100), ZR = RUT.ZONE_R, ZC = RUT.ZONE_C, out = {};
+    [['att', true], ['def', false]].forEach(([k, att]) => {
+      const g = RUT.zoneMap(X, Y, p.tr, 'b', false, att); let lo = 1e9, hi = -1e9;
+      for (let r = 0; r < ZR; r++) for (let q = 0; q < ZC; q++) if (g[r * ZC + q] >= 0.18) { const zy = (ZR - r - 0.5) / ZR * 100; lo = Math.min(lo, zy - 100 / ZR / 2); hi = Math.max(hi, zy + 100 / ZR / 2); }
+      out[k] = hi < lo ? [0, 105] : [Math.max(0, lo) * 0.64, Math.min(100, hi) * 0.64];
+    });
+    p._zbTr = p.tr; p._zb = out; return out;
+  };
   P.homeSpot = function (p, kickoff) {
     if (p.home) return p.home;                                           // testing ground dummies stand where they were put
     const T = this.tac[p.team], f = FORMATIONS[T.formation].pts[p.slot];
@@ -2306,6 +2318,11 @@ window.RUT = window.RUT || {};
     // depth cap: nobody drifts too far up the pitch (out of possession the line stays near halfway, in possession the back line holds)
     { const cap = weHave ? (isDef ? 0.6 + DEF_PUSH * 0.4 : isFwd ? 1.2 : 0.85) : (isDef ? 0.42 + DEF_PUSH : isFwd ? 0.78 : 0.56 + DEF_PUSH * 0.5), dep = (tx - own) * dir;
       if (dep > cap * PITCH_W) tx = own + dir * cap * PITCH_W; }
+    // v362 (JODIO): every outfield man (AI or a team-mate you are not controlling) stays inside the squares his role covers, so a poacher never drops into midfield or defence
+    if (!p.isGK && p.slot >= 1 && !p.tr.has('free') && RUT.zoneMap) {
+      const zb = this.zoneBand(p);
+      if (zb) { const bd = weHave ? zb.att : zb.def, k105 = 105 / PITCH_W; let dep = (tx - own) * dir * k105; const d2 = clamp(dep, bd[0] - 3, bd[1] + 10); if (d2 !== dep) tx = own + dir * d2 / k105; }
+    }
     // spacing: team-mates spread out instead of sticking together, pushed apart from anyone within 9 m of where he wants to stand
     { let px = 0, py = 0;
       for (const o of this.players) {
@@ -3135,16 +3152,16 @@ window.RUT = window.RUT || {};
     }
     // sweeping: a ball played in behind the line that he can reach before the attacker, he comes out and gets it
     { const ki = clamp(p.iq, 0, 1);
-      if (!b.owner && !b.shot && ki > 0.55 && Math.abs(b.x - gx) < 14 + 18 * ki && !p.tr.has('stk')) {
+      if (!b.owner && !b.shot && ki > 0.55 && Math.abs(b.x - gx) < 9 + 9 * ki && !p.tr.has('stk')) {
         const px2 = b.x + b.vx * 0.7, py2 = b.y + b.vy * 0.7, tK = dist(p, { x: px2, y: py2 }) / Math.max(4, p.sprintMax);
         let tO = 1e9; this.players.forEach(o => { if (o.team !== p.team && !o.isGK) tO = Math.min(tO, dist(o, { x: px2, y: py2 }) / Math.max(4, o.sprintMax)); });
-        if (b.z < 2 && tK < tO * (0.72 + 0.25 * ki)) { this.claim(p, 'KEEPER!'); this.seek(p, px2, py2, true); return; }
+        if (b.z < 2 && tK < tO * (0.58 + 0.2 * ki)) { this.claim(p, 'KEEPER!'); this.seek(p, px2, py2, true); return; }
       } }
     // positioning: on the line between ball and goal centre; the closer the danger the further he comes out to shrink the angle
     const car = b.owner && b.owner.team !== p.team ? b.owner : null, dBall = len(b.x - gx, b.y - PH2);
     let adv = clamp(dBall * 0.08, 1, 5) * (0.55 + 0.6 * nrm(s.gkPositioning));
     if (car && dBall < 28) adv = clamp(dBall * (0.18 + 0.14 * nrm(s.gkPositioning)), 2, 9);    // narrowing the angle on a runner
-    adv *= swp ? 1.3 : stk ? 0.85 : 1;                                              // sweepers stand high, shot-stoppers on the line
+    adv *= swp ? 1.15 : stk ? 0.85 : 1;                                              // sweepers stand high, shot-stoppers on the line
     // diving at the feet: a dribbler at close range inside the box, the keeper may throw himself at the ball
     if (car && b.owner === car && Math.abs(car.x - gx) < 20 && Math.abs(car.y - PH2) < 22 && !this.ctlOf(p)) {
       const dc = dist(p, car);
@@ -5714,7 +5731,7 @@ void main(){
       }
       if ((lv = gtLv(p, 'sweep')) && p.isGK && !car && !b.shot && (p._gtc && p._gtc.sweep > this.t ? false : true)) {
         const og = dir > 0 ? 0 : PITCH_W, bd = Math.abs(b.x - og);
-        if (bd < 24 + 4 * lv && bd > 9 && Math.abs(b.y - PH2) < 22 && !this.players.some(o => o.team === p.team && !o.isGK && dist(o, b) < dist(p, b))) {
+        if (bd < 16 + 2 * lv && bd > 9 && Math.abs(b.y - PH2) < 22 && !this.players.some(o => o.team === p.team && !o.isGK && dist(o, b) < dist(p, b))) {
           const opp = this.players.some(o => o.team !== p.team && dist(o, b) < dist(p, b) - 2);
           if ((!opp || lv > 1) && this.gtGo(p, 'sweep', 3)) { this.gtPop(p, 'sweep'); p._go = { x: b.x, y: b.y, until: this.t + 1.2 }; }
         }

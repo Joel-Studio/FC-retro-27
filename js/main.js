@@ -1378,28 +1378,7 @@
     if (!p) return null;
     const tg = c ? RUT.effectiveTags(c, pos, key || State.slotRole(i)) : new Set(), h = t => tg.has(t), foc = String(key || State.slotRole(i) || '').split(':')[1] || 'b';
     const X = p[1] / 68 * 100, Y = Math.min(100, p[0] / 64 * 100), side = X < 40 ? -1 : X > 60 ? 1 : 0, gk = pos === 'GK';
-    const map = att => {
-      let cy = Y + (att ? 10 : -12), cx = X, sx = 13, sy = 12; const blobs = [];
-      if (gk) { cy = att ? 6 : 4; sx = att ? 14 : 10; sy = att ? (h('swp') ? 9 : 5) : 4; }
-      else {
-        if (att) { if (foc === 'a') cy += 9; if (foc === 'd') cy -= 8; if (foc === 'u') cy -= 5; if (foc === 'r') { sx *= 1.5; sy *= 1.4; }
-          if (h('run') || h('late') || h('box')) blobs.push([cx + (h('box') ? -side * 12 : 0), Math.min(96, cy + 20), 0.75]);
-          if (h('wb') || h('ovl')) { blobs.push([side ? (side < 0 ? 6 : 94) : cx, Math.min(92, cy + 22), 0.85]); sy += 6; }
-          if (h('wid') || h('crs')) cx = side < 0 ? Math.min(cx, 10) : side > 0 ? Math.max(cx, 90) : cx;
-          if (h('inv') || h('ifb') || h('hyb')) blobs.push([50 + side * 14, cy + (h('ifb') || h('hyb') ? 4 : 10), 0.8]);
-          if (h('drp') || h('vis')) blobs.push([cx * 0.6 + 20, cy - 16, 0.65]);
-          if (h('hld') || h('anc') || h('lib')) { cy -= 5; sy *= 0.75; }
-          if (h('dri')) sx += 3; if (h('wrk')) sy += 4; if (h('tgt')) sx *= 0.8;
-        } else { if (foc === 'd') cy -= 6; if (foc === 'a') cy += 6;
-          if (h('lzy')) cy += 14; if (h('wrk') || h('stp')) { sy += 5; sx += 3; } if (h('anc') || h('hld')) sx *= 0.85; if (h('lib')) cy -= 6;
-          if (h('wb') || h('ovl')) sy += 5; }
-      }
-      cy = Math.max(3, Math.min(97, cy)); cx = Math.max(4, Math.min(96, cx)); blobs.unshift([cx, cy, 1]);
-      const g = []; let mx = 0;
-      for (let r = 0; r < ZR; r++) for (let q = 0; q < ZC; q++) { const zx = (q + 0.5) / ZC * 100, zy = (ZR - r - 0.5) / ZR * 100; let v = 0;
-        blobs.forEach(([bx, by, w]) => { v = Math.max(v, w * Math.exp(-((zx - bx) ** 2) / (2 * sx * sx) - ((zy - by) ** 2) / (2 * sy * sy))); }); g.push(v); mx = Math.max(mx, v); }
-      return g.map(v => mx ? v / mx : 0);
-    };
+    const map = att => RUT.zoneMap(X, Y, tg, foc, gk, att);
     return { att: map(true), def: map(false) };
   }
   const zoneCells = (g, mini) => g.map(v => { const l = v < 0.14 ? 0 : v < 0.35 ? 1 : v < 0.6 ? 2 : v < 0.82 ? 3 : 4; return `<i class="z${l}"></i>`; }).join('');

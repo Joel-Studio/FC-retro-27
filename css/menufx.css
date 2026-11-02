@@ -37,3 +37,22 @@ html.fx-on body::after { bottom: 4vh; background: linear-gradient(100deg, transp
 .btn:active, .site-nav button:active { transform: scale(.96); }
 .btn:focus-visible, .site-nav button:focus-visible { outline: 2px solid #ffd400; outline-offset: 2px; }
 .m2-bdg { position: absolute; top: 8px; right: 8px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: #e33; color: #fff; font: 800 12px/22px sans-serif; text-align: center; }
+
+/* v362 (JODIO): the FC logo as a 3D metal coin: bevelled rim, extruded letters, moving shine and a slow turn. Colours follow the event theme through --lg1..--lg3. */
+html { --lg1: #fff3c4; --lg2: #f4c542; --lg3: #7a5206; --lgt: #3a2600; }
+html[data-ev="fstar"] { --lg1: #ffe3f8; --lg2: #ff6ad5; --lg3: #5a1a8a; --lgt: #3d0a52; }
+html[data-ev="toty"] { --lg1: #e8f0ff; --lg2: #4c8aff; --lg3: #10286a; --lgt: #0a1c4a; }
+html[data-ev="nl"], html[data-ev="tots"] { --lg1: #e8f4ff; --lg2: #3cc4ff; --lg3: #0a3a6a; --lgt: #08284a; }
+html .site-bar .logo, html[data-menu] .site-bar .logo { position: relative; width: 50px; height: 50px; min-width: 50px; padding: 0; font-size: 0; border: 0; border-radius: 50%; display: grid; place-items: center; transform-style: preserve-3d; perspective: 400px;
+  background: radial-gradient(circle at 32% 26%, var(--lg1) 0%, var(--lg2) 38%, var(--lg3) 100%);
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.75), inset 0 0 0 5px var(--lg3), inset 0 0 0 7px var(--lg2), inset 0 -5px 8px rgba(0,0,0,.45), inset 0 4px 6px rgba(255,255,255,.6), 0 1px 0 var(--lg3), 0 2px 0 var(--lg3), 0 3px 0 var(--lg3), 0 4px 0 rgba(0,0,0,.55), 0 8px 14px rgba(0,0,0,.55), 0 0 16px var(--lg2);
+  animation: lgturn 7s ease-in-out infinite; }
+html .site-bar .logo::before, html[data-menu] .site-bar .logo::before { content: 'FC'; position: relative; z-index: 1; font: 800 24px/1 'Barlow Condensed', 'Press Start 2P', sans-serif; letter-spacing: 0; color: #fff;
+  text-shadow: 0 1px 0 var(--lg3), 0 2px 0 var(--lg3), 0 3px 0 var(--lg3), 0 4px 2px rgba(0,0,0,.6); }
+html .site-bar .logo::after { content: ''; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: linear-gradient(115deg, transparent 0 38%, rgba(255,255,255,.75) 47%, transparent 56% 100%) 0 0 / 260% 100% no-repeat, radial-gradient(ellipse 60% 38% at 40% 18%, rgba(255,255,255,.75), transparent 70%);
+  mix-blend-mode: screen; animation: lgshine 4.2s linear infinite; }
+html .site-bar .logo small { display: none; }
+@keyframes lgturn { 0%, 100% { transform: perspective(400px) rotateY(-16deg) rotateX(6deg); } 50% { transform: perspective(400px) rotateY(16deg) rotateX(-4deg); } }
+@keyframes lgshine { 0% { background-position: 170% 0, 0 0; } 60%, 100% { background-position: -80% 0, 0 0; } }
+@media (prefers-reduced-motion: reduce) { html .site-bar .logo { animation: none; } html .site-bar .logo::after { animation: none; } }
