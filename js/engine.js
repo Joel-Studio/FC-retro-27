@@ -4067,10 +4067,11 @@ window.RUT = window.RUT || {};
   // back, about 47 m of pitch across the middle of the screen and players near true scale. WIDE is the closer
   // high view, CLOSE the zoomed-in arcade view. Actor sizes divide by ZOOM; FY = how much the camera follows the ball up/down.
   const CAMS = {
-    fc: { F: 850, H: 36, BACK: 97, ROW: 128, Z: 2.4, FY: 0.5 },   // v321: FC27 broadcast-style high camera (only the 3D renderer has its own settings for it)
-    tv: { F: 850, H: 36, BACK: 97, ROW: 128, Z: 2.4, FY: 0.5 },
-    wide: { F: 400, H: 26, BACK: 40, ROW: 150, Z: 1.55, FY: 0.7 },
-    close: { F: 380 * 1.8, H: 16, BACK: 45, ROW: 165, Z: 1.8, FY: 0.7 },
+    // v355 (JODIO): the 2D looks use the same on-screen size as the 3D camera. F = 3D pixels per metre at the focus point (view height / (2 tan(fov/2)) / camera distance) x BACK, so a player and the ball are the same size in every graphics mode
+    fc: { F: 587, H: 36, BACK: 97, ROW: 128, Z: 2.4, FY: 0.5 },
+    tv: { F: 680, H: 36, BACK: 97, ROW: 128, Z: 2.4, FY: 0.5 },
+    wide: { F: 444, H: 26, BACK: 40, ROW: 150, Z: 1.55, FY: 0.7 },
+    close: { F: 745, H: 16, BACK: 45, ROW: 165, Z: 1.8, FY: 0.7 },
   };
   const CAM_ORDER = ['tv', 'fc', 'wide', 'close'];
   // Graphics: canvas resolution (share of 1080 lines) per preset. Auto starts high and steps down by itself when frames run long.

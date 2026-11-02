@@ -1623,3 +1623,18 @@ html, body, button, input, select, textarea { font-size-adjust: none; }   /* v21
 .card.pxc.mini.r-fstar::after, .c3d.mini.r-fstar::after { display: none; }
 .card.r-fstar .c-ovr { color: var(--ct, #fff); text-shadow: 0 0 7px rgba(60,242,255,.8); }
 .c3d.r-fstar { --frame: #3cf2ff; --frame2: #0a1a6e; }
+
+/* v355 Future Star pack + walkout (pink, purple, white) */
+.pfx.fs { background: radial-gradient(ellipse at 50% 55%, #5a1a6e 0%, #14061c 72%); }
+.pfx.fs .floor { background: repeating-linear-gradient(90deg, rgba(255,120,220,.18) 0 2px, transparent 2px 60px), repeating-linear-gradient(0deg, rgba(255,120,220,.18) 0 2px, transparent 2px 60px); }
+.pfx.fs .rays { background: repeating-conic-gradient(rgba(255,150,230,0) 0 8deg, rgba(255,150,230,.30) 8deg 14deg); }
+.pfx.fs .pfx-pillar { background: linear-gradient(180deg, transparent, rgba(255,130,225,.25) 40%, rgba(255,130,225,.55)); }
+.pfx.fs .pfx-ring { border-color: rgba(255,130,225,.9); box-shadow: 0 0 22px rgba(200,80,255,.7), inset 0 0 18px rgba(255,130,225,.4); }
+.pfx.fs .ptitle { color: #fff; text-shadow: 0 0 18px #ff6ad5, 3px 3px 0 #4a0a5a; }
+.pfx.fs .scene { animation: pfxfloat 1.9s ease-in-out infinite alternate, pfxturn 3.4s cubic-bezier(.3,.1,.2,1) both; }
+.walkout.wo-fstar { background: radial-gradient(circle at 50% 45%, #6a1f80 0%, #1a0724 58%, #000 100%); }
+.walkout.wo-fstar .w3-capgl { text-shadow: 0 0 18px rgba(255,120,225,.95), 3px 3px 0 #000; }
+.fs-t { text-align: center; font-family: "Press Start 2P", monospace; animation: w3in .6s both; }
+.fs-t .f1 { font-size: 13px; color: #ffd6f6; letter-spacing: 3px; }
+.fs-t .f2 { font-size: 38px; color: #fff; margin: 14px 0; text-shadow: 0 0 24px #ff6ad5, 0 0 48px #b04cff, 4px 4px 0 #6a1f80; }
+.fs-t .f3 { font-size: 12px; color: #ff9ae6; }

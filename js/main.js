@@ -3256,17 +3256,18 @@
     res.items = res.items.filter(id => State.item(id));
     const pk = res.items.map(id => State.card(id)), goat = pk.find(c => c && c.name === 'Lionel Messi') || pk.find(c => c && c.name === 'Cristiano Ronaldo');   // v142 (JODIO): any Ronaldo in a pack gets the GOAT walkout; v200: any Messi too, with his own scene
     if (goat) { res.walkout = true; res.best = goat; }
+    else { const fsb = pk.filter(c => c && c.promo === 'fstar').sort((a, b) => b.rating - a.rating)[0]; if (fsb) { res.walkout = true; res.best = fsb; } }   // v355 (JODIO): any Future Star card in a pack gets the pink Future Star walkout
     const def = Packs.PACKS[packId]; res.packId = packId;   // v162: every walkout from the Ballon d'Or pack gets the golden 3D plaques
     packFX(def, () => (res.walkout ? walkout(res) : revealPack(res, def)));
   }
 
   /** v155: 3D pack opening (CSS 3D). The pack spins in, shakes, its front tears open in a flash and the cards follow. The Ballon d'Or pack is golden with a flying golden ball. Click to speed up or skip. */
   function packFX(def, done) {
-    const gold = def.tier === 'bdor', el = document.createElement('div');
-    el.className = 'pfx' + (gold ? ' gold' : '');
-    const sp = Array.from({ length: gold ? 70 : 44 }, () => { const a = Math.random() * 6.283, d = 160 + Math.random() * 420; return `<i class="spark" style="--x:${Math.round(Math.cos(a) * d)}px;--y:${Math.round(Math.sin(a) * d * .7)}px;--z:${Math.round(Math.random() * 500)}px;--d:${(0.55 + Math.random() * .4).toFixed(2)}s;${gold ? 'background:#ffd04a;' : ''}"></i>`; }).join('');
+    const gold = def.tier === 'bdor', fsP = /^fstar/.test(def.id), el = document.createElement('div');
+    el.className = 'pfx' + (gold ? ' gold' : '') + (fsP ? ' fs' : '');
+    const sp = Array.from({ length: gold ? 70 : 44 }, () => { const a = Math.random() * 6.283, d = 160 + Math.random() * 420; return `<i class="spark" style="--x:${Math.round(Math.cos(a) * d)}px;--y:${Math.round(Math.sin(a) * d * .7)}px;--z:${Math.round(Math.random() * 500)}px;--d:${(0.55 + Math.random() * .4).toFixed(2)}s;${gold ? 'background:#ffd04a;' : fsP ? 'background:#ff6ad5;' : ''}"></i>`; }).join('');
     const face = `<div class="stripe"></div><div style="position:relative">${esc(def.name.toUpperCase())}<br><br>${def.count} ITEMS</div>`;
-    el.innerHTML = `<canvas class="pfx-gl"></canvas><div class="floor"></div><div class="rays"></div><div class="pfx-pillar"></div>${gold ? `<div class="ptitle">BALLON D'OR</div>` : ''}
+    el.innerHTML = `<canvas class="pfx-gl"></canvas><div class="floor"></div><div class="rays"></div><div class="pfx-pillar"></div>${gold ? `<div class="ptitle">BALLON D'OR</div>` : fsP ? `<div class="ptitle">FUTURE STAR</div>` : ''}
       <div class="scene"><div class="pfx-ring r1"></div><div class="pfx-ring r2"></div><div class="pfx-ring r3"></div><div class="face front pack ${def.tier}" style="margin:0;width:auto;height:auto">${face}</div><div class="face back pack ${def.tier}" style="margin:0;width:auto;height:auto"></div><div class="side l pack ${def.tier}"></div><div class="side r pack ${def.tier}"></div></div>
       ${sp}<div class="light"></div><div class="skip">click to skip</div>`;
     document.body.appendChild(el);
@@ -3277,26 +3278,26 @@
     if (!window.RUT_PFX_HOLD) t1 = setTimeout(go, gold ? 3200 : 2400);   // (the hold flag is for screenshots in tests)
     el.addEventListener('click', () => (went ? end() : go()));
     // WebGL backdrop (three.js): the golden Ballon d'Or trophy for its pack, drifting light for the others. Without WebGL the CSS scene stands on its own.
-    if (RUT.load3D) Promise.resolve(RUT.load3D()).then(() => { if (!ended && window.THREE) { try { stopGL = packGL(el, gold ? 'bdor' : def.id === 'cl' ? 'cl' : 'std').stop; } catch (e) { if (window.console) console.warn('Pack 3D backdrop failed', e); } } });
+    if (RUT.load3D) Promise.resolve(RUT.load3D()).then(() => { if (!ended && window.THREE) { try { stopGL = packGL(el, gold ? 'bdor' : fsP ? 'fstar' : def.id === 'cl' ? 'cl' : 'std').stop; } catch (e) { if (window.console) console.warn('Pack 3D backdrop failed', e); } } });
   }
 
   /** The 3D scene of a pack opening and of the Ballon d'Or / Champions League reveal. kind: 'bdor' golden ball on a pedestal, 'cl' silver-blue starball, 'std' rings and sparks.
    *  Returns { stop, plaque(what, card), hidePlaque(), boost(v) }. The plaque is a 3D gold slab in front of the ball that flips to show the country, then the position, then the club. */
   function packGL(el, kind, opts) {
     opts = opts || {};
-    const T = window.THREE, cv = el.querySelector('canvas.pfx-gl'), W = innerWidth, H = innerHeight, gold = kind === 'bdor', cl = kind === 'cl';
+    const T = window.THREE, cv = el.querySelector('canvas.pfx-gl'), W = innerWidth, H = innerHeight, gold = kind === 'bdor', fsK = kind === 'fstar', cl = kind === 'cl' || fsK;
     const renderer = new T.WebGLRenderer({ canvas: cv, alpha: true, antialias: !window.RUT_LITE }); renderer.setPixelRatio(window.RUT_LITE ? 1 : Math.min(devicePixelRatio || 1, 1.5)); renderer.setSize(W, H, false);   // v204: Lite mode keeps the 3D pack scenes, at lighter settings
     const scene = new T.Scene(), cam = new T.PerspectiveCamera(42, W / H, 0.1, 100); cam.position.set(0, 1.2, 8.5); cam.lookAt(0, 0.6, 0);
-    const P = gold ? { amb: 0xffe6a8, key: 0xffd27a, rim: 0xff9a2a, metal: 0xf4c542, emis: 0x6b4300, ring: 0xffd34a, spark: 0xffdf8a } : cl ? { amb: 0xbfd2ff, key: 0xdbe7ff, rim: 0x3a64ff, metal: 0xe3ebff, emis: 0x0a1c5a, ring: 0x9fc0ff, spark: 0xcfe0ff } : { amb: 0xbfc8ff, key: 0xffffff, rim: 0x7a8cff, metal: 0x9fb4ff, emis: 0x1a2a6a, ring: 0xaab8ff, spark: 0xdfe6ff };
+    const P = fsK ? { amb: 0xffd6f4, key: 0xffffff, rim: 0xb04cff, metal: 0xffd9f6, emis: 0x5a0a52, ring: 0xff7ad9, spark: 0xffc2ee } : gold ? { amb: 0xffe6a8, key: 0xffd27a, rim: 0xff9a2a, metal: 0xf4c542, emis: 0x6b4300, ring: 0xffd34a, spark: 0xffdf8a } : cl ? { amb: 0xbfd2ff, key: 0xdbe7ff, rim: 0x3a64ff, metal: 0xe3ebff, emis: 0x0a1c5a, ring: 0x9fc0ff, spark: 0xcfe0ff } : { amb: 0xbfc8ff, key: 0xffffff, rim: 0x7a8cff, metal: 0x9fb4ff, emis: 0x1a2a6a, ring: 0xaab8ff, spark: 0xdfe6ff };
     scene.add(new T.AmbientLight(P.amb, 0.5));
     const key = new T.PointLight(P.key, 34, 40), rim = new T.PointLight(P.rim, 40, 40); key.position.set(4, 5, 6); rim.position.set(-5, 2, -3); scene.add(key, rim);
     const gmat = new T.MeshStandardMaterial({ color: P.metal, metalness: 0.95, roughness: 0.22, emissive: P.emis, emissiveIntensity: 0.6 });
     const trophy = new T.Group(); scene.add(trophy);
     if (gold || cl) {
-      const tex = document.createElement('canvas'); tex.width = 512; tex.height = 256; const g = tex.getContext('2d'); g.fillStyle = gold ? '#f2c14a' : '#eef3ff'; g.fillRect(0, 0, 512, 256);
+      const tex = document.createElement('canvas'); tex.width = 512; tex.height = 256; const g = tex.getContext('2d'); g.fillStyle = gold ? '#f2c14a' : fsK ? '#fff4fc' : '#eef3ff'; g.fillRect(0, 0, 512, 256);
       if (gold) { g.strokeStyle = '#8a5f06'; g.lineWidth = 5; for (let x = 0; x < 512; x += 64) for (let y = 0; y < 256; y += 64) { g.beginPath(); for (let k = 0; k < 6; k++) { const a = k / 6 * 6.283 + 0.5; g.lineTo(x + 32 + Math.cos(a) * 26, y + 32 + Math.sin(a) * 26); } g.closePath(); g.stroke(); } }
-      else { g.fillStyle = '#0a1c5a'; for (let x = 0; x < 512; x += 64) for (let y = 0; y < 256; y += 64) { g.beginPath(); for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 9 : 24; g.lineTo(x + 32 + Math.cos(a) * r, y + 32 + Math.sin(a) * r); } g.closePath(); g.fill(); } }
-      const ball = new T.Mesh(new T.SphereGeometry(1.35, 48, 32), new T.MeshStandardMaterial({ map: new T.CanvasTexture(tex), color: 0xffffff, metalness: 0.9, roughness: 0.25, emissive: gold ? 0x4a2f00 : 0x0a1c5a, emissiveIntensity: 0.3 })); ball.position.y = 2.1; trophy.add(ball);
+      else { g.fillStyle = fsK ? '#d12e9c' : '#0a1c5a'; for (let x = 0; x < 512; x += 64) for (let y = 0; y < 256; y += 64) { g.beginPath(); for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 9 : 24; g.lineTo(x + 32 + Math.cos(a) * r, y + 32 + Math.sin(a) * r); } g.closePath(); g.fill(); } }
+      const ball = new T.Mesh(new T.SphereGeometry(1.35, 48, 32), new T.MeshStandardMaterial({ map: new T.CanvasTexture(tex), color: 0xffffff, metalness: 0.9, roughness: 0.25, emissive: gold ? 0x4a2f00 : fsK ? 0x5a0a52 : 0x0a1c5a, emissiveIntensity: 0.3 })); ball.position.y = 2.1; trophy.add(ball);
       const stem = new T.Mesh(new T.CylinderGeometry(0.28, 0.5, 1.1, 24), gmat); stem.position.y = 0.55; trophy.add(stem);
       const base = new T.Mesh(new T.CylinderGeometry(1.3, 1.5, 0.35, 40), gmat); base.position.y = 0.05; trophy.add(base);
       const base2 = new T.Mesh(new T.CylinderGeometry(1.0, 1.15, 0.3, 40), gmat); base2.position.y = 0.38; trophy.add(base2);
@@ -3336,7 +3337,7 @@
       const cvs = document.createElement('canvas'); cvs.width = 660; cvs.height = 430; const g = cvs.getContext('2d'), Wd = 660, Ht = 430;
       const txt = (str, size, y, col) => { g.font = 'bold ' + size + 'px "Press Start 2P", monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineWidth = size / 6; g.strokeStyle = '#000'; g.strokeText(str, Wd / 2, y); g.fillStyle = col || '#fff'; g.fillText(str, Wd / 2, y); };
       if (what === 'nation') { const f = DB.flagFor(c.nation), col = f.c; for (let k = 0; k < 3; k++) { g.fillStyle = col[k]; if (f.dir === 'h') g.fillRect(0, k * Ht / 3, Wd, Ht / 3 + 1); else g.fillRect(k * Wd / 3, 0, Wd / 3 + 1, Ht); } txt(c.nation, 70, Ht - 60); }
-      else if (what === 'pos') { const gr = g.createRadialGradient(Wd / 2, Ht / 2 - 30, 20, Wd / 2, Ht / 2, 340); gr.addColorStop(0, '#fff3b8'); gr.addColorStop(1, '#a8760a'); g.fillStyle = gr; g.fillRect(0, 0, Wd, Ht); g.fillStyle = '#3a2600'; g.font = 'bold 150px "Press Start 2P", monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(c.position, Wd / 2, Ht / 2 - 20); g.font = 'bold 30px "Press Start 2P", monospace'; g.fillText((c.altPositions || []).filter(x => x !== c.position).slice(0, 3).join('  '), Wd / 2, Ht - 55); }
+      else if (what === 'pos') { const gr = g.createRadialGradient(Wd / 2, Ht / 2 - 30, 20, Wd / 2, Ht / 2, 340); gr.addColorStop(0, fsK ? '#ffffff' : '#fff3b8'); gr.addColorStop(1, fsK ? '#b0309a' : '#a8760a'); g.fillStyle = gr; g.fillRect(0, 0, Wd, Ht); g.fillStyle = fsK ? '#4a0a5a' : '#3a2600'; g.font = 'bold 150px "Press Start 2P", monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(c.position, Wd / 2, Ht / 2 - 20); g.font = 'bold 30px "Press Start 2P", monospace'; g.fillText((c.altPositions || []).filter(x => x !== c.position).slice(0, 3).join('  '), Wd / 2, Ht - 55); }
       else { const k = DB.kitFor(c.club), gr = g.createLinearGradient(0, 0, Wd, Ht); gr.addColorStop(0, k[0]); gr.addColorStop(0.55, k[0]); gr.addColorStop(0.551, k[1]); gr.addColorStop(1, k[1]); g.fillStyle = gr; g.fillRect(0, 0, Wd, Ht); txt(c.club.toUpperCase(), c.club.length > 12 ? 40 : 56, Ht - 60); }
       g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = 10; g.strokeRect(5, 5, Wd - 10, Ht - 10);
       return cvs;
@@ -3354,7 +3355,7 @@
     const c = res.best;
     const el = document.createElement('div');
     el.className = 'walkout';
-    const glKind = (c.promo === 'bdor' || c.promo === 'award' || (res.packId === 'bdor' || res.packId === 'bdorg')) ? 'bdor' : (c.promo === 'clpromo' || c.cl) ? 'cl' : null;   // v160: the Ballon d'Or and Champions League cards are revealed on a 3D trophy
+    const glKind = c.promo === 'fstar' ? 'fstar' : (c.promo === 'bdor' || c.promo === 'award' || (res.packId === 'bdor' || res.packId === 'bdorg')) ? 'bdor' : (c.promo === 'clpromo' || c.cl) ? 'cl' : null;   // v160: the Ballon d'Or and Champions League cards are revealed on a 3D trophy
     el.innerHTML = `${glKind ? '<canvas class="pfx-gl"></canvas>' : ''}<canvas class="fw"></canvas><div class="stage"></div><p class="dim" style="position:absolute;bottom:20px;z-index:2">click to skip</p>`;
     if (glKind) el.classList.add('gl', 'wo-' + glKind);
     document.body.appendChild(el);
@@ -3363,7 +3364,7 @@
     // pixel fireworks
     const cv = el.querySelector('canvas.fw'); cv.width = 200; cv.height = 112;
     const g = cv.getContext('2d'); const parts = [];
-    const cols = c.promo === 'bdor' || c.promo === 'award' ? ['#ffd04a', '#fff3c0', '#b8861b'] : c.rarity === 'promo' ? ['#ff5ad8', '#3cf2ff', '#ffffff'] : ['#ffe14a', '#ffffff', '#ff9a2a'];
+    const cols = c.promo === 'fstar' ? ['#ff6ad5', '#ffffff', '#b04cff'] : c.promo === 'bdor' || c.promo === 'award' ? ['#ffd04a', '#fff3c0', '#b8861b'] : c.rarity === 'promo' ? ['#ff5ad8', '#3cf2ff', '#ffffff'] : ['#ffe14a', '#ffffff', '#ff9a2a'];
     let alive = true;
     const burst = () => { const x = 20 + Math.random() * 160, y = 15 + Math.random() * 50; for (let i = 0; i < 30; i++) { const a = Math.random() * 6.28, s = 0.5 + Math.random() * 1.5; parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 40 + Math.random() * 20, c: cols[i % cols.length] }); } };
     const loop = () => {
@@ -3385,6 +3386,7 @@
       () => { flash(); if (gl && gl.plaque('club', c)) { stage.innerHTML = `<div class="w3-capgl">${esc(c.club.toUpperCase())}</div>`; burst(); burst(); return; } stage.innerHTML = `<div class="w3 w3-in">${slab(clubCSS(c.club), 210, 210, '22%')}<div class="w3-cap">${esc(c.club.toUpperCase())}</div></div>`; burst(); burst(); },
       ...(DB.signatureFor(c) ? [() => { const sg = DB.signatureFor(c); el.classList.add('wo-' + sg.aura); stage.innerHTML = `<div class="big sigtxt" style="color:${sg.color}">${esc(sg.walkout)}</div>`; for (let k = 0; k < 6; k++) burst(); }] : []),
       ...(c.promo === 'bdor' ? [Object.assign(() => { el.classList.add('wo-bdor'); stage.innerHTML = `<div class="bdor-t"><div class="b1">THE WINNERS OF FOOTBALL</div><div class="b2">BALLON D'OR</div><div class="b3">${c.bdorRank <= 3 ? 'TOP 3 \u00b7 NOMINEE #' + c.bdorRank : c.bdorRank <= 10 ? 'TOP 10 \u00b7 NOMINEE #' + c.bdorRank : 'NOMINEE #' + c.bdorRank}</div></div>`; el.querySelector('canvas.fw').style.opacity = 1; for (let k = 0; k < 10; k++) setTimeout(burst, k * 200); }, { long: true })] : []),
+      ...(c.promo === 'fstar' ? [Object.assign(() => { el.classList.add('wo-fstar'); stage.innerHTML = `<div class="fs-t"><div class="f1">THE NEXT GENERATION</div><div class="f2">FUTURE STAR</div><div class="f3">${esc(c.name.toUpperCase())} \u00b7 POTENTIAL ${c.pot || ''}</div></div>`; el.querySelector('canvas.fw').style.opacity = 1; for (let k = 0; k < 10; k++) setTimeout(burst, k * 200); }, { long: true })] : []),
       ...(c.name === 'Lionel Messi' ? [Object.assign(() => {   // v200 (JODIO): after THE GOAT, the commentary lines roll in over Argentina's stripes
         el.classList.add('wo-messi'); stage.innerHTML = '<div class="messi"><div class="m-stripes"></div><div class="m-l m1">ANKARA MESSI!</div><div class="m-l m2">ANKARA MESSI!! ANKARA MESSI!!!</div><div class="m-l m3">HERE COMES MESSI...</div><div class="m-10">10</div><div class="m-n">\u2605 LIONEL MESSI \u2605</div></div>';
         for (let k = 0; k < 20; k++) setTimeout(burst, 400 + k * 230); }, { long: true, dur: 5600 })] : []),
