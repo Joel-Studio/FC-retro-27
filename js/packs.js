@@ -397,8 +397,8 @@ window.RUT = window.RUT || {};
   FS_GROUPS.forEach(g => FS_TIERS.forEach(t => {
     const mult = 0.5 + t.n * 0.25, scale = o => { const r = {}; Object.keys(o).forEach(k => { r[k] = Math.max(1, Math.round(o[k] * mult)); }); return r; };
     EVOS.push({ id: 'fs_' + g.key + '_' + t.n, fs: true, tier: t.n, group: g.key, name: g.name + ' ' + t.n + ': ' + t.label, desc: 'Future Star ' + g.name.toLowerCase() + ' upgrade, step ' + t.n + ' of 5.', cost: t.cost,
-      eligible: c => c.promo === 'fstar' && g.pos.includes(c.position) && (c.fsTier || 0) === t.n - 1,
-      eligText: 'Future Star ' + g.pos.join(' / ') + ' · ' + (t.n > 1 ? 'step ' + (t.n - 1) + ' done' : 'any Future Star'),
+      eligible: c => c.promo === 'fstar' && (c.fsTier || 0) === t.n - 1,   // v359 (JODIO): any Future Star can take any group's evolution
+      eligText: 'Any Future Star · ' + (t.n > 1 ? 'step ' + (t.n - 1) + ' done' : 'first step'),
       objectives: t.obj.map(o => ({ key: o[0], label: o[1], target: o[2] })).concat(FS_TASKS[g.key].map(q => ({ key: q[0], label: q[1] + q[3][t.n - 1] + q[2], target: q[3][t.n - 1] }))),
       boosts: { rating: t.ovr, face: scale(g.face), sub: scale(g.sub), ps: g.ps[t.n - 1] ? [g.ps[t.n - 1]] : [] } });
   }));
