@@ -1693,3 +1693,19 @@ html, body, button, input, select, textarea { font-size-adjust: none; }   /* v21
 .fse-res { position: absolute; left: 0; width: 100%; bottom: 3%; text-align: center; font-family: "Press Start 2P", monospace; color: #fff; opacity: 0; transform: translateY(20px) scale(.9); transition: opacity .6s .5s, transform .7s .5s; pointer-events: none; text-shadow: 0 0 20px #ff6ad5, 3px 3px 0 #6a1f80; }
 .fse-res.on { opacity: 1; transform: none; }
 .fse-n { font-size: clamp(24px, 6vw, 56px); } .fse-s { font-size: clamp(9px, 1.8vw, 15px); margin-top: 14px; line-height: 1.8; color: #ffd6f6; }
+
+/* v361 Future Star card designs: one per evolution step (fst0 base, fst1..fst5) */
+.card.pxc.r-fstar.fst1 { box-shadow: inset 0 0 0 3px #bfefff, inset 0 0 0 5px #8a2be2, inset 0 0 0 6px #fff, 0 0 14px rgba(120,220,255,.65); }
+.card.r-fstar.fst1 { background: linear-gradient(115deg, transparent 0 34%, rgba(255,255,255,.35) 38%, transparent 43% 57%, rgba(120,220,255,.3) 61%, transparent 66%), repeating-linear-gradient(60deg, rgba(255,255,255,.08) 0 2px, transparent 2px 10px), radial-gradient(ellipse 85% 62% at 50% 22%, #ff9af0 0%, #9a3cf0 46%, #1d0642 100%); }
+.card.pxc.r-fstar.fst2 { box-shadow: inset 0 0 0 3px #ffe9a8, inset 0 0 0 5px #b04cff, inset 0 0 0 6px #fff, 0 0 16px rgba(255,220,120,.7); }
+.card.r-fstar.fst2 { background: linear-gradient(115deg, transparent 0 30%, rgba(255,240,180,.45) 36%, transparent 44% 56%, rgba(255,180,240,.35) 62%, transparent 68%), repeating-linear-gradient(120deg, rgba(255,230,160,.1) 0 2px, transparent 2px 9px), radial-gradient(ellipse 85% 62% at 50% 22%, #ffc2f6 0%, #b04cff 46%, #2a0a5a 100%); }
+.card.pxc.r-fstar.fst3 { box-shadow: inset 0 0 0 3px #fff, inset 0 0 0 5px #ff6ad5, inset 0 0 0 7px #ffe9a8, 0 0 18px rgba(255,106,213,.85), 0 0 30px rgba(176,76,255,.5); }
+.card.r-fstar.fst3 { background: conic-gradient(from 210deg at 50% 30%, #ff9af0, #b04cff, #7ae6ff, #ffe9a8, #ff9af0), #2a0a5a; background-blend-mode: normal; }
+.card.r-fstar.fst3::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 80% 55% at 50% 28%, rgba(40,6,70,.55), rgba(20,2,40,.85)); z-index: 0; }
+.card.pxc.r-fstar.fst4 { box-shadow: inset 0 0 0 3px #fff3c4, inset 0 0 0 5px #ffb000, inset 0 0 0 7px #ff6ad5, 0 0 20px rgba(255,176,0,.8), 0 0 34px rgba(255,106,213,.6); }
+.card.r-fstar.fst4 { background: repeating-linear-gradient(45deg, rgba(255,230,150,.12) 0 3px, transparent 3px 11px), radial-gradient(ellipse 90% 65% at 50% 20%, #fff0b0 0%, #ff6ad5 38%, #6a1f9a 70%, #14041f 100%); }
+.card.pxc.r-fstar.fst5 { box-shadow: inset 0 0 0 3px #ffffff, inset 0 0 0 5px #ffd24a, inset 0 0 0 7px #ff3fc8, inset 0 0 0 8px #fff, 0 0 24px rgba(255,210,74,.95), 0 0 40px rgba(255,63,200,.7); animation: shimmer 1.6s steps(6) infinite; }
+.card.r-fstar.fst5 { background: linear-gradient(115deg, transparent 0 28%, rgba(255,255,255,.55) 34%, transparent 42% 56%, rgba(255,230,120,.5) 62%, transparent 70%), repeating-conic-gradient(from 0deg at 50% 35%, rgba(255,255,255,.1) 0 6deg, transparent 6deg 14deg), radial-gradient(ellipse 90% 65% at 50% 20%, #ffffff 0%, #ffd24a 26%, #ff3fc8 52%, #4a0a7a 80%, #12031c 100%); }
+.card.pxc.r-fstar.fst5::after { content: 'FUTURE STAR \2605 PRIME'; color: #fff3c4; }
+.card.pxc.r-fstar.fst3::after, .card.pxc.r-fstar.fst4::after { content: 'FUTURE STAR \2605'; }
+.c3d.r-fstar.fst5 { --frame: #ffd24a; --frame2: #ff3fc8; } .c3d.r-fstar.fst4 { --frame: #ffb000; --frame2: #ff6ad5; } .c3d.r-fstar.fst3 { --frame: #ff6ad5; --frame2: #7ae6ff; }
