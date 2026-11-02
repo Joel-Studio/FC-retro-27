@@ -1709,3 +1709,34 @@ html, body, button, input, select, textarea { font-size-adjust: none; }   /* v21
 .card.pxc.r-fstar.fst5::after { content: 'FUTURE STAR \2605 PRIME'; color: #fff3c4; }
 .card.pxc.r-fstar.fst3::after, .card.pxc.r-fstar.fst4::after { content: 'FUTURE STAR \2605'; }
 .c3d.r-fstar.fst5 { --frame: #ffd24a; --frame2: #ff3fc8; } .c3d.r-fstar.fst4 { --frame: #ffb000; --frame2: #ff6ad5; } .c3d.r-fstar.fst3 { --frame: #ff6ad5; --frame2: #7ae6ff; }
+
+/* v363 FUT-style squad screen */
+.fut { max-width: 1240px; margin: 0 auto; }
+.fut-top { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 10px 14px; background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02)); border: 1px solid rgba(255,255,255,.12); border-radius: 12px; margin-bottom: 10px; }
+.fut-badge { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 50%; font: 800 22px 'Barlow Condensed', sans-serif; color: #fff; background: radial-gradient(circle at 32% 26%, var(--lg1, #fff3c4), var(--lg2, #f4c542) 40%, var(--lg3, #7a5206)); box-shadow: inset 0 0 0 2px rgba(255,255,255,.7), 0 3px 0 rgba(0,0,0,.5), 0 0 14px var(--lg2, #f4c542); text-shadow: 0 2px 0 rgba(0,0,0,.45); }
+.fut-club { display: flex; flex-direction: column; gap: 2px; font-size: 14px; } .fut-club b:first-child { font-size: 18px; }
+.fut-stars { color: #ffd24a; letter-spacing: 2px; font-size: 14px; }
+.fut-chem { padding: 6px 12px; border-left: 2px solid rgba(255,255,255,.15); font-size: 14px; }
+.fut-main { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 12px; align-items: start; }
+.fut-stage { position: relative; padding: 14px; border-radius: 16px; background: linear-gradient(180deg, #1c1f26, #0b0d12); box-shadow: inset 0 0 0 2px rgba(255,255,255,.08), 0 10px 30px rgba(0,0,0,.5); }
+.fut-stage .pitch { max-width: none; aspect-ratio: 1.2; border-radius: 6px; box-shadow: 0 0 0 3px #0a0a0a, 0 0 0 5px rgba(255,255,255,.18), inset 0 0 0 3px rgba(255,255,255,.55); background: repeating-linear-gradient(90deg, #1f7a2c 0, #1f7a2c 64px, #258a33 64px, #258a33 128px), #1f7a2c; }
+.fut-stage .pitch::before, .fut-stage .pitch::after, .fut-stage .pitch .box { border-color: rgba(255,255,255,.55); background-color: transparent; }
+.fut-stage .pitch::before { background: rgba(255,255,255,.55); height: 2px; }
+.fut-form { position: absolute; left: 28px; bottom: 22px; font: 800 44px 'Barlow Condensed', sans-serif; color: rgba(255,255,255,.22); letter-spacing: 3px; pointer-events: none; z-index: 1; }
+.fut-side { padding: 14px; border-radius: 12px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); }
+.fut-bench { margin-top: 10px; padding: 10px 14px; border-radius: 12px; background: linear-gradient(180deg, #14171d, #0b0d12); border: 1px solid rgba(255,255,255,.1); }
+.fut-bench .bench-row { grid-template-columns: repeat(10, 1fr); }
+@media (max-width: 900px) { .fut-main { grid-template-columns: 1fr; } .fut-stage .pitch { aspect-ratio: 0.9; } .fut-bench .bench-row { grid-template-columns: repeat(5, 1fr); } .fut-form { font-size: 28px; } }
+/* v363 card picker */
+.pkm .pk-bar input[type=search] { padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,.2); background: rgba(0,0,0,.35); color: #fff; font-size: 14px; }
+.pk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px 8px; max-height: 62vh; overflow: auto; padding: 6px 2px; justify-items: center; }
+.pk-i { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: 100%; }
+.pk-i small { font-size: 10px; line-height: 1.25; color: #ddd; max-width: 110px; }
+.pk-i .card.mini { cursor: pointer; transition: transform .15s; } .pk-i .card.mini:hover { transform: translateY(-4px) scale(1.04); }
+.fut-stage .pitch .slot .card.mini { zoom: calc(1.5 * var(--cz, 1)); }
+.fut-stage .pitch .slot .lbl { font-size: 11px; }
+.pk-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.pk-bar input[type=search] { flex: 1 1 220px; min-width: 0; width: auto; }
+.pk-bar input[type=checkbox] { width: auto; margin-right: 4px; }
+.pk-bar label { white-space: nowrap; }
+@media (max-width: 900px) { .fut-stage .pitch .slot .card.mini { zoom: calc(1.1 * var(--cz, 1)); } }

@@ -661,21 +661,22 @@
       }).join('')}</table>`;
   };
 
-  VIEWS.squad = function () {
-    const slots = D().squad.slots, cards = State.squadCards();
+  VIEWS.squad = function () {   // v363 (JODIO): laid out like the FUT squad screen: info panel, a big striped pitch with a formation watermark, a stat panel and the subs strip
+    const slots = D().squad.slots, cards = State.squadCards(), fk = State.formationKey() || '433';
     const rating = SBC.squadRating(cards.map(c => (c ? c.rating : 0))), chem = SBC.chemistry(cards);
     const avg = k => Math.round(cards.filter(c => c && c.position !== 'GK').reduce((a, c) => a + c.face[k], 0) / Math.max(1, cards.filter(c => c && c.position !== 'GK').length));
     const pss = {}; cards.forEach(c => c && c.playStyles.forEach(p => { pss[p] = (pss[p] || 0) + 1; }));
-    return `<div class="grid cols-2"><div class="px">${pitchHTML(slots, 'squad-slot')}${benchHTML()}</div>
-      <div class="px"><h2>Squad · ${esc(State.FORMS[State.formationKey() || '433'].name)}</h2>
-        <div class="row mb"><label class="dim" for="sq-form" style="font-size:8px">Formation</label> <select id="sq-form">${Engine.FORM_KEYS.map(k => `<option value="${k}" ${(State.formationKey() || '433') === k ? 'selected' : ''}>${esc(State.FORMS[k].name)}</option>`).join('')}</select></div>
-        <div class="row between"><span class="dim">Rating</span><span class="gold" style="font-size:20px">${rating}</span></div>
-        <div class="row between"><span class="dim">Chemistry</span><span class="good" style="font-size:20px">${chem.total}/33</span></div>
-        <div class="mt">${['pac', 'sho', 'pas', 'dri', 'def', 'phy'].map(k => statBar(k.toUpperCase(), avg(k))).join('')}</div>
-        <h3 class="mt">PlayStyles+ in XI</h3><div>${Object.keys(pss).map(p => `<span class="pill ps${/\+$/.test(p) ? '' : ' silver'}" title="${esc(PS_DESC[p] || PS_DESC[p.replace(/\+$/, '') + '+'] || '')}">${esc(PS_ICON[p] || PS_ICON[p.replace(/\+$/, '') + '+'] || '')} ${esc(p)} ×${pss[p]}</span>`).join('') || '<span class="dim">None yet</span>'}</div>
-        <div class="row mt"><button class="btn y" data-act="squad-auto">Auto-build best XI</button><button class="btn" data-act="squad-clear">Clear</button></div>
-        <p class="dim" style="font-size:8px">Chem: club 2/5/8 · nation 2/5/8 · league 3/5/8 in-position players = 1/2/3 pts (max 3 each). Out-of-position players get 0.</p>
-      </div></div>`;
+    const stars = Math.max(1, Math.min(5, Math.round((rating - 60) / 7)));
+    return `<div class="fut">
+      <div class="fut-top"><div class="fut-badge">FC</div><div class="fut-club"><b>${esc(D().clubName || 'My Club')}</b><span class="fut-stars">${'★'.repeat(stars)}${'☆'.repeat(5 - stars)}</span> <span class="dim">Rating</span> <b class="gold">${rating}</b></div>
+        <div class="fut-chem"><span class="dim">Total Chemistry</span> <b class="good">${chem.total}/33</b></div>
+        <div class="row" style="margin-left:auto"><label class="dim" for="sq-form" style="font-size:11px">Formation</label> <select id="sq-form">${Engine.FORM_KEYS.map(k => `<option value="${k}" ${fk === k ? 'selected' : ''}>${esc(State.FORMS[k].name)}</option>`).join('')}</select>
+          <button class="btn y sm" data-act="squad-auto">Auto-build best XI</button><button class="btn sm" data-act="squad-clear">Clear</button></div></div>
+      <div class="fut-main"><div class="fut-stage">${pitchHTML(slots, 'squad-slot')}<div class="fut-form">${esc(State.FORMS[fk].name)}</div></div>
+        <div class="fut-side"><h3>Squad stats</h3>${['pac', 'sho', 'pas', 'dri', 'def', 'phy'].map(k => statBar(k.toUpperCase(), avg(k))).join('')}
+          <h3 class="mt">PlayStyles+ in XI</h3><div>${Object.keys(pss).map(p => `<span class="pill ps${/\+$/.test(p) ? '' : ' silver'}" title="${esc(PS_DESC[p] || PS_DESC[p.replace(/\+$/, '') + '+'] || '')}">${esc(PS_ICON[p] || PS_ICON[p.replace(/\+$/, '') + '+'] || '')} ${esc(p)} ×${pss[p]}</span>`).join('') || '<span class="dim">None yet</span>'}</div>
+          <p class="dim" style="font-size:10px;margin-top:10px">Tap a card to swap the player. Chem: club 2/5/8, nation 2/5/8, league 3/5/8 in-position players give 1/2/3 points (max 3 each). Out-of-position players get 0.</p></div></div>
+      <div class="fut-bench">${benchHTML()}</div></div>`;
   };
 
   /** v229 (JODIO): 10 sub spots under the pitch; they can come on during a match (Subs button). */
@@ -683,11 +684,28 @@
     const b = D().squad.bench || [];
     return `<h3 class="mt">Subs <span class="dim" style="font-size:9px">${b.filter(Boolean).length}/10 · bring them on in a match with the Subs button</span></h3><div class="bench-row">${b.map((id, i) => `<div class="bench-slot">${cardHTML(id ? State.card(id) : null, { mini: true, attrs: `data-act="bench-slot" data-slot="${i}"`, emptyLabel: '+ SUB' })}</div>`).join('')}</div>`;
   }
+  /** v363 (JODIO): card pickers. A search box and a grid of the real 3D cards instead of a word list. opts = { title, note, top (html above the search), rows [{id,c}], act, slot, pos, extra(c) } */
+  function cardPickerModal(o) {
+    App.pk = { rows: o.rows, act: o.act, slot: o.slot, pos: o.pos, extra: o.extra };
+    modal(`<h2>${o.title}</h2>${o.note ? `<p class="dim" style="font-size:10px">${o.note}</p>` : ''}${o.top ? `<div class="row mb">${o.top}</div>` : ''}
+      <div class="row mb pk-bar"><input id="pk-q" type="search" placeholder="Search name, club, nation, position or rating" autocomplete="off" style="flex:1;min-width:180px">${o.pos ? '<label class="dim" style="font-size:10px"><input type="checkbox" id="pk-fit"> fits ' + esc(o.pos) + ' only</label>' : ''}<span class="dim" id="pk-n" style="font-size:10px"></span></div>
+      <div class="pk-grid" id="pk-grid"></div>`, 'pkm');
+    pkRender();
+    setTimeout(() => { const q = $('#pk-q'); if (q && !('ontouchstart' in window)) q.focus(); }, 50);
+  }
+  function pkRender() {
+    const K = App.pk, g = $('#pk-grid'); if (!K || !g) return;
+    const q = (($('#pk-q') || {}).value || '').toLowerCase().trim().split(/\s+/).filter(Boolean), fit = $('#pk-fit') && $('#pk-fit').checked;
+    const hit = K.rows.filter(x => (!fit || x.c.altPositions.includes(K.pos) || x.c.position === K.pos) && q.every(t => (x.c.name + ' ' + x.c.club + ' ' + x.c.nation + ' ' + x.c.position + ' ' + x.c.rating + ' ' + x.c.league).toLowerCase().includes(t)));
+    const shown = hit.slice(0, 60), n = $('#pk-n'); if (n) n.textContent = hit.length > shown.length ? 'showing ' + shown.length + ' of ' + hit.length + ': type to narrow' : hit.length + ' players';
+    g.innerHTML = shown.map(x => `<div class="pk-i">${cardHTML(x.c, { mini: true, attrs: `data-act="${K.act}" data-slot="${K.slot}" data-item="${x.id}"` })}<small>${esc(x.c.name)}${State.isInSquad(x.id) ? ' <b class="dim">(XI)</b>' : ''}${K.extra ? '<br>' + K.extra(x.c) : ''}</small></div>`).join('') || '<p class="dim">No player matches.</p>';
+  }
+  document.addEventListener('input', e => { if (e.target && (e.target.id === 'pk-q')) { clearTimeout(pkRender.t); pkRender.t = setTimeout(pkRender, 120); } });
+  document.addEventListener('change', e => { if (e.target && e.target.id === 'pk-fit') pkRender(); });
   function benchPicker(i) {
     const st = D(), b = st.squad.bench, taken = new Set(st.squad.slots.concat(b).filter(Boolean));
     const rows = st.club.filter(id => !taken.has(id)).map(id => ({ id, c: State.card(id) })).filter(x => x.c).sort((x, y) => y.c.rating - x.c.rating);
-    modal(`<h2>Pick sub ${i + 1}</h2><div class="row mb"><button class="btn sm r" data-act="bench-remove" data-slot="${i}">Empty spot</button></div>
-      <table class="list"><tr><th>OVR</th><th>Name</th><th>Pos</th><th>Club</th><th></th></tr>${rows.slice(0, 200).map(x => `<tr><td>${miniOvr(x.c)}</td><td>${esc(x.c.name)}</td><td>${x.c.position}</td><td>${esc(x.c.club)}</td><td><button class="btn sm g" data-act="bench-pick" data-slot="${i}" data-item="${x.id}">Select</button></td></tr>`).join('')}</table>${rows.length ? '' : '<p class="dim">No free players in your club.</p>'}`);
+    cardPickerModal({ title: 'Pick sub ' + (i + 1), top: `<button class="btn sm r" data-act="bench-remove" data-slot="${i}">Empty spot</button>`, rows, act: 'bench-pick', slot: i, extra: c => c.position + ' · ' + c.rating });
   }
   function autoBench() {
     const st = D(), used = new Set(st.squad.slots.filter(Boolean)), names = new Set(st.squad.slots.filter(Boolean).map(id => (State.card(id) || {}).name));
@@ -704,22 +722,16 @@
 
   /** Picker for a squad / SBC slot. */
   function pickerModal(slotIdx, mode) {
-    const pos = State.FORMATION[slotIdx];
-    const st = D();
-    const current = mode === 'sbc' ? App.sbc.slots : st.squad.slots;
+    const pos = State.FORMATION[slotIdx], st = D(), current = mode === 'sbc' ? App.sbc.slots : st.squad.slots;
     let pool = mode === 'sbc'
       ? st.club.concat(st.unassigned, st.sbcStorage || []).filter((id, k, a) => a.indexOf(id) === k && (App.sbcXI || !State.isInSquad(id)) && !current.includes(id))
       : st.club.filter(id => id !== current[slotIdx]);
     const rows = pool.map(id => ({ id, c: State.card(id) })).filter(x => x.c)
       .sort((a, b) => (b.c.altPositions.includes(pos) - a.c.altPositions.includes(pos)) || (mode === 'sbc' ? a.c.value - b.c.value : b.c.rating - a.c.rating));
-    modal(`<h2>Pick ${pos}${mode === 'sbc' ? ' (cheapest first)' : ''}</h2>
-      <p class="dim" style="font-size:8px">${mode === 'sbc' ? (App.sbcXI ? 'Your starting XI is shown too (marked XI): a starter you pick is burned on submit.' : 'Club, unassigned and SBC storage cards. Your starting XI is hidden to protect your squad.') + ` <a href="#" data-act="sbc-xi" data-slot="${slotIdx}">${App.sbcXI ? 'Hide my XI' : 'Show my XI'}</a>` : 'Players already in the XI will swap places.'}</p>
-      <div class="row mb"><button class="btn sm r" data-act="${mode}-remove" data-slot="${slotIdx}">Empty slot</button>${mode === 'squad' && current[slotIdx] ? `<button class="btn sm c" data-act="player" data-item="${current[slotIdx]}">View card · stats · traits · role</button>` : ''}</div>
-      <table class="list"><tr><th>OVR</th><th>Name</th><th>Pos</th><th>Club</th><th>Nation</th><th>Value</th><th></th></tr>
-      ${rows.slice(0, 200).map(x => `<tr><td>${miniOvr(x.c)}</td><td>${esc(x.c.name)} ${State.isInSquad(x.id) ? '<span class="dim">(XI)</span>' : ''}</td>
-        <td class="${x.c.altPositions.includes(pos) ? 'good' : 'bad'}">${x.c.position}</td><td>${esc(x.c.club)}</td><td>${x.c.nation}</td><td>${fmt(x.c.value)}</td>
-        <td><button class="btn sm g" data-act="${mode}-pick" data-slot="${slotIdx}" data-item="${x.id}">Select</button></td></tr>`).join('')}
-      </table>${rows.length ? '' : '<p class="dim">No available players. Buy some on the market or open packs.</p>'}`);
+    cardPickerModal({ title: 'Pick ' + pos + (mode === 'sbc' ? ' (cheapest first)' : ''),
+      note: mode === 'sbc' ? (App.sbcXI ? 'Your starting XI is shown too (marked XI): a starter you pick is burned on submit.' : 'Club, unassigned and SBC storage cards. Your starting XI is hidden to protect your squad.') + ` <a href="#" data-act="sbc-xi" data-slot="${slotIdx}">${App.sbcXI ? 'Hide my XI' : 'Show my XI'}</a>` : 'Players already in the XI will swap places.',
+      top: `<button class="btn sm r" data-act="${mode}-remove" data-slot="${slotIdx}">Empty slot</button>${mode === 'squad' && current[slotIdx] ? `<button class="btn sm c" data-act="player" data-item="${current[slotIdx]}">View card · stats · traits · role</button>` : ''}`,
+      rows, act: mode + '-pick', slot: slotIdx, pos, extra: mode === 'sbc' ? c => c.position + ' · ' + fmt(c.value) : c => c.position + ' · ' + c.rating });
   }
 
   function autoBuildSquad() {
