@@ -15,7 +15,7 @@ window.RUT = window.RUT || {};
   'use strict';
   let KEY = 'retro_ut_99_save';                       // per account once logged in (RUT.Auth)
   const VERSION = 1;
-  const LIMITED_PROMOS = ['bdor', 'award', 'toty', 'tots', 'fstar', 'lpotw', 'lpotm'];   // v299: these can never be listed or sold
+  const LIMITED_PROMOS = ['bdor', 'award', 'toty', 'tots', 'lpotw', 'lpotm'];   // v299: these can never be listed or sold
   const BASE_FORMATION = ['GK', 'LB', 'CB', 'CB', 'RB', 'CDM', 'CM', 'CAM', 'LW', 'ST', 'RW']; // 4-3-3 (attack): the formation every AI side's cards are picked for
   const FORMATION = BASE_FORMATION.slice();            // the club's own XI layout: the same array object always, rewritten in place when the player changes formation
   // v97: formations the player can pick. Slot order follows the engine's FORMATIONS table (keeper, back line left to right, midfield, forwards).
@@ -175,12 +175,12 @@ window.RUT = window.RUT || {};
       if (!it) return null;
       const base = RUT.DB.get(it.cardId);
       if (!base || !it.evo) return base;
-      const b = it.evo.boosts, clamp = RUT.DB.clamp;
-      const face = {}; Object.keys(base.face).forEach(k => { face[k] = clamp(base.face[k] + (b.face[k] || 0), 1, RUT.DB.faceCap ? RUT.DB.faceCap(Math.min(base.rating + (b.rating || 0), Math.max(94, base.rating))) : 99); });
+      const b = it.evo.boosts, clamp = RUT.DB.clamp, top = base.pot ? Math.max(base.pot, base.rating) : Math.max(94, base.rating);   // v351: a Future Star card stops at its potential
+      const face = {}; Object.keys(base.face).forEach(k => { face[k] = clamp(base.face[k] + (b.face[k] || 0), 1, RUT.DB.faceCap ? RUT.DB.faceCap(Math.min(base.rating + (b.rating || 0), top)) : 99); });
       const sub = {}; Object.keys(base.sub).forEach(k => { sub[k] = clamp(base.sub[k] + (b.sub[k] || 0), 1, 99); });
       return Object.assign({}, base, {
-        rating: clamp(base.rating + b.rating, 1, Math.max(94, base.rating)), face, sub, rarity: 'evo', evoLevel: it.evo.applied.length,
-        playStyles: (() => { const e = RUT.DB.evoPs(base.playStyles, b.ps); return RUT.DB.psGate(clamp(base.rating + b.rating, 1, Math.max(94, base.rating)), sub, base.playStyles.concat(e.ps), e.ps, e.cap); })(),
+        rating: clamp(base.rating + b.rating, 1, top), face, sub, rarity: 'evo', evoLevel: it.evo.applied.length, fsTier: it.evo.applied.filter(x => /^fs_/.test(x)).length,
+        playStyles: (() => { const e = RUT.DB.evoPs(base.playStyles, b.ps); return RUT.DB.psGate(clamp(base.rating + b.rating, 1, top), sub, base.playStyles.concat(e.ps), e.ps, e.cap); })(),
       });
     },
 

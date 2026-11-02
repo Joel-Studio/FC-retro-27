@@ -1224,12 +1224,11 @@ window.RUT = window.RUT || {};
       card.value = roundToIncrement(valuation(card.rating, face, card.playStyles, card.position, true) * 2.0);
       byId[id] = card; all.push(card); return card;
     }
-    if (promo === 'fstar') {   // v282 (JODIO): Future Star, boost = 1-based place in RUT.FSTAR.picks: +3% for rank 1 down to +1% from rank 10, cap 93
-      const F = RUT.FSTAR || { picks: [], pct: () => 1 }, pk = F.picks[boost - 1] || {}, k = 1 + F.pct(boost) / 100, up = v => clamp(Math.round(v * k), 1, 99), face = {}, sub = {};
+    if (promo === 'fstar') {   // v351 (JODIO): Future Star, boost = 1-based place in RUT.FSTAR.picks. Flat +1% (at least +1 OVR), no PlayStyles, `pot` = the most evolutions can reach
+      const F = RUT.FSTAR || { picks: [] }, pk = F.picks[boost - 1] || {}, k = 1.01, up = v => clamp(Math.round(v * k), 1, 99), face = {}, sub = {};
       Object.keys(base.face).forEach(x => { face[x] = up(base.face[x]); }); Object.keys(base.sub).forEach(x => { sub[x] = up(base.sub[x]); });
-      const rating = Math.min(93, Math.max(base.rating + 1, up(base.rating)));
-      const ps = base.playStyles.slice(); for (let n = 0; n < 4 && ps.filter(x => /\+$/.test(x)).length < 2; n++) { const nw = newStylesFor(Object.assign({}, base, { playStyles: ps }), sub); if (!nw) break; ps.push(nw); }
-      const card = Object.assign({}, base, { id, rating, rarity: 'promo', promo, face, sub, rare: true, baseId, pickIdx: boost, fstarPct: Math.round(F.pct(boost) * 10) / 10, playStyles: psGate(rating, sub, ps, base.playStyles, 2) });
+      const rating = Math.min(99, Math.max(base.rating + 1, up(base.rating)));
+      const card = Object.assign({}, base, { id, rating, rarity: 'promo', promo, face, sub, rare: true, baseId, pickIdx: boost, fstarPct: 1, pot: Math.max(rating, pk.pot || rating), playStyles: [] });
       card.value = roundToIncrement(valuation(card.rating, face, card.playStyles, card.position, true) * 1.7);
       byId[id] = card; all.push(card); return card;
     }
@@ -1359,9 +1358,9 @@ window.RUT = window.RUT || {};
   try { ['toty', 'tots'].forEach(k => { if (!seasonLive(k)) return; const S = RUT.SEASON_DATA[k], seen = {}; S.picks.forEach((p, i) => { const c = all.find(x => !x.promo && x.name === p.name); if (!c || seen[c.id]) return; seen[c.id] = 1; if (registerPromo(c.id, k, i + 1)) SEASON_IDS[k].push(c.id); }); }); } catch (e) { /* optional */ }
   Object.assign(RUT.DB, { SEASON_IDS, seasonLive });
   // v282: Future Star cards exist from the release date on
-  const FSTAR_IDS = [];
-  try { const F = RUT.FSTAR; if (F && Date.parse(F.release) <= Date.now()) { const seen = {}; F.picks.forEach((p, i) => { const c = all.find(x => !x.promo && x.name === p.name); if (!c || seen[c.id]) return; seen[c.id] = 1; if (registerPromo(c.id, 'fstar', i + 1)) FSTAR_IDS.push(c.id); }); } } catch (e) { /* optional */ }
-  Object.assign(RUT.DB, { FSTAR_IDS });
+  const FSTAR_IDS = [], FSTAR_POS = {};
+  try { const F = RUT.FSTAR; if (F && Date.parse(F.release) <= Date.now()) { const seen = {}; F.picks.forEach((p, i) => { const c = all.find(x => !x.promo && x.name === p.name); if (!c || seen[c.id]) return; seen[c.id] = 1; if (registerPromo(c.id, 'fstar', i + 1)) { FSTAR_IDS.push(c.id); FSTAR_POS[c.id] = i + 1; } }); } } catch (e) { /* optional */ }
+  Object.assign(RUT.DB, { FSTAR_IDS, FSTAR_POS });
   BDOR_IDS.forEach((id, i) => registerPromo(id, 'bdor', i + 1));
   AWARD_IDS.forEach((id, i) => { if (id) registerPromo(id, 'award', i + 1); });
 })();

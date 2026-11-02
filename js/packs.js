@@ -18,14 +18,16 @@ window.RUT = window.RUT || {};
     starter: { id: 'starter', name: 'Starter Pack', price: 0, count: 11, tier: 'silver', bands: [[60, 64, 30], [65, 74, 60], [75, 79, 10]], storeHidden: true },
     bronze:  { id: 'bronze', name: 'Bronze Pack', price: 750, count: 8, tier: 'bronze', bands: [[50, 64, 100]] },
     silver:  { id: 'silver', name: 'Silver Pack', price: 20000, count: 8, tier: 'silver', bands: [[65, 74, 100]] },
-    gold:    { id: 'gold', name: 'Gold Pack', price: 60000, count: 6, tier: 'gold', nlpofmChance: 0.0025, clChance: 0.015, nlstarChance: 0.02, bands: [[75, 79, 62], [80, 82, 26], [83, 85, 9], [86, 87, 2.3], [88, 99, 0.12]] },
-    premium: { id: 'premium', name: 'Premium Gold Pack', price: 80000, count: 12, tier: 'gold', guaranteeMin: 82, nlpofmChance: 0.006, clChance: 0.04, nlstarChance: 0.05, bands: [[75, 79, 52], [80, 82, 30], [83, 85, 13], [86, 87, 4.2], [88, 99, 0.25]] },
+    gold:    { id: 'gold', fstarChance: 0.01, name: 'Gold Pack', price: 60000, count: 6, tier: 'gold', nlpofmChance: 0.0025, clChance: 0.015, nlstarChance: 0.02, bands: [[75, 79, 62], [80, 82, 26], [83, 85, 9], [86, 87, 2.3], [88, 99, 0.12]] },
+    premium: { id: 'premium', fstarChance: 0.025, name: 'Premium Gold Pack', price: 80000, count: 12, tier: 'gold', guaranteeMin: 82, nlpofmChance: 0.006, clChance: 0.04, nlstarChance: 0.05, bands: [[75, 79, 52], [80, 82, 30], [83, 85, 13], [86, 87, 4.2], [88, 99, 0.25]] },
     // Published odds: 84+ player 100% · 88+ player 18.5% (promo cards were removed from the game)
-    elite:   { id: 'elite', name: 'Elite Gold Pack', price: 100000, count: 12, tier: 'gold', guaranteeMin: 86, nlpofmChance: 0.03, clChance: 0.14, nlstarChance: 0.15, bands: [[83, 85, 50], [86, 87, 45], [88, 99, 5]] },   // v303 (JODIO): better luck   // the best Gold pack
-    promo:   { id: 'promo', name: 'Promo Pack', price: 300000, count: 5, tier: 'promo', guaranteeMin: 85, topChance: 0.12, nlpofmChance: 0.1, clChance: 0.3, nlstarChance: 0.35, promoGuarantee: true, bands: [[84, 85, 40], [86, 87, 51], [88, 99, 9]],   // v303 (JODIO): better luck and always a promo card   // v193 (JODIO): 88+ nerfed (was topChance 0.185, band 15)
+    elite:   { id: 'elite', fstarChance: 0.06, name: 'Elite Gold Pack', price: 100000, count: 12, tier: 'gold', guaranteeMin: 86, nlpofmChance: 0.03, clChance: 0.14, nlstarChance: 0.15, bands: [[83, 85, 50], [86, 87, 45], [88, 99, 5]] },   // v303 (JODIO): better luck   // the best Gold pack
+    promo:   { id: 'promo', fstarChance: 0.2, name: 'Promo Pack', price: 300000, count: 5, tier: 'promo', guaranteeMin: 85, topChance: 0.12, nlpofmChance: 0.1, clChance: 0.3, nlstarChance: 0.35, promoGuarantee: true, bands: [[84, 85, 40], [86, 87, 51], [88, 99, 9]],   // v303 (JODIO): better luck and always a promo card   // v193 (JODIO): 88+ nerfed (was topChance 0.185, band 15)
                odds: ['85+ player: 100%', '88+ player: 8%', 'NLPOFM card: 7%', 'Nations League Star card: 30%', 'CL promo card: 25%'] },
+    fstar:   { id: 'fstar', name: 'Future Star Pack', price: 150000, count: 5, tier: 'promo', guaranteeMin: 80, fstarChance: 1, bands: [[78, 79, 55], [80, 82, 33], [83, 85, 10], [86, 99, 2]],
+               odds: ['Future Star card: 100%', '80+ player: 100%', '86+ player: 2%'] },
     // v99: more packs. `pos` limits the pack to those positions.
-    jumbo:   { id: 'jumbo', name: 'Jumbo Gold Pack', price: 190000, count: 20, tier: 'gold', guaranteeMin: 87, nlpofmChance: 0.03, clChance: 0.14, nlstarChance: 0.15, bands: [[83, 85, 26], [86, 87, 65], [88, 99, 9]],
+    jumbo:   { id: 'jumbo', fstarChance: 0.06, name: 'Jumbo Gold Pack', price: 190000, count: 20, tier: 'gold', guaranteeMin: 87, nlpofmChance: 0.03, clChance: 0.14, nlstarChance: 0.15, bands: [[83, 85, 26], [86, 87, 65], [88, 99, 9]],
                odds: ['20 players', '87+ player: 100%', '88+ player: about 9% a slot', 'CL promo card: 14%', 'Nations League Star: 15%'] },
     attack:  { id: 'attack', name: 'Attacker Pack', price: 90000, count: 8, tier: 'gold', pos: ['ST', 'CF', 'LW', 'RW'], guaranteeMin: 82, clChance: 0.04, bands: [[75, 79, 48], [80, 82, 32], [83, 85, 15], [86, 87, 4.7], [88, 99, 0.3]],
                odds: ['Strikers and wingers only', '82+ player: 100%'] },
@@ -36,7 +38,7 @@ window.RUT = window.RUT || {};
     keeper:  { id: 'keeper', name: 'Goalkeeper Pack', price: 45000, count: 5, tier: 'silver', pos: ['GK'], guaranteeMin: 80, bands: [[70, 79, 35], [80, 82, 40], [83, 85, 18], [86, 87, 6], [88, 99, 1]],
                odds: ['Goalkeepers only', '80+ keeper: 100%'] },
     // v120: more packs in the 100k-200k range (odds in the lines below; 88+ stays rare)
-    prime:   { id: 'prime', name: 'Prime Gold Pack', price: 120000, count: 14, tier: 'gold', guaranteeMin: 86, nlpofmChance: 0.02, clChance: 0.1, nlstarChance: 0.12, bands: [[83, 85, 38], [86, 87, 57], [88, 99, 5]],   // v144: every pricier pack has better odds per card than the one below it
+    prime:   { id: 'prime', fstarChance: 0.05, name: 'Prime Gold Pack', price: 120000, count: 14, tier: 'gold', guaranteeMin: 86, nlpofmChance: 0.02, clChance: 0.1, nlstarChance: 0.12, bands: [[83, 85, 38], [86, 87, 57], [88, 99, 5]],   // v144: every pricier pack has better odds per card than the one below it
                odds: ['14 players', '86+ player: 100%', '88+ player: about 5% a slot', 'CL promo card: 10%', 'Nations League Star: 12%'] },
     strikerx: { id: 'strikerx', name: 'Elite Attacker Pack', price: 130000, count: 8, tier: 'gold', pos: ['ST', 'CF', 'LW', 'RW'], guaranteeMin: 86, clChance: 0.08, bands: [[83, 85, 50], [86, 87, 43], [88, 99, 7]],
                odds: ['Strikers and wingers only', '86+ player: 100%'] },
@@ -46,9 +48,9 @@ window.RUT = window.RUT || {};
                odds: ['Defenders only', '86+ player: 100%'] },
     gkx:     { id: 'gkx', name: 'Elite Goalkeeper Pack', price: 100000, count: 5, tier: 'gold', pos: ['GK'], guaranteeMin: 85, bands: [[83, 85, 55], [86, 87, 35], [88, 99, 10]],
                odds: ['Goalkeepers only', '85+ keeper: 100%'] },
-    mega:    { id: 'mega', name: 'Mega Gold Pack', price: 160000, count: 16, tier: 'gold', guaranteeMin: 86, nlpofmChance: 0.025, clChance: 0.12, nlstarChance: 0.14, bands: [[83, 85, 32], [86, 87, 61], [88, 99, 7]],
+    mega:    { id: 'mega', fstarChance: 0.06, name: 'Mega Gold Pack', price: 160000, count: 16, tier: 'gold', guaranteeMin: 86, nlpofmChance: 0.025, clChance: 0.12, nlstarChance: 0.14, bands: [[83, 85, 32], [86, 87, 61], [88, 99, 7]],
                odds: ['16 players', '86+ player: 100%', '88+ player: about 7% a slot', 'CL promo card: 12%', 'Nations League Star: 14%'] },
-    titan:   { id: 'titan', name: 'Titan Pack', price: 200000, count: 24, tier: 'gold', guaranteeMin: 87, nlpofmChance: 0.04, clChance: 0.16, nlstarChance: 0.18, bands: [[83, 85, 20], [86, 87, 69], [88, 99, 11]],
+    titan:   { id: 'titan', fstarChance: 0.07, name: 'Titan Pack', price: 200000, count: 24, tier: 'gold', guaranteeMin: 87, nlpofmChance: 0.04, clChance: 0.16, nlstarChance: 0.18, bands: [[83, 85, 20], [86, 87, 69], [88, 99, 11]],
                odds: ['24 players', '87+ player: 100%', '88+ player: about 11% a slot', 'CL promo card: 16%', 'Nations League Star: 18%'] },
     cl:      { id: 'cl', name: 'Champions League Pack', price: 600000, count: 5, tier: 'cl', guaranteeMin: 84, clChance: 1, bands: [[80, 82, 45], [83, 85, 40], [86, 87, 15]],
                odds: ['1 Champions League promo card: 100%', '89+ Champions League card: about 65% (was 23%)', '84+ player: 100%'] },
@@ -172,8 +174,10 @@ window.RUT = window.RUT || {};
     if (def.nlstarChance && r() < def.nlstarChance) { nsBase = pickOk(RUT.DB.NLSTAR_IDS, 'nlstar', 3, r, def); cards.forEach((c, i) => { if (i !== nlIdx && (nsIdx < 0 || c.rating < cards[nsIdx].rating)) nsIdx = i; }); }
     let pwIdx = -1, pwBase = null;   // v249 (JODIO): a Player of the Week card (half the NL Star chance) takes the weakest free slot
     if (def.nlstarChance && RUT.DB.POTW_IDS && RUT.DB.POTW_IDS.length && r() < Math.min(0.5, def.nlstarChance * 0.5)) { pwBase = pickOk(RUT.DB.POTW_IDS, 'lpotw', 1, r, def); cards.forEach((c, i) => { if (i !== nlIdx && i !== nsIdx && (pwIdx < 0 || c.rating < cards[pwIdx].rating)) pwIdx = i; }); }
+    let fsIdx = -1, fsBase = null;   // v351 (JODIO): a Future Star card (young player, no PlayStyles) takes the weakest free slot
+    if (RUT.DB.FSTAR_IDS && RUT.DB.FSTAR_IDS.length && def.fstarChance && r() < def.fstarChance) { fsBase = RUT.DB.FSTAR_IDS[Math.floor(r() * RUT.DB.FSTAR_IDS.length)]; cards.forEach((c, i) => { if (i !== nlIdx && i !== nsIdx && i !== pwIdx && (fsIdx < 0 || c.rating < cards[fsIdx].rating)) fsIdx = i; }); }
     let clIdx = -1, clBase = null;     // a Champions League promo card takes the place of the weakest pull that is not already a promo
-    if (def.clChance && RUT.CL && RUT.CL.promoBase.length && r() < def.clChance) { clBase = clPick(r, def.id === 'cl' || def.id === 'promo' ? 6 : 2.5); cards.forEach((c, i) => { if (i !== nlIdx && i !== nsIdx && i !== pwIdx && (clIdx < 0 || c.rating < cards[clIdx].rating)) clIdx = i; }); }
+    if (def.clChance && RUT.CL && RUT.CL.promoBase.length && r() < def.clChance) { clBase = clPick(r, def.id === 'cl' || def.id === 'promo' ? 6 : 2.5); cards.forEach((c, i) => { if (i !== nlIdx && i !== nsIdx && i !== pwIdx && i !== fsIdx && (clIdx < 0 || c.rating < cards[clIdx].rating)) clIdx = i; }); }
     if (def.promoGuarantee && nlIdx < 0 && nsIdx < 0 && pwIdx < 0 && clIdx < 0) {   // v303 (JODIO): a Promo Pack always holds at least one promo card (NL Star, Champions League or NLPOFM)
       const weakest = () => { let w = 0; cards.forEach((c, i) => { if (c.rating < cards[w].rating) w = i; }); return w; }, x = r();
       if (x < 0.45 && RUT.DB.NLSTAR_IDS && RUT.DB.NLSTAR_IDS.length) { nsBase = pickOk(RUT.DB.NLSTAR_IDS, 'nlstar', 3, r, def); nsIdx = weakest(); }
@@ -193,6 +197,7 @@ window.RUT = window.RUT || {};
     const items = cards.map((c, i) => {
       if (i === awIdx) { const baseId = RUT.DB.AWARD_IDS[awN - 1], card = RUT.DB.registerPromo(baseId, 'award', awN); return RUT.State.newItem(card.id, { promo: { baseId, type: 'award', boost: awN }, untradeable: true }); }
       if (i === bdIdx) { const baseId = RUT.DB.BDOR_IDS[bdRank - 1], card = RUT.DB.registerPromo(baseId, 'bdor', bdRank); return RUT.State.newItem(card.id, { promo: { baseId, type: 'bdor', boost: bdRank  }, untradeable: ut || !!def.bdorUntradeable }); }
+      if (i === fsIdx) { const fb = RUT.DB.FSTAR_POS[fsBase], card = RUT.DB.registerPromo(fsBase, 'fstar', fb); return RUT.State.newItem(card.id, { promo: { baseId: fsBase, type: 'fstar', boost: fb }, untradeable: ut }); }
       if (i === clIdx) { const card = RUT.DB.registerPromo(clBase, 'clpromo', 4); if (card.rating <= PACK_CAP) return RUT.State.newItem(card.id, { promo: { baseId: clBase, type: 'clpromo', boost: 4  }, untradeable: ut }); }
       if (i === pwIdx) { const card = RUT.DB.registerPromo(pwBase, 'lpotw', 1); if (card.rating <= PACK_CAP) return RUT.State.newItem(card.id, { promo: { baseId: pwBase, type: 'lpotw', boost: 1 }, untradeable: ut }); }
       if (i === nsIdx) { const card = RUT.DB.registerPromo(nsBase, 'nlstar', 3); if (card.rating <= PACK_CAP) return RUT.State.newItem(card.id, { promo: { baseId: nsBase, type: 'nlstar', boost: 3  }, untradeable: ut }); }
@@ -359,6 +364,30 @@ window.RUT = window.RUT || {};
       objectives: [{ key: 'played', label: 'Play 12 matches', target: 12 }, { key: 'won', label: 'Win 8 matches', target: 8 }, { key: 'goals', label: 'Score 15 team goals', target: 15 }],
       boosts: { rating: 4, face: { pac: 3, sho: 4, pas: 4, dri: 4, def: 3, phy: 3 }, sub: { finishing: 4, vision: 4, ballControl: 4, dribbling: 4, composure: 5, reactions: 4, shortPassing: 4 }, ps: ['First Touch+', 'Technical+'] } },
   ];
+  /* v351 (JODIO): 30 Future Star evolutions: six position groups x five tiers, only for Future Star cards. Tier N needs tier N-1 done. A card never passes its potential (card.pot). */
+  const FS_GROUPS = [
+    { key: 'st', name: 'Striker', pos: ['ST', 'CF'], face: { sho: 3, pac: 2, dri: 2, phy: 1 }, sub: { finishing: 4, positioning: 4, shotPower: 3, acceleration: 2, ballControl: 2 }, ps: [null, null, 'Finesse Shot+', null, 'First Touch+'] },
+    { key: 'wg', name: 'Winger', pos: ['LW', 'RW', 'LM', 'RM'], face: { pac: 3, dri: 3, pas: 1, sho: 1 }, sub: { acceleration: 3, sprintSpeed: 3, dribbling: 4, agility: 3, crossing: 2 }, ps: [null, null, 'Trickster+', null, 'Whipped Pass+'] },
+    { key: 'am', name: 'Playmaker', pos: ['CAM'], face: { pas: 3, dri: 3, sho: 2 }, sub: { vision: 4, shortPassing: 4, ballControl: 3, longShots: 2, curve: 2 }, ps: [null, null, 'Incisive Pass+', null, 'Technical+'] },
+    { key: 'cm', name: 'Midfielder', pos: ['CM', 'CDM'], face: { pas: 3, def: 2, phy: 2, dri: 1 }, sub: { shortPassing: 3, longPassing: 3, interceptions: 3, stamina: 4, strength: 2 }, ps: [null, null, 'Pinged Pass+', null, 'Relentless+'] },
+    { key: 'fb', name: 'Full-back', pos: ['LB', 'RB', 'LWB', 'RWB'], face: { def: 3, pac: 2, pas: 2, phy: 1 }, sub: { standingTackle: 3, interceptions: 3, stamina: 4, crossing: 3, sprintSpeed: 2 }, ps: [null, null, 'Relentless+', null, 'Whipped Pass+'] },
+    { key: 'cb', name: 'Defender', pos: ['CB'], face: { def: 4, phy: 3, pac: 1, pas: 1 }, sub: { standingTackle: 4, slidingTackle: 3, defAwareness: 4, strength: 4, heading: 3 }, ps: [null, null, 'Bruiser+', null, 'Anticipate+'] },
+  ];
+  const FS_TIERS = [
+    { n: 1, label: 'Rising', ovr: 2, cost: 0, obj: [['played', 'Play 2 matches', 2]] },
+    { n: 2, label: 'Prospect', ovr: 3, cost: 20000, obj: [['played', 'Play 4 matches', 4], ['won', 'Win 2 matches', 2]] },
+    { n: 3, label: 'Breakthrough', ovr: 3, cost: 60000, obj: [['played', 'Play 6 matches', 6], ['goals', 'Score 6 team goals', 6]] },
+    { n: 4, label: 'Star', ovr: 4, cost: 150000, obj: [['played', 'Play 8 matches', 8], ['won', 'Win 5 matches', 5], ['goals', 'Score 10 team goals', 10]] },
+    { n: 5, label: 'Prime', ovr: 4, cost: 300000, obj: [['played', 'Play 10 matches', 10], ['won', 'Win 7 matches', 7], ['goals', 'Score 14 team goals', 14]] },
+  ];
+  FS_GROUPS.forEach(g => FS_TIERS.forEach(t => {
+    const mult = 0.5 + t.n * 0.25, scale = o => { const r = {}; Object.keys(o).forEach(k => { r[k] = Math.max(1, Math.round(o[k] * mult)); }); return r; };
+    EVOS.push({ id: 'fs_' + g.key + '_' + t.n, fs: true, tier: t.n, group: g.key, name: g.name + ' ' + t.n + ': ' + t.label, desc: 'Future Star ' + g.name.toLowerCase() + ' upgrade, step ' + t.n + ' of 5.', cost: t.cost,
+      eligible: c => c.promo === 'fstar' && g.pos.includes(c.position) && (c.fsTier || 0) === t.n - 1,
+      eligText: 'Future Star ' + g.pos.join(' / ') + ' · ' + (t.n > 1 ? 'step ' + (t.n - 1) + ' done' : 'any Future Star'),
+      objectives: t.obj.map(o => ({ key: o[0], label: o[1], target: o[2] })),
+      boosts: { rating: t.ovr, face: scale(g.face), sub: scale(g.sub), ps: g.ps[t.n - 1] ? [g.ps[t.n - 1]] : [] } });
+  }));
   const MAX_ACTIVE_EVOS = 3;
 
   function startEvo(evoId, itemId) {

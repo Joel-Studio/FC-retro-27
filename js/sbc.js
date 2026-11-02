@@ -223,6 +223,11 @@ window.RUT = window.RUT || {};
     SBCS.push({ id: 'potm_' + id + (boost > 100 ? '_' + boost : ''), name: 'Player of the Month: ' + c.name + (boost > 100 ? ' (#' + (Math.floor(boost / 100) + 1) + ')' : ''), group: 'Player of the Month', repeatable: false, desc: (i ? i.period + ': ' + i.why : '') + '. +2% on every stat (max 93).',
       reqs: [{ type: 'minRating', value: need }, { type: 'minPlayerRating', value: need - 2, count: 3 }, { type: 'maxSameNation', count: 3 }], reward: { type: 'card', baseId: id, promo: 'lpotm', boost } }); }); } catch (e) { /* optional */ }
 
+  // v351 (JODIO): every Future Star card is an SBC too (squad rating about 8 below the card, max 82, never fewer than 70)
+  try { (RUT.DB.FSTAR_IDS || []).forEach(id => { const boost = RUT.DB.FSTAR_POS[id], c = RUT.DB.registerPromo(id, 'fstar', boost); if (!c) return; const need = Math.max(70, Math.min(82, c.rating - 8));
+    SBCS.push({ id: 'fstar_' + id, name: 'Future Star: ' + c.name, group: 'Future Stars', repeatable: false, desc: 'A Future Star ' + c.name + ' (+1%, no PlayStyles, potential ' + c.pot + ').',
+      reqs: [{ type: 'minRating', value: need }, { type: 'maxSameNation', count: 3 }], reward: { type: 'card', baseId: id, promo: 'fstar', boost } }); }); } catch (e) { /* optional */ }
+
   // v145 (JODIO): reward cards rated 91+ are harder: the squad rating is one higher (cap 90) and four players need to be rated 2 below that
   try {
     SBCS.forEach(sbc => {
@@ -284,7 +289,7 @@ window.RUT = window.RUT || {};
   /** The reward card of an SBC (promo versions where they exist). */
   function rewardCard(sbc) {
     const r = sbc.reward; if (!r || r.type !== 'card') return null;
-    try { return (r.promo === 'nlpofm' || r.promo === 'clpromo' || r.promo === 'lpotm' || r.promo === 'lpotw') ? RUT.DB.registerPromo(r.baseId, r.promo, r.boost) : RUT.DB.get(r.baseId); } catch (e) { return null; }
+    try { return (r.promo === 'nlpofm' || r.promo === 'clpromo' || r.promo === 'lpotm' || r.promo === 'lpotw' || r.promo === 'fstar') ? RUT.DB.registerPromo(r.baseId, r.promo, r.boost) : RUT.DB.get(r.baseId); } catch (e) { return null; }
   }
   function feeOf(sbc) { const c = rewardCard(sbc); return c && c.rating >= 91 ? 200000 : 0; }   // v340 (JODIO): every 91+ reward costs a flat 200,000   // v192 (JODIO): fee 400,000 (+55,000 per point above 91)
 
@@ -322,7 +327,7 @@ window.RUT = window.RUT || {};
       st.sbcPacks = st.sbcPacks || {}; st.sbcPacks[reward.packId] = (st.sbcPacks[reward.packId] || 0) + 1;      // opened first, with weaker odds for high-rated players
     } else if (reward.type === 'card') {
       let it;
-      if (reward.promo === 'nlpofm' || reward.promo === 'clpromo' || reward.promo === 'lpotm' || reward.promo === 'lpotw') { const card = RUT.DB.registerPromo(reward.baseId, reward.promo, reward.boost); it = RUT.State.newItem(card.id, { promo: { baseId: reward.baseId, type: reward.promo, boost: reward.boost } }); }
+      if (reward.promo === 'nlpofm' || reward.promo === 'clpromo' || reward.promo === 'lpotm' || reward.promo === 'lpotw' || reward.promo === 'fstar') { const card = RUT.DB.registerPromo(reward.baseId, reward.promo, reward.boost); it = RUT.State.newItem(card.id, { promo: { baseId: reward.baseId, type: reward.promo, boost: reward.boost } }); }
       else it = RUT.State.newItem(reward.baseId, {});      // the old promos (TOTW, POTM...) are gone: the reward is the player's basic gold card
       st.unassigned.push(it.id);
       reward.itemId = it.id;

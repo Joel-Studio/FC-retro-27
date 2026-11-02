@@ -190,8 +190,8 @@
   function updateHeader() {
     animateCoins();
     $('#hdr-club').textContent = D().clubName;
-    const names = { home: 'Home', trophies: 'Trophy Room', clubhub: 'Club', playhub: 'Play', leaguehub: 'League', markethub: 'Market', sbchub: 'SBCs', friends: 'Friends', moments: 'Moments', cup: 'Knockout Cup', campaign: 'Campaign', scout: 'Daily Scout', compare: 'Compare Players', battles: 'Squad Battles', penalties: 'Penalty Shootout', club: 'Club', squad: 'Squad & Chemistry', play: 'Kick Off', casual: 'Casual Match', online: 'Online Match', rules: 'Match Rules', playstyles: 'PlayStyles Guide', gametraits: 'Gametraits Guide', market: 'Transfer Market', bdorgal: 'Ballon d\'Or', sbc: 'Squad Building Challenges', 'sbc-build': 'SBC Builder', evo: 'Evolutions', store: 'Store', promoshop: 'Promo Shop', pstats: 'Player Stats', unassigned: 'Unassigned', settings: 'Settings', tactics: 'Tactics', staff: 'Staff & Training', league: 'League', top5: 'Top 5 Leagues', quests: 'Quests' };
-    const parent = { top5: 'League', squad: 'Club', staff: 'Club', evo: 'Club', unassigned: 'Club', rules: 'Play', playstyles: 'Club', gametraits: 'Club', trophies: 'Club', friends: 'Club', moments: 'Play', cup: 'Play', campaign: 'Play', scout: 'Play', compare: 'Play', battles: 'Play', penalties: 'Play', casual: 'Play', online: 'Play', 'sbc-build': 'SBCs', promoshop: 'Market', bdorgal: 'Market', pstats: 'Club' }[App.view];
+    const names = { home: 'Home', trophies: 'Trophy Room', clubhub: 'Club', playhub: 'Play', leaguehub: 'League', markethub: 'Market', sbchub: 'SBCs', friends: 'Friends', moments: 'Moments', cup: 'Knockout Cup', fsevo: 'Future Star Evolutions', campaign: 'Campaign', scout: 'Daily Scout', compare: 'Compare Players', battles: 'Squad Battles', penalties: 'Penalty Shootout', club: 'Club', squad: 'Squad & Chemistry', play: 'Kick Off', casual: 'Casual Match', online: 'Online Match', rules: 'Match Rules', playstyles: 'PlayStyles Guide', gametraits: 'Gametraits Guide', market: 'Transfer Market', bdorgal: 'Ballon d\'Or', sbc: 'Squad Building Challenges', 'sbc-build': 'SBC Builder', evo: 'Evolutions', store: 'Store', promoshop: 'Promo Shop', pstats: 'Player Stats', unassigned: 'Unassigned', settings: 'Settings', tactics: 'Tactics', staff: 'Staff & Training', league: 'League', top5: 'Top 5 Leagues', quests: 'Quests' };
+    const parent = { top5: 'League', squad: 'Club', staff: 'Club', evo: 'Club', unassigned: 'Club', rules: 'Play', playstyles: 'Club', gametraits: 'Club', trophies: 'Club', friends: 'Club', moments: 'Play', fsevo: 'Club', cup: 'Play', campaign: 'Play', scout: 'Play', compare: 'Play', battles: 'Play', penalties: 'Play', casual: 'Play', online: 'Play', 'sbc-build': 'SBCs', promoshop: 'Market', bdorgal: 'Market', pstats: 'Club' }[App.view];
     $('#crumbs').innerHTML = `<a href="#" data-act="nav" data-v="home">Home</a>${parent ? ' › ' + parent : ''} › <b>${esc(names[App.view] || '')}</b>`;
     const mv = hubOf(App.view);
     document.querySelectorAll('#mnav [data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === mv));   // v214: phone tab bar
@@ -1909,7 +1909,7 @@
   };
   /* v349 (JODIO): Club, Play, League, Market and SBCs each open their own FC 27 style tile page (no dropdown menus under the buttons). */
   const HUBS = {
-    clubhub: ['Club', [['evo', 'Evolutions', 'Upgrade your cards', 'evo'], ['squad', 'Squad', 'XI, subs and chemistry', 'squad'], ['tactics', 'Tactics', 'Style and set pieces', 'squad'], ['staff', 'Staff & Training', 'Coaches and sessions', 'club'],
+    clubhub: ['Club', [['evo', 'Evolutions', 'Upgrade your cards', 'evo'], ['fsevo', 'Future Star Evolutions', 'Grow young stars to their potential', 'quest'], ['squad', 'Squad', 'XI, subs and chemistry', 'squad'], ['tactics', 'Tactics', 'Style and set pieces', 'squad'], ['staff', 'Staff & Training', 'Coaches and sessions', 'club'],
       ['club', 'My Club', 'All your players', 'club'], ['pstats', 'Player Stats', 'Goals, ratings, form', 'quest'], ['unassigned', 'Unassigned', 'Items to place', 'store', 'un'], ['trophies', 'Trophy Room', 'Level, streak, achievements', 'sbc', 'tr'],
       ['friends', 'Friends', 'Head to head', 'market'], ['playstyles', 'PlayStyles Guide', 'What each one does', 'play'], ['gametraits', 'Gametraits Guide', 'What each one does', 'quest']]],
     playhub: ['Play', [['play', 'Kick Off', 'Play a match', 'play'], ['casual', 'Casual Match', 'Pick any two teams', 'squad'], ['online', 'Online Match', 'Quick match or invite', 'market'], ['rivals', 'Rivals & Champions', 'Divisions and finals', 'sbc'],
@@ -1919,7 +1919,7 @@
     markethub: ['Market', [['market', 'Search', 'Find players', 'market', '', { mt: 'search' }], ['market', 'Transfer List', 'Your listings', 'sbc', '', { mt: 'tl' }], ['market', 'Watchlist', 'Players you follow', 'quest', '', { mt: 'wl' }], ['promoshop', 'Promo Shop', 'Promo players', 'store'], ['bdorgal', 'Ballon d\'Or', 'The 2026 nominees', 'club']]],
     sbchub: ['SBCs', [['sbc', 'Challenges', 'Build squads for rewards', 'sbc'], ['store', 'Store', 'Open packs', 'store'], ['promoshop', 'Promo Shop', 'Promo players', 'market']]],
   };
-  const HUB_OF = { clubhub: 'club squad tactics staff pstats evo playstyles gametraits unassigned trophies friends', playhub: 'play casual online rivals moments cup campaign scout compare battles penalties rules', leaguehub: 'league top5', markethub: 'market promoshop bdorgal', sbchub: 'sbc sbc-build' };
+  const HUB_OF = { clubhub: 'club squad tactics staff pstats evo fsevo playstyles gametraits unassigned trophies friends', playhub: 'play casual online rivals moments cup campaign scout compare battles penalties rules', leaguehub: 'league top5', markethub: 'market promoshop bdorgal', sbchub: 'sbc sbc-build' };
   const hubOf = v => Object.keys(HUB_OF).find(k => HUB_OF[k].split(' ').includes(v)) || v;
   const hubPage = key => {
     const M = RUT.Menu2, st = D(), badge = { un: st.unassigned.length, tr: RUT.Progress ? RUT.Progress.ready() : 0, sc: RUT.Scout && !RUT.Scout.state().taken ? 1 : 0 }, H = HUBS[key], items = H[1];
@@ -3120,7 +3120,7 @@
     const b = evo.boosts, cl = RUT.DB.clamp, face = {}, subS = {};
     Object.keys(c.face).forEach(k => { face[k] = cl(c.face[k] + (b.face[k] || 0), 1, 99); });
     Object.keys(c.sub).forEach(k => { subS[k] = cl(c.sub[k] + (b.sub[k] || 0), 1, 99); });
-    const rating = cl(c.rating + b.rating, 1, Math.max(94, c.rating));
+    const rating = cl(c.rating + b.rating, 1, c.pot ? Math.max(c.pot, c.rating) : Math.max(94, c.rating));
     return Object.assign({}, c, { rating, face, sub: subS, rarity: 'evo', playStyles: (() => { const e = RUT.DB.evoPs(c.playStyles, b.ps); return RUT.DB.psGate(rating, subS, c.playStyles.concat(e.ps), e.ps, e.cap); })() });
   }
   /** Before / after picture of what an evolution does to a player: both cards, every FACE stat as a bar with its gain, PlayStyles gained or refused. */
@@ -3135,6 +3135,12 @@
       <div class="evo-stats">${rows}</div><div class="evo-ps">${chips}</div></div>`;
   }
 
+  VIEWS.fsevo = function () {   // v351: the 30 Future Star evolutions
+    const st = D(), mine = st.club.concat(st.unassigned).map(id => State.card(id)).filter(c => c && c.promo === 'fstar');
+    const groups = [['st', 'Striker'], ['wg', 'Winger'], ['am', 'Playmaker'], ['cm', 'Midfielder'], ['fb', 'Full-back'], ['cb', 'Defender']];
+    const body = groups.map(([k, nm]) => `<div class="px mt"><h3>${nm}</h3><div class="grid cols-3">${Evo.EVOS.filter(e => e.group === k).map(e => { const b = e.boosts; return `<div class="px"><h3>${esc(e.name)}</h3><div style="font-size:8px">Cost: <span class="${e.cost ? 'gold' : 'good'}">${e.cost ? fmt(e.cost) + ' coins' : 'Free'}</span></div><div style="font-size:8px">${e.objectives.map(o => '&bull; ' + esc(o.label)).join('<br>')}</div><div style="font-size:8px" class="mt good">+${b.rating} OVR (max his potential) &middot; ${Object.entries(b.face).map(([x, v]) => '+' + v + ' ' + x.toUpperCase()).join(' ')}${b.ps.length ? ' &middot; ' + b.ps.join(', ') : ''}</div><button class="btn sm y mt" data-act="evo-pick" data-id="${e.id}">Choose player</button></div>`; }).join('')}</div></div>`).join('');
+    return `<h2>Future Star Evolutions</h2><div class="px"><p class="dim" style="font-size:11px">Only for Future Star cards. Five steps for each position, each step needs the one before. A card can never go past its potential (a 91 Yamal with potential 95 stops at 95). Cards start with no PlayStyles and no Gametraits: step 3 and 5 give PlayStyles, and Gametraits follow.</p>${mine.length ? '<div class="row" style="gap:10px;flex-wrap:wrap">' + mine.map(c => `<div style="text-align:center">${cardHTML(c, { mini: true })}<div class="dim" style="font-size:9px">${c.rating} / ${c.pot} pot</div></div>`).join('') + '</div>' : '<p class="gold">You have no Future Star cards yet. Get them from packs (Future Star Pack in the Store), SBCs, the market or the Promo Shop.</p>'}</div>${body}`;
+  };
   VIEWS.evo = function () {
     const st = D();
     const active = Object.entries(st.evos.active);
@@ -3145,7 +3151,7 @@
           <h3>${esc(evo.name)}</h3>${evo.objectives.map(o => { const p = Math.min(o.target, a.progress[o.key] || 0); return `<div class="stat-line"><span>${esc(o.label)}</span><span>${p}/${o.target}</span></div><div class="bar"><i style="width:${p / o.target * 100}%;background:#4cff7a"></i></div>`; }).join('')}
           ${State.isInSquad(itemId) ? '<p class="good" style="font-size:7px">In XI — progressing</p>' : '<p class="bad" style="font-size:7px">Not in XI — add to squad to progress</p>'}${evoPreviewHTML(State.card(itemId), evo)}</div></div>`;
       }).join('')}</div>` : '<p class="dim">No active Evolutions.</p>'}</div>
-      <h2 class="mt">Available</h2><div class="grid cols-3">${Evo.EVOS.map(e => {
+      <h2 class="mt">Available</h2><p><button class="btn y" data-act="nav" data-v="fsevo">Future Star Evolutions (30)</button></p><div class="grid cols-3">${Evo.EVOS.filter(e => !e.fs).map(e => {
         const b = e.boosts;
         return `<div class="px"><h3>${esc(e.name)}</h3><p class="dim" style="font-size:8px">${esc(e.desc)}</p>
           <div style="font-size:8px">Cost: <span class="${e.cost ? 'gold' : 'good'}">${e.cost ? fmt(e.cost) + ' coins' : 'Free'}</span></div>

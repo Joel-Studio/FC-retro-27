@@ -31,10 +31,11 @@
   /** The Gametraits of a card: [{k, lv}] lv 1 normal, 2 plus. Cached on the card. */
   function of(c) {
     if (!c || !c.sub) return [];
+    if (c.promo === 'fstar' && c.rarity !== 'evo') return [];   // v351: a Future Star card starts with no Gametraits
     if (c._gt && c._gt.r === c.rating && c._gt.n === (c.playStyles || []).length) return c._gt.l;
     const n = (c.playStyles || []).filter(x => /\+$/.test(x)).length;
     let cnt = n ? (special(c) ? n : Math.ceil(n * 2 / 3)) : 0;
-    if (c.rating >= 90) cnt++;
+    if (c.rating >= 90 && c.promo !== 'fstar') cnt++;
     cnt = Math.min(3, cnt);
     const pos = c.position;
     const BIAS = { crash: 7, pincr: 5, shadow: 5, ghost: 4, lane: 3, switch: 2 };

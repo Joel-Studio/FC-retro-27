@@ -4,6 +4,8 @@
   window.RUT = window.RUT || {};
   const D = 864e5, T = s => Date.parse(s);
   const EVENTS = [
+    { id: 'fstar', from: '2026-11-02T00:00:00Z', to: '2026-11-30T00:00:00Z' },   // v351 (JODIO): Future Star release: pink, purple and white
+
     { id: 'bdor', from: '2000-01-01T00:00:00Z', to: '2026-11-04T00:00:00Z' },                       // Ballon d'Or: black and gold, ends after Tuesday 3 Nov 2026 (JODIO extended it)
     { id: 'toty', from: '2027-01-16T17:00:00Z', to: new Date(T('2027-01-16T17:00:00Z') + 14 * D).toISOString() },   // Team of the Year: 2 weeks from its release
     { id: 'tots', from: '2027-05-24T00:00:00Z', to: new Date(T('2027-05-24T00:00:00Z') + 14 * D).toISOString() },   // Team of the Season: 2 weeks from its release
