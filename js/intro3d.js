@@ -99,24 +99,24 @@
     [-5, 5].forEach(x => { const p = new T.Mesh(new T.BoxGeometry(0.5, 4.5, 0.8), new T.MeshBasicMaterial({ color: new T.Color(C[0]) })); p.position.set(x, 2.25, 1.2); tun.add(p); });
     const sign = new T.Mesh(new T.PlaneGeometry(10, 1.6), new T.MeshBasicMaterial({ map: textTex(T, th.name, 512, 80, '#ffffff', C[2], 48) })); sign.position.set(0, 5.6, 1.7); tun.add(sign); scene.add(tun);
 
-    // players
-    const geo = { torso: new T.BoxGeometry(0.58, 0.66, 0.34), shorts: new T.BoxGeometry(0.52, 0.3, 0.32), leg: new T.BoxGeometry(0.19, 0.5, 0.2), sock: new T.BoxGeometry(0.2, 0.42, 0.22), arm: new T.BoxGeometry(0.15, 0.6, 0.15), head: new T.SphereGeometry(0.18, 10, 8), hair: new T.SphereGeometry(0.19, 10, 6, 0, 6.3, 0, 1.3) };
-    const mats = {}; const mat = c => mats[c] || (mats[c] = new T.MeshLambertMaterial({ color: new T.Color(c) }));
-    const SKIN = ['#f1c27d', '#e0ac69', '#c68642', '#8d5524', '#ffdbac', '#5c3a1e'], HAIR = ['#1a1209', '#3a2512', '#c9a23a', '#111111', '#6b3b1d'];
-    function makePlayer(kit, gk, i) {
-      const g = new T.Group(), skin = SKIN[(i * 5 + 1) % SKIN.length], shirt = gk ? '#16a34a' : kit[0], trim = gk ? '#111111' : kit[1];
-      const mk = (geom, c, x, y, z) => { const m = new T.Mesh(geom, mat(c)); m.position.set(x, y, z); return m; };
-      g.add(mk(geo.torso, shirt, 0, 1.28, 0)); g.add(mk(geo.shorts, trim, 0, 0.88, 0)); g.add(mk(geo.head, skin, 0, 1.78, 0)); const hr = mk(geo.hair, HAIR[(i * 3) % HAIR.length], 0, 1.8, 0); g.add(hr);
-      const mkLeg = x => { const p = new T.Group(); p.position.set(x, 0.74, 0); const up = mk(geo.leg, skin, 0, -0.25, 0); const lo = mk(geo.sock, gk ? '#111111' : kit[0], 0, -0.52, 0); p.add(up); p.add(lo); g.add(p); return p; };
-      const mkArm = x => { const p = new T.Group(); p.position.set(x, 1.52, 0); p.add(mk(geo.arm, shirt, 0, -0.3, 0)); g.add(p); return p; };
-      g.userData = { legL: mkLeg(-0.14), legR: mkLeg(0.14), armL: mkArm(-0.38), armR: mkArm(0.38) }; g.scale.setScalar(1.18); scene.add(g); return g;
+    // players: the very same pixel-art figures the match uses (RUT.PixelArt looks + sprites), drawn as upright billboards on the 3D pitch
+    const PA = window.RUT && RUT.PixelArt; if (!PA) return null;
+    const SPR = 2.4, BIGM = 1.15;
+    function makeSprite(card, kit, gk, side, club) {
+      const look = PA.lookFor(card.name, kit, gk, side, { club, number: card.details && card.details.number, strength: card.sub && card.sub.strength });
+      const mat = new T.SpriteMaterial({ transparent: true, alphaTest: 0.5, fog: false }), spr = new T.Sprite(mat); spr.visible = false; scene.add(spr);
+      return { spr, mat, look, tex: null, cur: null };
+    }
+    function setFrame(p, anim, tt, yaw) {
+      const c = PA.sprite(p.look, anim, tt, yaw, SPR); if (p.cur === c) return; p.cur = c;
+      if (!p.tex || p.tex.image.width !== c.width || p.tex.image.height !== c.height) { if (p.tex) p.tex.dispose(); p.tex = new T.CanvasTexture(c); p.tex.magFilter = p.tex.minFilter = T.NearestFilter; p.tex.generateMipmaps = false; if (T.sRGBEncoding) p.tex.encoding = T.sRGBEncoding; p.mat.map = p.tex; p.mat.needsUpdate = true; }
+      else { p.tex.image = c; p.tex.needsUpdate = true; }
+      const k = BIGM / (SPR * 12.5); p.spr.scale.set(c.width * k, c.height * k, 1); p.spr.center.set((c.ox || 0) / c.width, 1 - (c.oy || 0) / c.height);
     }
     const mkTeam = (t, dir) => {
       const cards = (t.cards || []).slice(0, 11), forms = formation(cards, dir);
-      return cards.map((c, i) => { const gk = rowOf(c) === 0, g = makePlayer(t.kit, gk, i + (dir > 0 ? 11 : 0));
-        const lx = dir < 0 ? -42 + i * 3 : 42 - i * 3, lz = -2, delay = i * 0.22 + (dir > 0 ? 0.11 : 0);
-        return { g, from: { x: (dir < 0 ? -1 : 1) * (1 + (i % 2) * 1.6), z: -37 }, line: { x: lx, z: lz }, form: forms[i], delay, ph: rnd() * 6 };
-      });
+      return cards.map((c, i) => { const gk = rowOf(c) === 0, p = makeSprite(c, t.kit, gk, dir > 0 ? 0 : 1, t.club);
+        p.gk = gk; p.pos = c.position; p.line = { x: dir < 0 ? -42 + i * 3 : 42 - i * 3, z: -2 }; p.from = { x: (dir < 0 ? -1 : 1) * (1 + (i % 2) * 1.6), z: -37 }; p.form = forms[i]; p.delay = i * 0.22 + (dir > 0 ? 0.11 : 0); p.ph = rnd(); return p; });
     };
     const A = mkTeam(o.away, -1), Hm = mkTeam(o.home, 1);
 
@@ -164,13 +164,14 @@
       else if (t < S[4]) { const u = ease(tt(t, S[3], S[4])); cam.position.set(lerp(45, 18, u), lerp(2.0, 2.6, u), lerp(10, 11, u)); cam.lookAt(lerp(28, 24, u), 1.5, -2); }
       else { const u = ease(tt(t, S[4], S[5])); cam.position.set(lerp(0, 0, u), lerp(30, 58, u), lerp(44, 18, u)); cam.lookAt(0, 0, 0); }
     }
-    function pose(p, moving, tm) { const u = p.g.userData, s = Math.sin(tm * 7 + p.ph) * 0.75 * moving; u.legL.rotation.x = s; u.legR.rotation.x = -s; u.armL.rotation.x = -s * 0.7; u.armR.rotation.x = s * 0.7; p.g.position.y = Math.abs(Math.sin(tm * 7 + p.ph)) * 0.05 * moving; }
+    const fw = new T.Vector3();
+    const yawOf = (dx, dz) => { cam.getWorldDirection(fw); const fx = fw.x, fz = fw.z, fl = Math.hypot(fx, fz) || 1, rx = -fz / fl, rz = fx / fl, sx = dx * rx + dz * rz, toward = -(dx * fx + dz * fz) / fl; return Math.round(Math.atan2(sx, toward) / (Math.PI / 4)) * (Math.PI / 4); };
     function place(list, t, dir) {
       list.forEach(p => {
-        const wu = clamp((t - p.delay) / 5.8, 0, 1), ku = clamp((t - 14.2 - p.delay * 0.15) / 2.2, 0, 1);
-        const g = p.g; g.visible = t >= p.delay;
-        if (ku > 0) { const x = lerp(p.line.x, p.form.x, ease(ku)), z = lerp(p.line.z, p.form.z, ease(ku)); const mv = ku < 1 ? 1 : 0; g.rotation.y = ku < 1 ? Math.atan2(p.form.x - p.line.x, p.form.z - p.line.z) : (dir < 0 ? Math.PI / 2 : -Math.PI / 2); g.position.x = x; g.position.z = z; pose(p, mv, t); }
-        else { const x = lerp(p.from.x, p.line.x, wu), z = lerp(p.from.z, p.line.z, wu); g.position.x = x; g.position.z = z; g.rotation.y = wu < 1 ? Math.atan2(p.line.x - p.from.x, p.line.z - p.from.z) : 0; pose(p, wu < 1 ? 1 : 0.0, t); }
+        const wu = clamp((t - p.delay) / 5.8, 0, 1), ku = clamp((t - 14.2 - p.delay * 0.15) / 2.2, 0, 1), sp = p.spr; sp.visible = t >= p.delay;
+        const idle = PA.idleFor(p.gk ? 'GK' : p.pos), g = (t * 2.6 + p.ph) % 1;
+        if (ku > 0) { const e = ease(ku); sp.position.set(lerp(p.line.x, p.form.x, e), 0, lerp(p.line.z, p.form.z, e)); if (ku < 1) setFrame(p, 'jog', g, yawOf(p.form.x - p.line.x, p.form.z - p.line.z)); else setFrame(p, idle, (t * 0.45 + p.ph) % 1, yawOf(dir < 0 ? 1 : -1, 0)); }
+        else { sp.position.set(lerp(p.from.x, p.line.x, wu), 0, lerp(p.from.z, p.line.z, wu)); if (wu < 1) setFrame(p, 'jog', g, yawOf(p.line.x - p.from.x, p.line.z - p.from.z)); else setFrame(p, idle, (t * 0.45 + p.ph) % 1, yawOf(0, 1)); }
       });
     }
 

@@ -2177,7 +2177,7 @@
     };
     const w = Math.max(640, Math.min(1280, wrap.clientWidth || innerWidth)), h = Math.round(w * (wrap.clientHeight || innerHeight) / Math.max(1, wrap.clientWidth || innerWidth));
     cvs.width = w; cvs.height = h;
-    run = RUT.Intro3D.start({ canvas: cvs, w, h, theme: TH, home: { cards: H, kit: hk, name: o.home.name }, away: { cards: A, kit: ak, name: o.away.name }, stadiumLed: o.stadium && o.stadium.name ? o.stadium.name.toUpperCase() : '',
+    run = RUT.Intro3D.start({ canvas: cvs, w, h, theme: TH, home: { cards: H, kit: hk, name: o.home.name, club: o.home.club || clubOfCards(H) }, away: { cards: A, kit: ak, name: o.away.name, club: o.away.club || clubOfCards(A) }, stadiumLed: o.stadium && o.stadium.name ? o.stadium.name.toUpperCase() : '',
       onShot: (i, nm) => { stage.innerHTML = `<div class="pm3-scene s-${nm}">${bigTxt(scenes[nm]())}</div>`; }, onTick: (t, T) => { barI.style.width = (t / T * 100) + '%'; }, onEnd: end });
     if (!run) end();
   }
