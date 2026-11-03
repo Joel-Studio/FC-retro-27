@@ -380,12 +380,12 @@ window.RUT = window.RUT || {};
     cb: [['cleanSheets', 'Keep ', ' clean sheets', [1, 2, 3, 5, 7]], ['p_int', 'Make ', ' interceptions', [3, 6, 10, 15, 21]]],
   };
   const FS_GROUPS = [
-    { key: 'st', name: 'Striker', pos: ['ST', 'CF'], face: { sho: 3, pac: 2, dri: 2, phy: 1 }, sub: { finishing: 4, positioning: 4, shotPower: 3, acceleration: 2, ballControl: 2 }, ps: [null, null, 'Finesse Shot+', null, 'First Touch+'] },
-    { key: 'wg', name: 'Winger', pos: ['LW', 'RW', 'LM', 'RM'], face: { pac: 3, dri: 3, pas: 1, sho: 1 }, sub: { acceleration: 3, sprintSpeed: 3, dribbling: 4, agility: 3, crossing: 2 }, ps: [null, null, 'Trickster+', null, 'Whipped Pass+'] },
-    { key: 'am', name: 'Playmaker', pos: ['CAM'], face: { pas: 3, dri: 3, sho: 2 }, sub: { vision: 4, shortPassing: 4, ballControl: 3, longShots: 2, curve: 2 }, ps: [null, null, 'Incisive Pass+', null, 'Technical+'] },
-    { key: 'cm', name: 'Midfielder', pos: ['CM', 'CDM'], face: { pas: 3, def: 2, phy: 2, dri: 1 }, sub: { shortPassing: 3, longPassing: 3, interceptions: 3, stamina: 4, strength: 2 }, ps: [null, null, 'Pinged Pass+', null, 'Relentless+'] },
-    { key: 'fb', name: 'Full-back', pos: ['LB', 'RB', 'LWB', 'RWB'], face: { def: 3, pac: 2, pas: 2, phy: 1 }, sub: { standingTackle: 3, interceptions: 3, stamina: 4, crossing: 3, sprintSpeed: 2 }, ps: [null, null, 'Relentless+', null, 'Whipped Pass+'] },
-    { key: 'cb', name: 'Defender', pos: ['CB'], face: { def: 4, phy: 3, pac: 1, pas: 1 }, sub: { standingTackle: 4, slidingTackle: 3, defAwareness: 4, strength: 4, heading: 3 }, ps: [null, null, 'Bruiser+', null, 'Anticipate+'] },
+    { key: 'st', name: 'Striker', pos: ['ST', 'CF'], face: { sho: 3, pac: 2, dri: 2, phy: 1 }, sub: { finishing: 4, positioning: 4, shotPower: 3, acceleration: 2, ballControl: 2 }, ps: [] },
+    { key: 'wg', name: 'Winger', pos: ['LW', 'RW', 'LM', 'RM'], face: { pac: 3, dri: 3, pas: 1, sho: 1 }, sub: { acceleration: 3, sprintSpeed: 3, dribbling: 4, agility: 3, crossing: 2 }, ps: [] },
+    { key: 'am', name: 'Playmaker', pos: ['CAM'], face: { pas: 3, dri: 3, sho: 2 }, sub: { vision: 4, shortPassing: 4, ballControl: 3, longShots: 2, curve: 2 }, ps: [] },
+    { key: 'cm', name: 'Midfielder', pos: ['CM', 'CDM'], face: { pas: 3, def: 2, phy: 2, dri: 1 }, sub: { shortPassing: 3, longPassing: 3, interceptions: 3, stamina: 4, strength: 2 }, ps: [] },
+    { key: 'fb', name: 'Full-back', pos: ['LB', 'RB', 'LWB', 'RWB'], face: { def: 3, pac: 2, pas: 2, phy: 1 }, sub: { standingTackle: 3, interceptions: 3, stamina: 4, crossing: 3, sprintSpeed: 2 }, ps: [] },
+    { key: 'cb', name: 'Defender', pos: ['CB'], face: { def: 4, phy: 3, pac: 1, pas: 1 }, sub: { standingTackle: 4, slidingTackle: 3, defAwareness: 4, strength: 4, heading: 3 }, ps: [] },
   ];
   const FS_TIERS = [
     { n: 1, label: 'Rising', ovr: 2, cost: 100000, obj: [['played', 'Play 2 matches', 2]] },
@@ -402,6 +402,24 @@ window.RUT = window.RUT || {};
       objectives: t.obj.map(o => ({ key: o[0], label: o[1], target: o[2] })).concat(FS_TASKS[g.key].map(q => ({ key: q[0], label: q[1] + q[3][t.n - 1] + q[2], target: q[3][t.n - 1] }))),
       boosts: { rating: t.ovr, face: scale(g.face), sub: scale(g.sub), ps: g.ps[t.n - 1] ? [g.ps[t.n - 1]] : [] } });
   }));
+  /* v365 (JODIO): the five-step path gives stats and OVR only. PlayStyle+ and Gametrait+ come from separate Future Star evolutions: a player takes up to 4 of each, any Future Star card, nothing else needed. */
+  const FSX_PS = ['Finesse Shot+', 'Power Shot+', 'Trickster+', 'Incisive Pass+', 'Pinged Pass+', 'Whipped Pass+', 'Relentless+', 'Bruiser+', 'Anticipate+', 'First Touch+', 'Technical+'];
+  const FSX_MAX = 4;
+  FSX_PS.forEach(ps => {
+    const base = ps.replace(/\+$/, ''), other = base === 'Power Shot' ? 'Finesse Shot' : base === 'Finesse Shot' ? 'Power Shot' : null;
+    EVOS.push({ id: 'fsx_ps_' + base.toLowerCase().replace(/[^a-z]/g, ''), fsx: true, kind: 'ps', name: ps + ' (PlayStyle)', desc: 'Adds ' + ps + '. A Future Star takes up to ' + FSX_MAX + ' PlayStyle+ evolutions.', cost: 250000,
+      eligible: c => c.promo === 'fstar' && (c.fsxPs || 0) < FSX_MAX && !(c.playStyles || []).some(x => x === ps || (other && x.replace(/\+$/, '') === other)),
+      eligText: 'Any Future Star · ' + FSX_MAX + ' PlayStyle+ max',
+      objectives: [{ key: 'played', label: 'Play 3 matches', target: 3 }, { key: 'won', label: 'Win 2 matches', target: 2 }],
+      boosts: { rating: 0, face: {}, sub: {}, ps: [ps], gt: [] } });
+  });
+  (RUT.GT ? RUT.GT.LIST : []).forEach(t => {
+    EVOS.push({ id: 'fsx_gt_' + t.k, fsx: true, kind: 'gt', name: t.name + '+ (Gametrait)', desc: 'Adds ' + t.name + '+. A Future Star takes up to ' + FSX_MAX + ' Gametrait+ evolutions.', cost: 250000,
+      eligible: c => c.promo === 'fstar' && (c.fsxGt || 0) < FSX_MAX && t.pos.indexOf(c.position) >= 0 && !(c.gtX || []).includes(t.k),
+      eligText: 'Future Star who plays ' + t.pos.join('/') + ' · ' + FSX_MAX + ' Gametrait+ max',
+      objectives: [{ key: 'played', label: 'Play 3 matches', target: 3 }, { key: 'won', label: 'Win 2 matches', target: 2 }],
+      boosts: { rating: 0, face: {}, sub: {}, ps: [], gt: [t.k] } });
+  });
   const MAX_ACTIVE_EVOS = 3;
 
   function startEvo(evoId, itemId) {
@@ -445,7 +463,7 @@ window.RUT = window.RUT || {};
         b.rating += gain;
         Object.entries(evo.boosts.face).forEach(([k, v]) => { b.face[k] = (b.face[k] || 0) + v; });
         Object.entries(evo.boosts.sub).forEach(([k, v]) => { b.sub[k] = (b.sub[k] || 0) + v; });
-        b.ps = Array.from(new Set(b.ps.concat(evo.boosts.ps)));
+        b.ps = Array.from(new Set(b.ps.concat(evo.boosts.ps))); b.gt = Array.from(new Set((b.gt || []).concat(evo.boosts.gt || [])));
         it.evo.applied.push(evo.id);
         delete st.evos.active[itemId];
         done.push(RUT.State.card(it).name + ' completed ' + evo.name + '!');

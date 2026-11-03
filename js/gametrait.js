@@ -29,9 +29,13 @@
   const special = c => !!(c.promo || c.cl || c.rarity === 'evo' || c.rarity === 'bdor' || c.rarity === 'icon' || c.potLg || c.award);
 
   /** The Gametraits of a card: [{k, lv}] lv 1 normal, 2 plus. Cached on the card. */
+  /* v365: a Future Star's Gametraits are only the Gametrait+ evolutions he took (card.gtX, 4 at most) */
   function of(c) {
+    if (c && c.promo === 'fstar') return (c.gtX || []).filter(k => BY[k]).slice(0, 4).map(k => ({ k, lv: 2 }));
+    return ofBase(c);
+  }
+  function ofBase(c) {
     if (!c || !c.sub) return [];
-    if (c.promo === 'fstar' && c.rarity !== 'evo') return [];   // v351: a Future Star card starts with no Gametraits
     if (c._gt && c._gt.r === c.rating && c._gt.n === (c.playStyles || []).length) return c._gt.l;
     const n = (c.playStyles || []).filter(x => /\+$/.test(x)).length;
     let cnt = n ? (special(c) ? n : Math.ceil(n * 2 / 3)) : 0;

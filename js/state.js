@@ -179,8 +179,8 @@ window.RUT = window.RUT || {};
       const face = {}; Object.keys(base.face).forEach(k => { face[k] = clamp(base.face[k] + (b.face[k] || 0), 1, RUT.DB.faceCap ? RUT.DB.faceCap(Math.min(base.rating + (b.rating || 0), top)) : 99); });
       const sub = {}; Object.keys(base.sub).forEach(k => { sub[k] = clamp(base.sub[k] + (b.sub[k] || 0), 1, 99); });
       return Object.assign({}, base, {
-        rating: clamp(base.rating + b.rating, 1, top), face, sub, rarity: 'evo', evoLevel: it.evo.applied.length, fsTier: it.evo.applied.filter(x => /^fs_/.test(x)).length,
-        playStyles: (() => { const e = RUT.DB.evoPs(base.playStyles, b.ps); return RUT.DB.psGate(clamp(base.rating + b.rating, 1, top), sub, base.playStyles.concat(e.ps), e.ps, e.cap); })(),
+        rating: clamp(base.rating + b.rating, 1, top), face, sub, rarity: 'evo', evoLevel: it.evo.applied.length, fsTier: it.evo.applied.filter(x => /^fs_/.test(x)).length, fsxPs: it.evo.applied.filter(x => /^fsx_ps_/.test(x)).length, fsxGt: it.evo.applied.filter(x => /^fsx_gt_/.test(x)).length, gtX: (b.gt || []).slice(),
+        playStyles: (() => { if (base.promo === 'fstar') { const add = b.ps.filter(x => !base.playStyles.includes(x)).slice(0, 4); return RUT.DB.psGate(clamp(base.rating + b.rating, 1, top), sub, base.playStyles.concat(add), add, 4); } const e = RUT.DB.evoPs(base.playStyles, b.ps); return RUT.DB.psGate(clamp(base.rating + b.rating, 1, top), sub, base.playStyles.concat(e.ps), e.ps, e.cap); })(),
       });
     },
 
