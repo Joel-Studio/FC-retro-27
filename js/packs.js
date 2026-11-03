@@ -409,7 +409,7 @@ window.RUT = window.RUT || {};
   FSX_PS.forEach(ps => {
     const base = ps.replace(/\+$/, ''), other = base === 'Power Shot' ? 'Finesse Shot' : base === 'Finesse Shot' ? 'Power Shot' : null, gk = GKPS.includes(ps);
     EVOS.push({ id: 'fsx_ps_' + base.toLowerCase().replace(/[^a-z0-9]/g, ''), fsx: true, kind: 'ps', name: ps + ' (PlayStyle)', desc: 'Adds ' + ps + '. A Future Star takes up to ' + FSX_MAX + ' PlayStyle+ evolutions.', cost: 250000,
-      eligible: c => c.promo === 'fstar' && (c.fsxPs || 0) < FSX_MAX && (c.position === 'GK') === gk && !(c.playStyles || []).some(x => x === ps || (other && x.replace(/\+$/, '') === other) || (ps === 'Rapid+' && x === 'Quick Step+') || (ps === 'Quick Step+' && x === 'Rapid+'))
+      eligible: c => c.promo === 'fstar' && (c.fsxPs || 0) < FSX_MAX && (c.position === 'GK') === gk && !(c.playStyles || []).some(x => x === ps || x === base || (other && x.replace(/\+$/, '') === other) || (ps === 'Rapid+' && x === 'Quick Step+') || (ps === 'Quick Step+' && x === 'Rapid+'))
         && (ps !== 'Rapid+' || c.sub.sprintSpeed >= 88) && (ps !== 'Quick Step+' || c.sub.acceleration >= 88),
       eligText: (gk ? 'Future Star keeper' : 'Future Star outfielder') + ' · ' + FSX_MAX + ' PlayStyle+ max' + (ps === 'Rapid+' ? ' · needs 88 sprint speed' : ps === 'Quick Step+' ? ' · needs 88 acceleration' : ''),
       objectives: [{ key: 'played', label: 'Play 3 matches', target: 3 }, { key: 'won', label: 'Win 2 matches', target: 2 }],
@@ -417,7 +417,7 @@ window.RUT = window.RUT || {};
   });
   (RUT.GT ? RUT.GT.LIST : []).forEach(t => {
     EVOS.push({ id: 'fsx_gt_' + t.k, fsx: true, kind: 'gt', name: t.name + '+ (Gametrait)', desc: 'Adds ' + t.name + '+. A Future Star takes up to ' + FSX_MAX + ' Gametrait+ evolutions.', cost: 250000,
-      eligible: c => c.promo === 'fstar' && (c.fsxGt || 0) < FSX_MAX && t.pos.indexOf(c.position) >= 0 && !(c.gtX || []).includes(t.k),
+      eligible: c => c.promo === 'fstar' && (c.fsxGt || 0) < FSX_MAX && t.pos.indexOf(c.position) >= 0 && !(c.gtX || []).includes(t.k) && !(c.gtN || []).includes(t.k),
       eligText: 'Future Star who plays ' + t.pos.join('/') + ' · ' + FSX_MAX + ' Gametrait+ max',
       objectives: [{ key: 'played', label: 'Play 3 matches', target: 3 }, { key: 'won', label: 'Win 2 matches', target: 2 }],
       boosts: { rating: 0, face: {}, sub: {}, ps: [], gt: [t.k] } });
