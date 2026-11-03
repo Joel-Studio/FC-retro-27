@@ -3325,7 +3325,7 @@
     if (!RUT.load3D) return;
     Promise.resolve(RUT.load3D()).then(() => { if (window.THREE) { try { run(); } catch (e) { if (window.console) console.warn('Evolve 3D failed', e); } } });
   }
-  RUT.fsEvoFX = fsEvoFX;
+  RUT.fsEvoFX = fsEvoFX; RUT.walkoutTest = (c) => walkout({ best: c, items: [], packId: "fstarg" });
   /** v357 (JODIO): the Future Star pack in real 3D, about 10 s: a star tunnel, the foil pack flies in and the camera orbits it, it charges and cracks along a light seam, then glowing cards, rings and sparks burst past the camera. Click once to jump to the crack, again to skip. */
   function fsPackFX(def, done) {
     const fallback = () => fsPackCSS(def, done);
@@ -3522,6 +3522,8 @@
     };
   }
 
+const NATION_FULL = {ARG: 'Argentina',AUT: 'Austria',BEL: 'Belgium',BFA: 'Burkina Faso',BRA: 'Brazil',CAN: 'Canada',CIV: 'Ivory Coast',CMR: 'Cameroon',COD: 'DR Congo',COL: 'Colombia',CRO: 'Croatia',CZE: 'Czechia',DEN: 'Denmark',ECU: 'Ecuador',EGY: 'Egypt',ENG: 'England',ESP: 'Spain',FRA: 'France',GAB: 'Gabon',GAM: 'Gambia',GEO: 'Georgia',GER: 'Germany',GHA: 'Ghana',GRE: 'Greece',GUI: 'Guinea',HUN: 'Hungary',IRL: 'Ireland',ITA: 'Italy',JAM: 'Jamaica',JPN: 'Japan',KOR: 'South Korea',KVX: 'Kosovo',MAR: 'Morocco',MEX: 'Mexico',MOZ: 'Mozambique',NED: 'Netherlands',NGA: 'Nigeria',NIR: 'Northern Ireland',NOR: 'Norway',NZL: 'New Zealand',POL: 'Poland',POR: 'Portugal',RUS: 'Russia',SCO: 'Scotland',SEN: 'Senegal',SRB: 'Serbia',SUI: 'Switzerland',SVK: 'Slovakia',SVN: 'Slovenia',SWE: 'Sweden',TUR: 'Turkey',UKR: 'Ukraine',URU: 'Uruguay',USA: 'United States',UZB: 'Uzbekistan',WAL: 'Wales'};
+  const POS_FULL = { GK: 'Goalkeeper', CB: 'Centre-back', LB: 'Left-back', RB: 'Right-back', LWB: 'Left wing-back', RWB: 'Right wing-back', CDM: 'Defensive midfielder', CM: 'Central midfielder', CAM: 'Attacking midfielder', LM: 'Left midfielder', RM: 'Right midfielder', LW: 'Left winger', RW: 'Right winger', CF: 'Second striker', ST: 'Striker' };
   function walkout(res) {
     closeModal();
     const c = res.best;
@@ -3566,6 +3568,15 @@
       ...(c.name === 'Cristiano Ronaldo' ? [Object.assign(() => { el.classList.add('wo-goat'); stage.innerHTML = '<div class="goat"><div class="goat-crown">\u265B</div><div class="goat-l1">THE</div><div class="goat-l2">GREATEST</div><div class="goat-l3">OF ALL TIME</div><div class="goat-n">CRISTIANO RONALDO \u00b7 CR7</div></div>'; for (let k = 0; k < 12; k++) setTimeout(burst, k * 180); }, { long: true })] : []),
       () => { flash(); if (gl) { gl.hidePlaque(); gl.boost(1); } stage.innerHTML = `<div class="w3 w3-cardflip">${cardHTML(c)}</div><div class="big w3-name" style="font-size:14px">${esc(c.name.toUpperCase())}</div>`; burst(); burst(); burst(); for (let k = 0; k < 8; k++) setTimeout(burst, k * 160); },
     ];
+    if (c.promo === 'fstar') {   // v368 (JODIO): the Future Star reveal has its own scouting-report scenes: nation orb, club shield, position diamond, each docking into a pink star-path bar
+      el.insertAdjacentHTML('beforeend', '<div class="fsw-beam"></div><div class="fsw-bar"></div>');
+      const bar = el.querySelector('.fsw-bar'), chip = (k, t) => bar.insertAdjacentHTML('beforeend', `<span class="fsw-chip"><small>${k}</small>${esc(t)}</span>`);
+      const scene = (label, big, shape, k, t, extra) => Object.assign(() => { flash(); stage.innerHTML = `<div class="fsw"><div class="l">${label}</div>${shape}<div class="v">${esc(big)}</div>${extra || ''}</div>`; setTimeout(() => chip(k, t), 1500); burst(); burst(); }, { long: true, dur: 2500 });
+      steps.splice(0, 3,
+        scene('SCOUTING REPORT · HOME NATION', (NATION_FULL[c.nation] || c.nation).toUpperCase(), `<div class="orb" style="${flagCSS(c.nation)}"></div>`, 'NATION', NATION_FULL[c.nation] || c.nation),
+        scene('SIGNED FOR THE FUTURE · CLUB', c.club.toUpperCase(), `<div class="shield" style="${clubCSS(c.club)}"></div>`, 'CLUB', c.club),
+        scene('ON THE PITCH · POSITION', (POS_FULL[c.position] || c.position).toUpperCase(), `<div class="dia"><b>${esc(c.position)}</b></div>`, 'POSITION', c.position, `<div class="alt">${esc((c.altPositions || []).slice(0, 3).join(' · '))}</div>`));
+    }
     let i = 0, timer;
     const next = () => { if (i < steps.length) { const st = steps[i++]; st(); timer = setTimeout(next, i === steps.length ? 2200 : st.long ? (st.dur || 3600) : 1300); } else finish(); };
     const finish = () => { if (!alive) return; alive = false; clearTimeout(timer); if (gl) gl.stop(); el.remove(); revealPack(res); };
