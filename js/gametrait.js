@@ -31,7 +31,7 @@
   /** The Gametraits of a card: [{k, lv}] lv 1 normal, 2 plus. Cached on the card. */
   /* v365: a Future Star's Gametraits are only the Gametrait+ evolutions he took (card.gtX, 4 at most) */
   function of(c) {
-    if (c && c.promo === 'fstar') return (c.gtX || []).filter(k => BY[k]).slice(0, 4).map(k => ({ k, lv: 2 }));
+    if (c && c.promo === 'fstar') { const pl = (c.gtX || []).filter(k => BY[k]).slice(0, 3), nm = (c.gtN || []).filter(k => BY[k] && pl.indexOf(k) < 0).slice(0, 2); return nm.map(k => ({ k, lv: 1 })).concat(pl.map(k => ({ k, lv: 2 }))); }
     return ofBase(c);
   }
   function ofBase(c) {
