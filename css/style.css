@@ -1803,3 +1803,29 @@ html, body, button, input, select, textarea { font-size-adjust: none; }   /* v21
 .kit-c input[type=color] { width: 44px; height: 28px; padding: 0; border: 2px solid #46508a; border-radius: 6px; background: none; cursor: pointer; }
 .kit-pre { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #fff; cursor: pointer; }
 .kit-pre:hover { transform: scale(1.12); }
+
+/* v370 3D pre-match show */
+.pm-ov.pm3 { background: #05060f; }
+.pm-ov.pm3::before { display: none; }
+.pm3-gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.pm3 .pm-stage { z-index: 1; pointer-events: none; }
+.pm3 .pm-skip, .pm3 .pm-bar { z-index: 3; }
+.pm3-scene { width: 100%; height: 100%; position: relative; animation: pm-in .45s cubic-bezier(.2,.9,.2,1); }
+.pm3-ident { position: absolute; left: 0; right: 0; top: 14%; text-align: center; }
+.pm3-ident small { display: block; letter-spacing: 8px; font-size: 14px; color: var(--ac); text-shadow: 0 0 14px var(--ac); }
+.pm3-ident h1 { margin: 8px 0; font: italic 800 64px "Barlow Condensed", Arial, sans-serif; color: #fff; text-shadow: 0 0 30px var(--ac), 0 0 70px var(--ac), 0 4px 0 rgba(0,0,0,.6); letter-spacing: 3px; }
+.pm3-ident p { font: 700 22px "Barlow Condensed", Arial, sans-serif; color: #fff; letter-spacing: 3px; text-transform: uppercase; }
+.pm3-ident p i { color: var(--ac); margin: 0 10px; font-style: normal; }
+.pm3-lt { position: absolute; left: 5%; right: 5%; bottom: 9%; display: flex; align-items: center; justify-content: center; gap: 26px; background: linear-gradient(90deg, transparent, rgba(5,6,20,.82) 15%, rgba(5,6,20,.82) 85%, transparent); padding: 14px 40px; border-top: 2px solid var(--ac); border-bottom: 2px solid var(--ac); flex-wrap: wrap; }
+.pm3-lt div { text-align: center; } .pm3-lt b { display: block; font: italic 800 34px "Barlow Condensed", Arial, sans-serif; text-transform: uppercase; } .pm3-lt small { color: var(--ac); letter-spacing: 3px; font-size: 12px; }
+.pm3-lt span { font: italic 800 22px "Barlow Condensed", Arial, sans-serif; color: var(--ac); } .pm3-lt p { flex-basis: 100%; margin: 4px 0 0; text-align: center; letter-spacing: 6px; font-size: 11px; color: #cfd6ff; text-transform: uppercase; }
+.pm3-board { position: absolute; top: 5%; width: 47%; background: linear-gradient(180deg, rgba(8,10,34,.78), rgba(4,5,18,.86)); border: 2px solid var(--ac); border-radius: 10px; box-shadow: 0 0 40px var(--ac), inset 0 0 30px rgba(0,0,0,.6); padding: 10px 12px 12px; transform-style: preserve-3d; }
+.pm3-board.r { right: 2%; transform: perspective(1300px) rotateY(-16deg) rotateX(5deg); transform-origin: right center; animation: pm3-slide-r .8s cubic-bezier(.2,.9,.2,1); }
+.pm3-board.l { left: 2%; transform: perspective(1300px) rotateY(16deg) rotateX(5deg); transform-origin: left center; animation: pm3-slide-l .8s cubic-bezier(.2,.9,.2,1); }
+@keyframes pm3-slide-r { from { opacity: 0; transform: perspective(1300px) translateX(220px) rotateY(-60deg); } }
+@keyframes pm3-slide-l { from { opacity: 0; transform: perspective(1300px) translateX(-220px) rotateY(60deg); } }
+.pm3-hd { text-align: center; margin-bottom: 6px; } .pm3-hd small { color: var(--ac); letter-spacing: 5px; font-size: 10px; } .pm3-hd h2 { margin: 2px 0; font: italic 800 30px "Barlow Condensed", Arial, sans-serif; color: #fff; text-transform: uppercase; text-shadow: 0 0 12px var(--ac); } .pm3-hd span { font-size: 12px; color: #cfd6ff; }
+.pm3-board .pm-pitch { border-color: var(--ac); }
+.pm3-ko { position: absolute; left: 0; right: 0; top: 30%; text-align: center; font: italic 800 34px "Barlow Condensed", Arial, sans-serif; text-transform: uppercase; letter-spacing: 3px; text-shadow: 0 0 18px var(--ac), 0 3px 0 rgba(0,0,0,.6); }
+.pm3-ko b { display: block; font-size: 84px; color: var(--ac); margin: 6px 0; letter-spacing: 10px; animation: pm3-pop .6s cubic-bezier(.2,1.5,.4,1) both; }
+@keyframes pm3-pop { from { transform: scale(.2); opacity: 0; } }

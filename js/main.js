@@ -1871,7 +1871,7 @@
       const o = T.record(i, leg, r.score[0], r.score[1]); if (!o || !o.finished) return '';
       RUT.Quests.event('t5end', { lg, rank: o.rank });
       return `<p class="${o.rank <= 4 ? 'good' : 'gold'}">Season over: ${ord(o.rank)} place. Open Top 5 Leagues to claim your reward.</p>`; } });
-    runMatch({ tag: 'Top 5 Leagues', home, away, humans: mode === 'play' ? [0] : [], knockout: false, styles, onEnd: done, pitch: 'colossal', halfSeconds: 150, live,
+    runMatch({ tag: 'Top 5 Leagues', comp: lg, home, away, humans: mode === 'play' ? [0] : [], knockout: false, styles, onEnd: done, pitch: 'colossal', halfSeconds: 150, live,
       onGoal: team => { if (team !== 1) return; conceded++; const t = chargeCoins(T5_GOAL_FEE, 'Goal conceded'); goalFees += t; updateHeader(); if (t) toast('Goal conceded: -' + fmt(t) + ' coins', 'bad'); },
       onQuit: () => { T.forfeit(i, leg, conceded); quitMatch(); toast('You quit: recorded as a 3-0 defeat.', 'bad'); } });
   }
@@ -2101,7 +2101,7 @@
   /* v226 (JODIO: "make the pregame animation like the XI reveal and everything FC27 does"): FC-style pre-match show before kick-off.
      Match-up card with both crests, then each Starting XI revealed card by card on a pitch (team rating, formation), the players to watch,
      and a KICK OFF flash. About 11 s; any key, tap or the Skip button jumps straight to the match. Not used online or in training. */
-  function preMatch(o, wrap, go) {
+  function preMatchFlat(o, wrap, go) {
     const xi = t => (t && t.cards || []).filter(Boolean).slice(0, 11), H = xi(o.home), A = xi(o.away);
     if (H.length < 11 || A.length < 11) { go(); return; }
     const ovr = cs => Math.round(cs.reduce((a, c) => a + (c.rating || 0), 0) / cs.length);
@@ -2137,6 +2137,49 @@
       const sofar = scenes.slice(0, i + 1).reduce((a, s) => a + s[0], 0); barI.style.transition = `width ${scenes[i][0]}ms linear`; barI.style.width = (sofar / total * 100) + '%'; tm = setTimeout(next, scenes[i][0]); };
     ov.addEventListener('click', end); window.addEventListener('keydown', key, true);
     next();
+  }
+
+  /* v370 (JODIO): the pre-match show is full 3D now (js/intro3d.js): stadium, tunnel, both teams walking out in their kits, a 3D board with the XI cards,
+     one look per competition. Phones / Lite mode and any 3D failure fall back to the flat show above. */
+  function preMatch(o, wrap, go) {
+    const ok = t => (t && t.cards || []).filter(Boolean).length >= 11;
+    if (!ok(o.home) || !ok(o.away)) { go(); return; }
+    if (window.RUT_LITE || SET.intro3d === false || !RUT.Intro3D || !RUT.load3D) { preMatchFlat(o, wrap, go); return; }
+    let used = false; const flat = () => { if (!used) { used = true; preMatchFlat(o, wrap, go); } };
+    Promise.resolve(RUT.load3D()).then(() => { if (used || !wrap.isConnected) return; if (!window.THREE) { flat(); return; } try { used = true; preMatch3D(o, wrap, go); } catch (e) { if (window.console) console.warn('3D intro failed', e); used = false; flat(); } }, flat);
+  }
+  function preMatch3D(o, wrap, go) {
+    const xi = t => (t && t.cards || []).filter(Boolean).slice(0, 11), H = xi(o.home), A = xi(o.away), TH = RUT.Intro3D.themeFor(o);
+    const ovr = cs => Math.round(cs.reduce((a, c) => a + (c.rating || 0), 0) / cs.length);
+    const row = c => { const p = c.position || ''; return p === 'GK' ? 0 : /^(CB|LB|RB|LWB|RWB)$/.test(p) ? 1 : /^(CDM|CM|LM|RM|CAM)$/.test(p) ? 2 : 3; };
+    const lr = c => { const p = c.position || ''; return /^L/.test(p) ? -1 : /^R/.test(p) ? 1 : 0; };
+    const board = (cs, team, cls) => {
+      const rows = [[], [], [], []]; cs.forEach(c => rows[row(c)].push(c)); rows.forEach(r => r.sort((a, b) => lr(a) - lr(b)));
+      const used = rows.filter(r => r.length), shape = used.slice(1).map(r => r.length).join('-'); let k = 0;
+      const lines = used.slice().reverse().map(r => `<div class="pm-line">${r.map(c => `<div class="pm-slot" style="animation-delay:${0.2 + 0.1 * (k++)}s">${cardHTML(c, { mini: true })}</div>`).join('')}</div>`).join('');
+      return `<div class="pm3-board ${cls}" style="--ac:${TH.c[0]}"><div class="pm3-hd"><small>${esc(TH.name)}</small><h2>${esc(team.name)}</h2><span>OVR <b>${ovr(cs)}</b> &middot; ${esc(shape)}</span></div><div class="pm-pitch">${lines}</div></div>`;
+    };
+    const kitOf = (t, cs) => (t.kit && t.kit.length ? t.kit : DB.kitFor(clubOfCards(cs))).slice();
+    const hk = kitOf(o.home, H); let ak = kitOf(o.away, A);
+    if (hexDist(hk[0], ak[0]) < 110) ak = hexDist(hk[0], ak[1]) >= 110 ? [ak[1], ak[0]] : ['#222222', '#ffffff'];
+    const ov = document.createElement('div'); ov.className = 'pm-ov pm3'; ov.style.setProperty('--ac', TH.c[0]); ov.innerHTML = `<canvas class="pm3-gl"></canvas><div class="pm-stage"></div><button class="btn sm pm-skip">Skip ▸</button><div class="pm-bar"><i></i></div>`;
+    wrap.appendChild(ov);
+    const stage = ov.querySelector('.pm-stage'), barI = ov.querySelector('.pm-bar i'), cvs = ov.querySelector('canvas');
+    let done = false, run = null;
+    const end = () => { if (done) return; done = true; if (run) run.stop(); window.removeEventListener('keydown', key, true); ov.classList.add('out'); setTimeout(() => ov.remove(), 350); go(); };
+    const key = e => { e.preventDefault(); e.stopPropagation(); end(); };
+    ov.addEventListener('click', end); window.addEventListener('keydown', key, true);
+    const scenes = {
+      ident: () => `<div class="pm3-ident"><small>${esc(TH.sub)}</small><h1>${esc(TH.name)}</h1><p>${esc(o.home.name)} <i>v</i> ${esc(o.away.name)}</p></div>`,
+      walk: () => `<div class="pm3-lt"><div><b>${esc(o.home.name)}</b><small>OVR ${ovr(H)}</small></div><span>VS</span><div><b>${esc(o.away.name)}</b><small>OVR ${ovr(A)}</small></div><p>${esc(o.tag || 'Match day')}</p></div>`,
+      away: () => board(A, o.away, 'r'), home: () => board(H, o.home, 'l'),
+      ko: () => `<div class="pm3-ko"><div>${esc(o.home.name)}</div><b>KICK OFF</b><div>${esc(o.away.name)}</div></div>`,
+    };
+    const w = Math.max(640, Math.min(1280, wrap.clientWidth || innerWidth)), h = Math.round(w * (wrap.clientHeight || innerHeight) / Math.max(1, wrap.clientWidth || innerWidth));
+    cvs.width = w; cvs.height = h;
+    run = RUT.Intro3D.start({ canvas: cvs, w, h, theme: TH, home: { cards: H, kit: hk, name: o.home.name }, away: { cards: A, kit: ak, name: o.away.name }, stadiumLed: o.stadium && o.stadium.name ? o.stadium.name.toUpperCase() : '',
+      onShot: (i, nm) => { stage.innerHTML = `<div class="pm3-scene s-${nm}">${bigTxt(scenes[nm]())}</div>`; }, onTick: (t, T) => { barI.style.width = (t / T * 100) + '%'; }, onEnd: end });
+    if (!run) end();
   }
 
   /** v229 (JODIO): substitution panel. Pick the player going off, then the sub coming on. The match pauses while it is open. */
@@ -3371,7 +3414,7 @@
     if (!RUT.load3D) return;
     Promise.resolve(RUT.load3D()).then(() => { if (window.THREE) { try { run(); } catch (e) { if (window.console) console.warn('Evolve 3D failed', e); } } });
   }
-  RUT.fsEvoFX = fsEvoFX; RUT.walkoutTest = (c) => walkout({ best: c, items: [], packId: "fstarg" });
+  RUT.fsEvoFX = fsEvoFX; RUT.runMatchTest = o => runMatch(o); RUT.walkoutTest = (c) => walkout({ best: c, items: [], packId: "fstarg" });
   /** v357 (JODIO): the Future Star pack in real 3D, about 10 s: a star tunnel, the foil pack flies in and the camera orbits it, it charges and cracks along a light seam, then glowing cards, rings and sparks burst past the camera. Click once to jump to the crack, again to skip. */
   function fsPackFX(def, done) {
     const fallback = () => fsPackCSS(def, done);

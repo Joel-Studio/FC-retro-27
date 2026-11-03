@@ -3602,7 +3602,7 @@ window.RUT = window.RUT || {};
       const a = links[i] * 3, c = links[i + 1] * 3;
       rest.push(1.03 * Math.hypot(P0[a] - P0[c], P0[a + 1] - P0[c + 1], P0[a + 2] - P0[c + 2]));   // 3% slack
     }
-    return { side, pos, prev, pin, links, rest, panels, awake: 120 };
+    return { side, pos, prev, pin, links, rest, panels, awake: 120, p0: Float32Array.from(P0) };
   }
 
   P.stepNets = function (dt) {
@@ -4826,7 +4826,9 @@ void main(){
     // the cloth mesh (stepNets): shaded cells and knot lines straight from the particle positions
     if (!this.nets) this.nets = [makeNet(0), makeNet(1)];
     const net = this.nets[side], pos = net.pos;
-    const sp = i => proj(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]);
+    /* v370 (JODIO: the net must stretch like in real life in every graphics mode): in the 2D modes the push is drawn 1.7x stronger, the lines stay visible at low resolution, and a moving net is brighter */
+    const flat = this.gfx !== '3d', xg = flat ? 1.7 : 1, p0 = net.p0, qv = Math.max(0.2, this._q || 1), lw = flat ? Math.min(1.7, Math.max(0.42, 0.62 / qv)) : 0.42, hot = flat && net.awake > 0;
+    const sp = i => { const k = i * 3; return xg === 1 || !p0 ? proj(pos[k], pos[k + 1], pos[k + 2]) : proj(p0[k] + (pos[k] - p0[k]) * xg, p0[k + 1] + (pos[k + 1] - p0[k + 1]) * xg, p0[k + 2] + (pos[k + 2] - p0[k + 2]) * xg); };
     const drawPanel = (pl, fill, lineCol) => {
       const S = [];
       for (let v = 0; v <= pl.nv; v++) for (let u = 0; u <= pl.nu; u++) S.push(sp(pl.at(u, v)));
@@ -4836,12 +4838,12 @@ void main(){
         for (let v = 0; v < pl.nv; v++) for (let u = 0; u < pl.nu; u++) { const a = at(u, v), c = at(u + 1, v), d = at(u + 1, v + 1), e = at(u, v + 1); ctx.moveTo(a.x, a.y); ctx.lineTo(c.x, c.y); ctx.lineTo(d.x, d.y); ctx.lineTo(e.x, e.y); ctx.closePath(); }
         ctx.fill();
       }
-      ctx.strokeStyle = lineCol; ctx.lineWidth = 0.42; ctx.lineJoin = 'round'; ctx.beginPath();
+      ctx.strokeStyle = lineCol; ctx.lineWidth = lw; ctx.lineJoin = 'round'; ctx.beginPath();
       for (let v = 0; v <= pl.nv; v++) for (let u = 0; u <= pl.nu; u++) { const a = at(u, v); if (u < pl.nu) { const c = at(u + 1, v); ctx.moveTo(a.x, a.y); ctx.lineTo(c.x, c.y); } if (v < pl.nv) { const c = at(u, v + 1); ctx.moveTo(a.x, a.y); ctx.lineTo(c.x, c.y); } }
       ctx.stroke();
     };
     const PL = {}; net.panels.forEach(pl => { PL[pl.name] = pl; });
-    const mesh = 'rgba(240,240,255,0.5)', meshD = 'rgba(210,210,235,0.32)';
+    const mesh = hot ? 'rgba(255,255,255,0.82)' : flat ? 'rgba(240,240,255,0.65)' : 'rgba(240,240,255,0.5)', meshD = hot ? 'rgba(235,235,255,0.6)' : flat ? 'rgba(210,210,235,0.45)' : 'rgba(210,210,235,0.32)';
     if (part === 'back') {
       // ground shadow of the goal
       poly([[gx, y1, 0], [bx, y1, 0], [bx, y2, 0], [gx, y2, 0]], 'rgba(0,0,0,0.18)');
