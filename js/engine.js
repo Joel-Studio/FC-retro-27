@@ -4212,7 +4212,7 @@ window.RUT = window.RUT || {};
     try {
       if (!this._u3 || this._u3.ground !== GFX.ground) {
         if (this._u3) this._u3.dispose();
-        this._u3 = R3.create({ W: PITCH_W, H: PITCH_H, ground: GFX.ground, standsFar: GFX.standsFar, standsEnd: GFX.standsEnd, GMX, GMY_FAR, GMY_NEAR, STAND_H, GOAL_HALF, GOAL_H, NET_DEPTH, NET_TOP_BACK, BOARD_COLS });
+        this._u3 = R3.create({ W: PITCH_W, H: PITCH_H, ground: GFX.ground, standsFar: GFX.standsFar, standsEnd: GFX.standsEnd, GMX, GMY_FAR, GMY_NEAR, STAND_H, GOAL_HALF, GOAL_H, NET_DEPTH, NET_TOP_BACK, BOARD_COLS, stadium: this.cfg.stadium || null, fanCols: (this.cfg.stadium && this.cfg.stadium.fans === 'home' && this.teams && this.teams[0]) ? this.teams[0].kit : null, clubName: this.teams && this.teams[0] ? this.teams[0].name : '' });
       }
       const U = this._u3, now = performance.now(), dt = clamp((now - (this._u3t || now)) / 1000, 0, 0.1); this._u3t = now;
       // too heavy for this machine? after a couple of seconds of slow frames drop to High so the game stays playable
@@ -4937,13 +4937,16 @@ void main(){
     if (this.training) this.drawTrainHUD(ctx);
     else {
     // v167 (JODIO's FC 27 pictures): a broadcast score bug, top left: kit stripe, club short names, the score in a dark box, the clock under it
-    const ab = t => (t.short || t.label || '').slice(0, 3).toUpperCase() || 'CLB', X = 6, Y = 6, W = 84, H = 12;
+    /* v369 (JODIO: show the full name of both teams, not RFC): the name boxes grow to fit the club name */
+    const nmOf = t => String((t && t.name) || t.label || 'CLUB').toUpperCase().replace(/[^\w .'&-]/g, '').trim().slice(0, 20) || 'CLUB';
+    ctx.save(); ctx.font = '800 9px "Barlow Condensed", "Arial Narrow", Arial, sans-serif'; const wA = Math.max(24, ctx.measureText(nmOf(T[0])).width + 10), wB = Math.max(24, ctx.measureText(nmOf(T[1])).width + 10); ctx.restore();
+    const X = 6, Y = 6, SW = 28, H = 12, W = 4 + wA + SW + wB;
     const min = this.phase === 'end' || this.phase === 'pens' ? (this.pens || this.phase === 'pens' ? 'PEN' : 'FT') : (() => { const m = parseInt(this.minute(), 10) || 0, sec = Math.floor((this.t / this.halfSeconds * 45 * 60) % 60); return String(Math.min(m - 1, 120)).padStart(2, '0') + ':' + String(sec).padStart(2, '0'); })();
     ctx.fillStyle = 'rgba(255,255,255,.94)'; ctx.fillRect(X, Y, W, H);
     ctx.fillStyle = T[0].kit[0]; ctx.fillRect(X, Y, 2, H); ctx.fillStyle = T[1].kit[0]; ctx.fillRect(X + W - 2, Y, 2, H);
-    ctx.fillStyle = '#1b1530'; ctx.fillRect(X + 29, Y, 26, H);
-    this.fcText(ctx, ab(T[0]), X + 15.5, Y + H / 2, '#14102a', 'center', 9, 800); this.fcText(ctx, ab(T[1]), X + W - 15.5, Y + H / 2, '#14102a', 'center', 9, 800);
-    this.fcText(ctx, this.score[0] + ' - ' + this.score[1], X + 42, Y + H / 2, '#ffffff', 'center', 9, 800);
+    ctx.fillStyle = '#1b1530'; ctx.fillRect(X + 2 + wA, Y, SW, H);
+    this.fcText(ctx, nmOf(T[0]), X + 2 + wA / 2, Y + H / 2, '#14102a', 'center', 9, 800); this.fcText(ctx, nmOf(T[1]), X + 2 + wA + SW + wB / 2, Y + H / 2, '#14102a', 'center', 9, 800);
+    this.fcText(ctx, this.score[0] + ' - ' + this.score[1], X + 2 + wA + SW / 2, Y + H / 2, '#ffffff', 'center', 9, 800);
     ctx.fillStyle = 'rgba(10,10,20,.85)'; ctx.fillRect(X, Y + H, 32, 9); this.fcText(ctx, min, X + 16, Y + H + 4.6, '#ffffff', 'center', 7.5, 700);
     if (this.added != null && this.phase === 'play') { ctx.fillStyle = '#1d8f3e'; ctx.fillRect(X + 32, Y + H, 14, 9); this.fcText(ctx, '+' + this.added, X + 39, Y + H + 4.6, '#ffffff', 'center', 7.5, 700); }
     }

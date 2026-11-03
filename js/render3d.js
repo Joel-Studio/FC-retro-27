@@ -167,12 +167,12 @@
     const fanBody = new T.BoxGeometry(0.44, 0.62, 0.28); fanBody.translate(0, 0.31, 0);
     const fanHead = new T.IcosahedronGeometry(0.12, 0); fanHead.translate(0, 0.76, 0);
     const bodyMat = crowdMat(0xffffff), headMat = crowdMat(0xffffff);
-    const SHIRTS = ['#c8102e', '#c8102e', '#ffffff', '#ffffff', '#1d428a', '#1d428a', '#f4c542', '#111318', '#2e7d32', '#6cace4', '#e35205', '#7a263a', '#ececec', '#d4002a'];
+    const SHIRTS = env.fanCols ? [env.fanCols[0], env.fanCols[0], env.fanCols[0], env.fanCols[1], env.fanCols[1], '#ffffff', '#111318', env.fanCols[0]] : ['#c8102e', '#c8102e', '#ffffff', '#ffffff', '#1d428a', '#1d428a', '#f4c542', '#111318', '#2e7d32', '#6cace4', '#e35205', '#7a263a', '#ececec', '#d4002a'];   // v369: your stadium's fans wear your colours when set in the kit editor
     const SKINS = ['#f1c27d', '#e0ac69', '#c68642', '#8d5524', '#ffdbac', '#5c3a1e'];
     const ledTex = (() => { const c = document.createElement('canvas'); c.width = 1024; c.height = 64; const g = c.getContext('2d');
       const gr = g.createLinearGradient(0, 0, 0, 64); gr.addColorStop(0, '#120c02'); gr.addColorStop(1, '#2a1c04'); g.fillStyle = gr; g.fillRect(0, 0, 1024, 64);
       g.font = 'italic 800 40px "Barlow Condensed", Arial, sans-serif'; g.textBaseline = 'middle';
-      ['FCR27', 'DREAM CLUB', 'FCR27', 'ULTIMATE TEAM'].forEach((w, i) => { g.fillStyle = i % 2 ? '#ffffff' : '#f4c542'; g.fillText(w, 30 + i * 256, 34); });
+      (env.stadium && env.stadium.name ? [env.stadium.name.toUpperCase(), (env.clubName || 'DREAM CLUB').toUpperCase(), env.stadium.name.toUpperCase(), 'FCR27'] : ['FCR27', 'DREAM CLUB', 'FCR27', 'ULTIMATE TEAM']).forEach((w, i) => { g.fillStyle = i % 2 ? '#ffffff' : ((env.stadium && env.stadium.led) || '#f4c542'); g.fillText(w.slice(0, 18), 30 + i * 256, 34); });
       const t = canvasTex(c, { aniso: maxAniso }); t.wrapS = T.RepeatWrapping; return t; })();
     const glow = glowTexture(), glows = [];
     function quadsGeo(list) { const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(list, 3)); g.computeVertexNormals(); return g; }
@@ -242,7 +242,7 @@
     env.BOARD_COLS.forEach(() => { });
     const boards = new T.Group(); scene.add(boards);
     // v170: LED boards with words on them instead of plain colour blocks
-    const BOARD_WORDS = ['FCR27', 'DREAM CLUB', 'ULTIMATE', 'FCR27', 'RETRO', 'CHAMPS'];
+    const BOARD_WORDS = env.stadium && env.stadium.name ? [env.stadium.name.toUpperCase().slice(0, 12), (env.clubName || 'CLUB').toUpperCase().slice(0, 12), 'FCR27', env.stadium.name.toUpperCase().slice(0, 12), 'RETRO', (env.clubName || 'CLUB').toUpperCase().slice(0, 12)] : ['FCR27', 'DREAM CLUB', 'ULTIMATE', 'FCR27', 'RETRO', 'CHAMPS'];
     const bMat = env.BOARD_COLS.map((c, i) => { const cv = document.createElement('canvas'); cv.width = 256; cv.height = 42; const g = cv.getContext('2d');
       const gr = g.createLinearGradient(0, 0, 0, 42); gr.addColorStop(0, '#05060c'); gr.addColorStop(1, '#141826'); g.fillStyle = gr; g.fillRect(0, 0, 256, 42);
       g.fillStyle = c; g.fillRect(0, 0, 256, 3); g.fillRect(0, 39, 256, 3);

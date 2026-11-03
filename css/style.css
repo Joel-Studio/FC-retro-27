@@ -1787,3 +1787,19 @@ html, body, button, input, select, textarea { font-size-adjust: none; }   /* v21
 .fsw-bar::before { content: ""; position: absolute; left: -10px; right: -10px; top: 50%; height: 2px; background: linear-gradient(90deg, transparent, #ff6ad5, transparent); z-index: -1; }
 .fsw-chip { background: linear-gradient(180deg, #4a1566, #1a0724); border: 2px solid #ff6ad5; border-radius: 20px; padding: 6px 14px; font: 11px "Press Start 2P", monospace; color: #fff; box-shadow: 0 0 16px rgba(255,106,213,.8); animation: fswin .6s both; }
 .fsw-chip small { display: block; font-size: 7px; color: #ff9ae6; margin-bottom: 4px; letter-spacing: 2px; }
+
+/* v369 kit and stadium editor */
+.kit-row { display: flex; gap: 22px; flex-wrap: wrap; align-items: flex-end; margin: 12px 0; }
+.kit-row h4 { margin: 0 0 6px; font-size: 11px; color: #cfd6ff; text-align: center; }
+.kit-svg { width: 120px; height: 150px; filter: drop-shadow(0 6px 10px rgba(0,0,0,.5)); }
+.kit-std { flex: 1; min-width: 240px; max-width: 420px; }
+.std-crowd { display: grid; grid-template-columns: repeat(30, 1fr); gap: 1px; padding: 4px; background: #0d1026; border-radius: 6px 6px 0 0; height: 40px; overflow: hidden; }
+.std-crowd i { display: block; height: 10px; border-radius: 50%; opacity: .85; }
+.std-led { background: #07090f; font: italic 800 12px "Barlow Condensed", Arial, sans-serif; letter-spacing: 1px; padding: 5px 8px; white-space: nowrap; overflow: hidden; text-shadow: 0 0 6px currentColor; border-top: 2px solid #222; }
+.std-pitch { height: 34px; background: repeating-linear-gradient(90deg, #1f7a34 0 24px, #26883c 24px 48px); border-radius: 0 0 6px 6px; }
+.kit-ctl { display: flex; gap: 26px; flex-wrap: wrap; margin-top: 8px; }
+.kit-ctl h3 { margin: 0 0 8px; font-size: 12px; }
+.kit-c { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 11px; margin: 6px 0; color: #cfd6ff; }
+.kit-c input[type=color] { width: 44px; height: 28px; padding: 0; border: 2px solid #46508a; border-radius: 6px; background: none; cursor: pointer; }
+.kit-pre { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #fff; cursor: pointer; }
+.kit-pre:hover { transform: scale(1.12); }

@@ -190,8 +190,8 @@
   function updateHeader() {
     animateCoins();
     $('#hdr-club').textContent = D().clubName;
-    const names = { home: 'Home', trophies: 'Trophy Room', clubhub: 'Club', playhub: 'Play', leaguehub: 'League', markethub: 'Market', sbchub: 'SBCs', friends: 'Friends', moments: 'Moments', cup: 'Knockout Cup', fsevo: 'Future Star Evolutions', fsprog: 'Future Star Progress', fsgal: 'Future Stars', campaign: 'Campaign', scout: 'Daily Scout', compare: 'Compare Players', battles: 'Squad Battles', penalties: 'Penalty Shootout', club: 'Club', squad: 'Squad & Chemistry', play: 'Kick Off', casual: 'Casual Match', online: 'Online Match', rules: 'Match Rules', playstyles: 'PlayStyles Guide', gametraits: 'Gametraits Guide', market: 'Transfer Market', bdorgal: 'Ballon d\'Or', sbc: 'Squad Building Challenges', 'sbc-build': 'SBC Builder', evo: 'Evolutions', store: 'Store', promoshop: 'Promo Shop', pstats: 'Player Stats', unassigned: 'Unassigned', settings: 'Settings', tactics: 'Tactics', staff: 'Staff & Training', league: 'League', top5: 'Top 5 Leagues', quests: 'Quests' };
-    const parent = { top5: 'League', squad: 'Club', staff: 'Club', evo: 'Club', unassigned: 'Club', rules: 'Play', playstyles: 'Club', gametraits: 'Club', trophies: 'Club', friends: 'Club', moments: 'Play', fsevo: 'Club', fsprog: 'Club', fsgal: 'Market', cup: 'Play', campaign: 'Play', scout: 'Play', compare: 'Play', battles: 'Play', penalties: 'Play', casual: 'Play', online: 'Play', 'sbc-build': 'SBCs', promoshop: 'Market', bdorgal: 'Market', pstats: 'Club' }[App.view];
+    const names = { home: 'Home', trophies: 'Trophy Room', clubhub: 'Club', playhub: 'Play', leaguehub: 'League', markethub: 'Market', sbchub: 'SBCs', friends: 'Friends', moments: 'Moments', cup: 'Knockout Cup', fsevo: 'Future Star Evolutions', kits: 'Kit & Stadium', fsprog: 'Future Star Progress', fsgal: 'Future Stars', campaign: 'Campaign', scout: 'Daily Scout', compare: 'Compare Players', battles: 'Squad Battles', penalties: 'Penalty Shootout', club: 'Club', squad: 'Squad & Chemistry', play: 'Kick Off', casual: 'Casual Match', online: 'Online Match', rules: 'Match Rules', playstyles: 'PlayStyles Guide', gametraits: 'Gametraits Guide', market: 'Transfer Market', bdorgal: 'Ballon d\'Or', sbc: 'Squad Building Challenges', 'sbc-build': 'SBC Builder', evo: 'Evolutions', store: 'Store', promoshop: 'Promo Shop', pstats: 'Player Stats', unassigned: 'Unassigned', settings: 'Settings', tactics: 'Tactics', staff: 'Staff & Training', league: 'League', top5: 'Top 5 Leagues', quests: 'Quests' };
+    const parent = { top5: 'League', squad: 'Club', staff: 'Club', evo: 'Club', unassigned: 'Club', rules: 'Play', playstyles: 'Club', gametraits: 'Club', kits: 'Club', trophies: 'Club', friends: 'Club', moments: 'Play', fsevo: 'Club', kits: 'Club', fsprog: 'Club', fsgal: 'Market', cup: 'Play', campaign: 'Play', scout: 'Play', compare: 'Play', battles: 'Play', penalties: 'Play', casual: 'Play', online: 'Play', 'sbc-build': 'SBCs', promoshop: 'Market', bdorgal: 'Market', pstats: 'Club' }[App.view];
     $('#crumbs').innerHTML = `<a href="#" data-act="nav" data-v="home">Home</a>${parent ? ' › ' + parent : ''} › <b>${esc(names[App.view] || '')}</b>`;
     const mv = hubOf(App.view);
     document.querySelectorAll('#mnav [data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === mv));   // v214: phone tab bar
@@ -225,6 +225,7 @@
     v.classList.remove('enter'); void v.offsetWidth; v.classList.add('enter'); // page transition
     animateCoins(); fitPitches();
     if (App.view === 'market' && App.marketTab === 'search') bindMarketForm();
+    if (App.view === 'kits') bindKits();
     if (App.view === 'club') bindClubFilters();
     if (App.view === 'play') bindPlay();
     if (App.view === 'coach') bindCoach();
@@ -1907,7 +1908,7 @@
   };
   /* v349 (JODIO): Club, Play, League, Market and SBCs each open their own FC 27 style tile page (no dropdown menus under the buttons). */
   const HUBS = {
-    clubhub: ['Club', [['evo', 'Evolutions', 'Upgrade your cards', 'evo'], ['fsevo', 'Future Star Evolutions', 'Grow young stars to their potential', 'quest'], ['fsprog', 'Future Star Progress', 'See every step and task', 'quest'], ['fsgal', 'Future Stars', 'See all 30 cards', 'evo'], ['squad', 'Squad', 'XI, subs and chemistry', 'squad'], ['tactics', 'Tactics', 'Style and set pieces', 'squad'], ['staff', 'Staff & Training', 'Coaches and sessions', 'club'],
+    clubhub: ['Club', [['evo', 'Evolutions', 'Upgrade your cards', 'evo'], ['fsevo', 'Future Star Evolutions', 'Grow young stars to their potential', 'quest'], ['fsprog', 'Future Star Progress', 'See every step and task', 'quest'], ['fsgal', 'Future Stars', 'See all 30 cards', 'evo'], ['kits', 'Kit & Stadium', 'Design your kit and arena', 'squad'], ['squad', 'Squad', 'XI, subs and chemistry', 'squad'], ['tactics', 'Tactics', 'Style and set pieces', 'squad'], ['staff', 'Staff & Training', 'Coaches and sessions', 'club'],
       ['club', 'My Club', 'All your players', 'club'], ['pstats', 'Player Stats', 'Goals, ratings, form', 'quest'], ['unassigned', 'Unassigned', 'Items to place', 'store', 'un'], ['trophies', 'Trophy Room', 'Level, streak, achievements', 'sbc', 'tr'],
       ['friends', 'Friends', 'Head to head', 'market'], ['playstyles', 'PlayStyles Guide', 'What each one does', 'play'], ['gametraits', 'Gametraits Guide', 'What each one does', 'quest']]],
     playhub: ['Play', [['play', 'Kick Off', 'Play a match', 'play'], ['casual', 'Casual Match', 'Pick any two teams', 'squad'], ['online', 'Online Match', 'Quick match or invite', 'market'], ['rivals', 'Rivals & Champions', 'Divisions and finals', 'sbc'],
@@ -1917,7 +1918,7 @@
     markethub: ['Market', [['market', 'Search', 'Find players', 'market', '', { mt: 'search' }], ['market', 'Transfer List', 'Your listings', 'sbc', '', { mt: 'tl' }], ['market', 'Watchlist', 'Players you follow', 'quest', '', { mt: 'wl' }], ['promoshop', 'Promo Shop', 'Promo players', 'store'], ['fsgal', 'Future Stars', 'See all 30 cards', 'evo'], ['bdorgal', 'Ballon d\'Or', 'The 2026 nominees', 'club']]],
     sbchub: ['SBCs', [['sbc', 'Challenges', 'Build squads for rewards', 'sbc'], ['store', 'Store', 'Open packs', 'store'], ['promoshop', 'Promo Shop', 'Promo players', 'market']]],
   };
-  const HUB_OF = { clubhub: 'club squad tactics staff pstats evo fsevo fsprog playstyles gametraits unassigned trophies friends', playhub: 'play casual online rivals moments cup campaign scout compare battles penalties rules', leaguehub: 'league top5', markethub: 'market promoshop bdorgal fsgal', sbchub: 'sbc sbc-build' };
+  const HUB_OF = { clubhub: 'club squad tactics staff pstats evo fsevo fsprog kits playstyles gametraits unassigned trophies friends', playhub: 'play casual online rivals moments cup campaign scout compare battles penalties rules', leaguehub: 'league top5', markethub: 'market promoshop bdorgal fsgal', sbchub: 'sbc sbc-build' };
   const hubOf = v => Object.keys(HUB_OF).find(k => HUB_OF[k].split(' ').includes(v)) || v;
   const hubPage = key => {
     const M = RUT.Menu2, st = D(), badge = { un: st.unassigned.length, tr: RUT.Progress ? RUT.Progress.ready() : 0, sc: RUT.Scout && !RUT.Scout.state().taken ? 1 : 0 }, H = HUBS[key], items = H[1];
@@ -2236,7 +2237,9 @@
     const hu = humans.length > 0 && !o.online && !o.training && !o.duel, sm = t => (hu && t && !(t.smart >= 1.5) ? Object.assign({}, t, { smart: 1.5 }) : t);
     const own = !o.online && !o.training && !o.duel && !o.rush && o.home && o.home.name === D().clubName;
     const recOn = !!(RUT.Rec && hu && humans.length === 1 && !o.online && !o.training && !o.duel && !o.rush);       // v108: your local matches are recorded (set-up + your inputs), so highlights can be replayed exactly
+    if (own) { try { applyClubKit(o); } catch (e) { /* the club keeps its normal kit */ } }
     const mcfg = {
+      stadium: o.stadium || null,
       balance: (hu && humans.length === 1 && !o.online) ? (lv => [humans[0] === 0 ? 0 : lv, humans[0] === 1 ? 0 : lv])(Engine.AIBal ? Engine.AIBal.level(D().aiBal) : (RUT.AIBal ? RUT.AIBal.level(D().aiBal) : 0)) : undefined,   // v306 (JODIO): AI balancer
       home: sm(o.home), away: sm(o.away), tacGain: own ? [CLUB_GAIN, 0] : undefined, coach: own ? [coachK(), null] : undefined, train: own ? [trainBoost(), null] : undefined, autoCoach: false ? [humans[0] === 0, humans[0] === 1] : undefined, plays: (own && !humans.length && !o.online && !o.training && !o.duel && (D().plays || []).some(pl => pl.on)) ? [playsCfg(), null] : undefined, humans, halfSeconds: o.halfSeconds || App.halfSeconds, setPieces: (!o.online && !o.training && !o.duel && humans.length === 1 && humans[0] === 0) ? [spCfg(), null] : undefined, knockout: o.knockout, extraTime: !!o.extraTime, camera: App.camMode || 'tv', seed: o.seed,
       penAsk: (humans.length === 1 && !o.online && !o.training) ? (mm, cb) => askPens(mm, wrap, humans[0], cb) : undefined,
@@ -3141,6 +3144,49 @@
       <p><button class="btn y" data-act="nav" data-v="store">Open the Store</button> <button class="btn" data-act="nav" data-v="fsevo">Future Star Evolutions</button></p>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px">${list.map(c => `<div style="text-align:center">${cardHTML(c, { mini: true, attrs: `data-act="price" data-card="${c.id}"` })}<div style="font-size:10px;line-height:1.7;margin-top:4px"><b>${esc(c.name)}</b><br><span class="dim">${c.position} &middot; ${esc(c.club)}</span><br><span class="gold">${c.rating} &rarr; ${c.pot} potential</span>${own[c.baseId] ? '<br><span class="good">You own ' + own[c.baseId] + '</span>' : ''}</div></div>`).join('')}</div>`;
   };
+
+  /* v369 (JODIO: "a place where players can modify their kits and their stadium, like FC27"): Club > Kit & Stadium */
+  const KIT_PRESETS = [['#c8102e', '#ffffff'], ['#1d428a', '#ffffff'], ['#ffffff', '#111111'], ['#111111', '#f4c542'], ['#00a651', '#ffffff'], ['#6a1f80', '#ffffff'], ['#f58220', '#111111'], ['#6cace4', '#ffffff'], ['#a50044', '#004d98'], ['#ffe667', '#005187'], ['#1b1b3a', '#ff6ad5'], ['#0a8a6a', '#f4e04a']];
+  const clubOfCards = cs => { const n = {}; (cs || []).forEach(c => { if (c) n[c.club] = (n[c.club] || 0) + 1; }); return Object.keys(n).sort((a, b) => n[b] - n[a])[0] || ''; };
+  function kitsOf() {
+    const d = D(); if (!d.kits) { const auto = DB.kitFor(clubOfCards(State.squadCards())); d.kits = { custom: false, home: auto.slice(), away: ['#ffffff', '#111111'], stadium: { name: '', led: '#f4c542', fans: 'mixed' } }; }
+    return d.kits;
+  }
+  const hexRGB = h => { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); const n = m ? parseInt(m[1], 16) : 0x888888; return [n >> 16, (n >> 8) & 255, n & 255]; };
+  const hexDist = (a, b) => { const x = hexRGB(a), y = hexRGB(b); return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]); };
+  /** Your own matches: your kit, your stadium; the away kit is worn when the opponent's colours clash with your home kit. */
+  function applyClubKit(o) {
+    const K = kitsOf(); o.stadium = K.stadium && (K.stadium.name || K.stadium.fans === 'home' || K.stadium.led !== '#f4c542') ? Object.assign({}, K.stadium) : null;
+    if (!K.custom) return;
+    const opp = o.away && (o.away.kit || DB.kitFor(clubOfCards(o.away.cards)));
+    o.home.kit = (opp && hexDist(K.home[0], opp[0]) < 110) ? K.away.slice() : K.home.slice();
+  }
+  function shirtSVG(k, num) {
+    const a = k[0], b = k[1];
+    return `<svg viewBox="0 0 120 150" class="kit-svg"><path d="M34 10 L52 4 Q60 14 68 4 L86 10 L112 36 L98 56 L86 46 L86 108 L34 108 L34 46 L22 56 L8 36 Z" fill="${a}" stroke="rgba(0,0,0,.45)" stroke-width="2"/><path d="M52 4 Q60 16 68 4" fill="none" stroke="${b}" stroke-width="4"/><path d="M8 36 L22 56 L34 46 L30 24 Z M112 36 L98 56 L86 46 L90 24 Z" fill="${b}" opacity=".9"/><text x="60" y="68" text-anchor="middle" font-family="Barlow Condensed,Arial" font-weight="800" font-size="30" fill="${b}">${num}</text><rect x="38" y="108" width="44" height="22" rx="3" fill="${b}" stroke="rgba(0,0,0,.4)" stroke-width="1.5"/><rect x="40" y="130" width="14" height="16" fill="${a}"/><rect x="66" y="130" width="14" height="16" fill="${a}"/></svg>`;
+  }
+  function kitsPreview() {
+    const K = kitsOf(), S = K.stadium, nm = (S.name || (D().clubName + ' Arena')).toUpperCase(), fan = S.fans === 'home' ? [K.home[0], K.home[1], '#ffffff'] : ['#c8102e', '#1d428a', '#f4c542', '#ffffff', '#2e7d32', '#6cace4'];
+    const crowd = Array.from({ length: 90 }, (_, i) => `<i style="background:${fan[(i * 7 + (i >> 3)) % fan.length]}"></i>`).join('');
+    return `<div class="kit-row"><div><h4>Home</h4>${shirtSVG(K.home, 10)}</div><div><h4>Away</h4>${shirtSVG(K.away, 10)}</div>
+      <div class="kit-std"><h4>Stadium</h4><div class="std-crowd">${crowd}</div><div class="std-led" style="color:${S.led}">${esc(nm.slice(0, 22))} &nbsp; ${esc(D().clubName.toUpperCase().slice(0, 14))} &nbsp; ${esc(nm.slice(0, 22))}</div><div class="std-pitch"></div></div></div>`;
+  }
+  VIEWS.kits = function () {
+    const K = kitsOf(), S = K.stadium, ci = (id, v, lab) => `<label class="kit-c">${lab}<input type="color" id="${id}" value="${v}"></label>`;
+    return `<h2>Kit &amp; Stadium</h2><div class="px"><p class="dim" style="font-size:11px">Design your home and away kit and your stadium. Your kit is used in every match you play; the away kit comes out when the other team's colours are too close to yours. Your stadium name shows on the LED boards and the pre-match intro, and the fans can wear your colours.</p>
+      <div id="kit-prev">${kitsPreview()}</div>
+      <div class="kit-ctl"><div><h3>Home kit</h3>${ci('kit-h0', K.home[0], 'Shirt')}${ci('kit-h1', K.home[1], 'Trim and shorts')}</div><div><h3>Away kit</h3>${ci('kit-a0', K.away[0], 'Shirt')}${ci('kit-a1', K.away[1], 'Trim and shorts')}</div>
+      <div><h3>Stadium</h3><label class="kit-c">Name<input type="text" id="kit-sn" maxlength="18" placeholder="${esc(D().clubName)} Arena" value="${esc(S.name)}" style="width:160px"></label>${ci('kit-sl', S.led, 'LED colour')}<label class="kit-c">Fans<select id="kit-sf"><option value="mixed" ${S.fans !== 'home' ? 'selected' : ''}>Mixed colours</option><option value="home" ${S.fans === 'home' ? 'selected' : ''}>My club colours</option></select></label></div></div>
+      <h3 class="mt">Presets</h3><div class="row" style="gap:8px;flex-wrap:wrap">${KIT_PRESETS.map((p, i) => `<button class="kit-pre" data-act="kit-preset" data-i="${i}" style="background:linear-gradient(135deg,${p[0]} 0 55%,${p[1]} 55%)" title="Use as home kit"></button>`).join('')}</div>
+      <div class="row mt"><button class="btn" data-act="kit-reset">Back to club default</button></div></div>`;
+  };
+  function bindKits() {
+    const K = kitsOf(), upd = () => { K.custom = true; State.save(); const p = $('#kit-prev'); if (p) p.innerHTML = kitsPreview(); };
+    [['#kit-h0', () => K.home, 0], ['#kit-h1', () => K.home, 1], ['#kit-a0', () => K.away, 0], ['#kit-a1', () => K.away, 1]].forEach(([id, arr, i]) => { const e = $(id); if (e) e.addEventListener('input', () => { arr()[i] = e.value; upd(); }); });
+    const sl = $('#kit-sl'); if (sl) sl.addEventListener('input', () => { K.stadium.led = sl.value; upd(); });
+    const sn = $('#kit-sn'); if (sn) sn.addEventListener('input', () => { K.stadium.name = sn.value.replace(/[^\w .'&-]/g, '').slice(0, 18); upd(); });
+    const sf = $('#kit-sf'); if (sf) sf.addEventListener('change', () => { K.stadium.fans = sf.value; upd(); });
+  }
   VIEWS.fsevo = function () {   // v351: the 30 Future Star evolutions
     const st = D(), mine = st.club.concat(st.unassigned).map(id => State.card(id)).filter(c => c && c.promo === 'fstar');
     const groups = [['st', 'Striker'], ['wg', 'Winger'], ['am', 'Playmaker'], ['cm', 'Midfielder'], ['fb', 'Full-back'], ['cb', 'Defender']];
@@ -3747,6 +3793,8 @@ const NATION_FULL = {ARG: 'Argentina',AUT: 'Austria',BEL: 'Belgium',BFA: 'Burkin
     'pen-shoot': () => { const P = App.pen; if (!P || P.phase !== 'power') return; clearInterval(P.tm); const ks = Math.random() < 0.3 ? 1 : Math.random() < 0.5 ? 0 : 2, r = RUT.Pen.kick(P.aim, P.pow || 0, ks, Math.random()); P.my.push(r === 'goal' ? 'goal' : 'x'); penAdvance(r, r === 'goal' ? 'GOAL!' : r === 'miss' ? 'Over the bar!' : 'Saved!', r === 'goal'); },
     'pen-dive': el => { const P = App.pen; if (!P || P.phase !== 'dive') return; const ss = Math.random() < 0.25 ? 1 : Math.random() < 0.5 ? 0 : 2, r = RUT.Pen.defend(+el.dataset.s, ss, Math.random()); P.ai.push(r === 'goal' ? 'goal' : 'x'); penAdvance(r, r === 'goal' ? 'They score.' : 'SAVED!', r !== 'goal'); },
     'pen-next': () => { const P = App.pen; if (!P) return; if (P.last) { penFinish(); return; } const mg = P.my.length, ag = P.ai.length; if (mg === ag) { P.phase = 'aim'; render(); } else { P.phase = 'dive'; render(); } },
+    'kit-preset': el => { const K = kitsOf(), p = KIT_PRESETS[+el.dataset.i]; K.home = p.slice(); K.custom = true; State.save(); render(); },
+    'kit-reset': () => { delete D().kits; State.save(); toast('Kit and stadium reset', 'good'); render(); },
     'hub-go': el => { if (el.dataset.train) { startTraining(); return; } if (el.dataset.mt) App.marketTab = el.dataset.mt; if (el.dataset.v === 'top5') App.t5tab = el.dataset.t5 || 'lg'; setView(el.dataset.v); },
     'camp-play': () => { const C = RUT.Camp; if (C.done()) return; const t = C.tier(), n = C.state().i + 1; aiChallenge('Campaign: match ' + n, t, 90, { after: x => { const o = C.result(x); if (!o) return ''; updateHeader(); return `<p class="gold">Campaign: +${o.p} points (${C.state().pts})</p>` + (o.pay ? `<p class="gold">Campaign finished! +${fmt(o.pay.coins)} coins${o.pay.pack ? ' and a ' + o.pay.pack + ' pack' : ''}</p>` : o.over ? '<p class="dim">Campaign finished, no prize this time. Start a new one.</p>' : ''); } }); },
     'camp-restart': () => { RUT.Camp.restart(); render(); },
