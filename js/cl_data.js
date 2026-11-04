@@ -674,5 +674,53 @@ window.RUT_CL_DATA = [
     0
    ]
   ]
+ },
+ {
+  "md": 4,
+  "date": "3 Nov 2026",
+  "r": {},
+  "res": {
+   "Man Utd": "W",
+   "Roma": "L",
+   "Villarreal": "L",
+   "PSG": "W",
+   "Barcelona": "W",
+   "Aston Villa": "L",
+   "Atlético Madrid": "L",
+   "Bayern": "W",
+   "Stuttgart": "L"
+  },
+  "m": [
+   [
+    "Man Utd",
+    "Roma",
+    3,
+    2
+   ],
+   [
+    "Villarreal",
+    "PSG",
+    0,
+    6
+   ],
+   [
+    "Barcelona",
+    "Aston Villa",
+    3,
+    0
+   ],
+   [
+    "Atletico Madrid",
+    "Bayern",
+    0,
+    2
+   ],
+   [
+    "Galatasaray",
+    "Stuttgart",
+    2,
+    0
+   ]
+  ]
  }
 ];
