@@ -688,7 +688,10 @@ window.RUT_CL_DATA = [
    "Aston Villa": "L",
    "Atlético Madrid": "L",
    "Bayern": "W",
-   "Stuttgart": "L"
+   "Stuttgart": "L",
+   "Feyenoord": "L",
+   "Inter": "W",
+   "Lille": "D"
   },
   "m": [
    [
@@ -719,6 +722,30 @@ window.RUT_CL_DATA = [
     "Galatasaray",
     "Stuttgart",
     2,
+    0
+   ],
+   [
+    "Feyenoord",
+    "Inter",
+    0,
+    3
+   ],
+   [
+    "Shakhtar",
+    "Sporting",
+    0,
+    1
+   ],
+   [
+    "Bodo/Glimt",
+    "Lille",
+    0,
+    0
+   ],
+   [
+    "LASK",
+    "Slovan Bratislava",
+    4,
     0
    ]
   ]
