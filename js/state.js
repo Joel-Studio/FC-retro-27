@@ -169,7 +169,12 @@ window.RUT = window.RUT || {};
     item(id) { return this.data.items[id]; },
 
     /** Resolve an item to its effective card (base card + any Evolution boosts). */
-    card(itemOrId) { const c = this.cardRaw(itemOrId); return c && RUT.CL ? RUT.CL.apply(c) : c; },   // v96: Champions League form on top
+    card(itemOrId) {
+      const raw = this.cardRaw(itemOrId);
+      const card = raw && RUT.CL ? RUT.CL.apply(raw) : raw;
+      if (!card || (card.name !== 'Raphinha' && !/^Kylian Mbapp[eé]$/.test(card.name))) return card;
+      return RUT.DB.mbappeFix(RUT.DB.raphinhaFix(Object.assign({}, card, { face: Object.assign({}, card.face), sub: Object.assign({}, card.sub) })));
+    },   // v96: Champions League form on top
     cardRaw(itemOrId) {
       const it = typeof itemOrId === 'string' ? this.data.items[itemOrId] : itemOrId;
       if (!it) return null;

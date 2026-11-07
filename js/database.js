@@ -1326,15 +1326,31 @@ window.RUT = window.RUT || {};
     const want = { pac: c.rating, sho: c.rating - 2, pas: Math.min(99, c.rating + 2) };
     Object.keys(want).forEach(g => { const d = want[g] - c.face[g]; if (!d) return; c.face[g] = want[g]; (SUB_MAP[g] || []).forEach(k => { if (c.sub[k] != null) c.sub[k] = clamp(c.sub[k] + d, 1, 99); }); });
   }
+  function mbappeFix(card) {
+    if (!card || !/^Kylian Mbapp[eé]$/.test(card.name)) return card;
+    const pace = Math.min(99, card.rating + 7);
+    card.face.pac = pace;
+    SUB_MAP.pac.forEach(stat => { card.sub[stat] = pace; });
+    return card;
+  }
+  function raphinhaFix(card) {
+    if (!card || card.name !== 'Raphinha') return card;
+    const shooting = Math.min(99, card.rating + 3);
+    card.face.sho = shooting;
+    SUB_MAP.sho.forEach(stat => { card.sub[stat] = shooting; });
+    return card;
+  }
   function registerPromo(baseId, promo, boost, newId) {
     const card = registerPromoRaw(baseId, promo, boost, newId);
     if (card) capFace(card);
+    raphinhaFix(card);
+    mbappeFix(card);
     if (card && /Olise/.test(card.name)) oliseFix(card);
     if (card && !card.v157) { card.v157 = true; card.value = roundToIncrement(card.value * 1.3); }
     return card;
   }
   RUT.DB = {
-    faceCap, capFace, psGate, evoPs, buildCard, synthCard,
+    mbappeFix, raphinhaFix, faceCap, capFace, psGate, evoPs, buildCard, synthCard,
     PS_GUIDE, LEAGUES, CLUBS, FLAGS, DEFAULT_FLAG, PLAYSTYLES, ALT_POS, CHEM_STYLES, SIGNATURES, applyChemStyle,
     signatureFor: c => (c ? SIGNATURES[c.name] || null : null),
     players,          // headline players (original 150 + JODIO's 150)
@@ -1363,4 +1379,6 @@ window.RUT = window.RUT || {};
   Object.assign(RUT.DB, { FSTAR_IDS, FSTAR_POS });
   BDOR_IDS.forEach((id, i) => registerPromo(id, 'bdor', i + 1));
   AWARD_IDS.forEach((id, i) => { if (id) registerPromo(id, 'award', i + 1); });
+  all.forEach(raphinhaFix);
+  all.forEach(mbappeFix);
 })();
