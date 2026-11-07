@@ -176,6 +176,10 @@
   const physCfg = () => ({ surface: SET.surface, ballModel: SET.ballModel, assist: SET.assist });
 
   function setView(v) { App.view = v; render(); window.scrollTo(0, 0); }
+  matchMedia('(max-width: 800px), (max-height: 500px) and (pointer: coarse)').addEventListener('change', () => {
+    if (State.data && !App.match && !document.querySelector('#modal-root .modal')) render();
+  });
+
 
   let shownCoins = null;
   function animateCoins() {
@@ -285,7 +289,7 @@
     const rating = SBC.squadRating(cards.map(c => (c ? c.rating : 0))), chem = SBC.chemistry(cards).total;
     const packs = Object.entries(st.packsOwned).filter(([, n]) => n > 0);
     const s = st.stats;
-    if (matchMedia('(max-width: 800px)').matches) {
+    if (matchMedia('(max-width: 800px), (max-height: 500px) and (pointer: coarse)').matches) {
       const futureStars = (DB.FSTAR_IDS || []).map(id => DB.all.find(card => card.promo === 'fstar' && card.baseId === id)).filter(Boolean).sort((a, b) => b.rating - a.rating).slice(0, 10);
       const showcase = futureStars.map(card => cardHTML(card, { mini: true, attrs: `data-act="price" data-card="${card.id}"` })).join('');
       const link = (view, title, subtitle) => `<button data-act="nav" data-v="${view}"><b>${title}</b><small>${subtitle}</small><span aria-hidden="true">↗</span></button>`;
@@ -1941,7 +1945,7 @@
   const hubPage = key => {
     const M = RUT.Menu2, st = D(), badge = { un: st.unassigned.length, tr: RUT.Progress ? RUT.Progress.ready() : 0, sc: RUT.Scout && !RUT.Scout.state().taken ? 1 : 0 }, H = HUBS[key], items = H[1];
     const tile = t => { const ex = t[5] || {}, bd = t[4] ? badge[t[4]] : 0; return `<button class="m2-tile" data-act="hub-go" data-v="${t[0]}"${ex.mt ? ` data-mt="${ex.mt}"` : ''}${ex.t5 ? ` data-t5="${ex.t5}"` : ''}${ex.train ? ' data-train="1"' : ''}><b>${esc(t[1])}</b><small>${esc(t[2])}</small>${M && M.art ? M.art(t[3]) : ''}${bd ? `<span class="m2-bdg">${bd}</span>` : ''}</button>`; };
-    if (matchMedia('(max-width: 800px)').matches) {
+    if (matchMedia('(max-width: 800px), (max-height: 500px) and (pointer: coarse)').matches) {
       const [featured, groups] = MOBILE_HUBS[key];
       const active = Math.min(App.mobileHubTabs?.[key] || 0, groups.length - 1);
       const sections = groups.map(([title, indices], index) =>
@@ -3873,6 +3877,10 @@ const NATION_FULL = {ARG: 'Argentina',AUT: 'Austria',BEL: 'Belgium',BFA: 'Burkin
       render();
       document.getElementById(el.id)?.focus();
     },
+    'release-dismiss': () => {
+      try { localStorage.setItem('rut_release_seen_' + window.RUT_VERSION, '1'); } catch (e) { /* storage unavailable */ }
+      closeModal();
+    },
     'hub-go': el => { if (el.dataset.train) { startTraining(); return; } if (el.dataset.mt) App.marketTab = el.dataset.mt; if (el.dataset.v === 'top5') App.t5tab = el.dataset.t5 || 'lg'; setView(el.dataset.v); },
     'camp-play': () => { const C = RUT.Camp; if (C.done()) return; const t = C.tier(), n = C.state().i + 1; aiChallenge('Campaign: match ' + n, t, 90, { after: x => { const o = C.result(x); if (!o) return ''; updateHeader(); return `<p class="gold">Campaign: +${o.p} points (${C.state().pts})</p>` + (o.pay ? `<p class="gold">Campaign finished! +${fmt(o.pay.coins)} coins${o.pay.pack ? ' and a ' + o.pay.pack + ' pack' : ''}</p>` : o.over ? '<p class="dim">Campaign finished, no prize this time. Start a new one.</p>' : ''); } }); },
     'camp-restart': () => { RUT.Camp.restart(); render(); },
@@ -4141,6 +4149,19 @@ const NATION_FULL = {ARG: 'Argentina',AUT: 'Austria',BEL: 'Belgium',BFA: 'Burkin
       }
     } catch (e) { console.warn('gift failed', e); }
     if (RUT.Quests) RUT.Quests.notify = msg => toast(msg, 'good');
+    const releaseKey = 'rut_release_seen_' + window.RUT_VERSION;
+    let releaseSeen = false;
+    try { releaseSeen = localStorage.getItem(releaseKey) === '1'; } catch (e) { /* show once this session */ }
+    if (!releaseSeen) {
+      const releaseTimer = setInterval(() => {
+        if (App.match || document.querySelector('#modal-root .modal') || document.getElementById('fcr-intro')) return;
+        clearInterval(releaseTimer);
+        modal(`<h1>What's new</h1><p class="gold">FC RETRO 27 · Version ${window.RUT_VERSION}</p>
+          <ul style="line-height:1.7"><li>Home now features Future Stars cards with quick Play and Club actions.</li><li>Mobile menus have larger tiles and grouped section tabs.</li><li>Bottom navigation: Home, Play, Club, League and Store.</li><li>Landscape layout puts cards and controls side by side.</li></ul>
+          <button class="btn y" data-act="release-dismiss">Let's play</button>`);
+      }, 1000);
+    }
+
     State.save();
     render();
     setInterval(marketTick, Market.TICK_MS);

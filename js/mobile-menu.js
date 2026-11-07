@@ -30,6 +30,6 @@
   // Fullscreen requires a deliberate gesture. Try once on the first mobile navigation tap.
   let attempted = false;
   document.getElementById('mnav').addEventListener('click', e => {
-    if (!attempted && e.target.closest('[data-act="nav"]') && matchMedia('(max-width: 800px)').matches) { attempted = true; fullscreen(); }
+    if (!attempted && e.target.closest('[data-act="nav"]') && matchMedia('(max-width: 800px), (max-height: 500px) and (pointer: coarse)').matches) { attempted = true; fullscreen(); }
   });
 })();
