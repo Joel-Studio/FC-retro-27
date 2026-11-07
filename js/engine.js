@@ -3695,6 +3695,11 @@ window.RUT = window.RUT || {};
     const reach = (this.ctls[gk.team] ? 0.5 : 0) + (this.tac[b.shot.team].gb > 1 && !this.ctlOf(b.shot.by) ? 1.3 : 0) - 0.4 * weak + (gk.tr.has('stk') ? 0.25 : 0) + 1.5 + 1.5 * nrm(s.gkDiving) + 0.55 * (gk.pf['Far Reach'] || 0) + (diving ? (1.0 + 0.8 * nrm(s.gkDiving)) * 1.3 : 0) + (b.shot && b.shot.fk ? 1.8 : 0) + (diving && b.z > 1.6 ? 0.6 : 0) + (clamp(((s.gkDiving || 0) + (s.gkReflexes || 0) + (s.gkPositioning || 0) + (s.gkHandling || 0)) / 4 - 89, 0, 10) / 10) * (0.8 + (diving ? 0.5 : 0));   // v251: a 90+ keeper reaches further and higher. v220 (JODIO): a high dive stretches further up into the top corners. v207: a free kick, set on his line: a fuller stretch. a full-stretch dive adds a body length
     const sh0 = b.shot.by.card, shoK = Math.max(sh0.face && sh0.face.sho || 0, sh0.sub.finishing || 0), k70 = gk.card.rating >= 92 && shoK >= gk.card.rating + 2;   // v286 (JODIO): a 92+ keeper against a shooter 2+ above him saves 70% and concedes 30%, vs anyone, under any rule
     if (dist(gk, b) > Math.max(1.0, reach * SAVE_CONTACT) + (k70 ? 3 : 0) || b.z > GOAL_H + 0.4 + (k70 ? 0.9 : 0.5 * clamp(((s.gkDiving || 0) + (s.gkReflexes || 0)) / 2 - 89, 0, 10) / 10)) return;
+    const reactionReady = !gk.dive || gk.dive.t >= gk.dive.react;
+    const contactReach = (diving ? 1.55 : 0.9) + 0.35 * nrm(s.gkDiving);
+    const contactHeight = diving ? 2.6 : 2.05;
+    if (!reactionReady || dist(gk, b) > contactReach || b.z > contactHeight) return;
+    this.contactEvent(gk, 'save', b.x - gk.x, b.y - gk.y);
     b.shot.saveChecked = true;
     const sp = len(b.vx, b.vy);
     const shooterDist = dist(b.shot.by, gk);

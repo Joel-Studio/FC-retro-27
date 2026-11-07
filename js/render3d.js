@@ -322,11 +322,25 @@
     const ballQ = new T.Quaternion(), tmpV = new T.Vector3(), tmpQ = new T.Quaternion(), tmpAxis = new T.Vector3();
 
     /* ---- footballers ---- */
+    // Keep the original dimensions while rounding the hard primitive edges.
+    function roundedBody(width, height, depth, radius) {
+      const geometry = new T.BoxGeometry(width, height, depth, 4, 6, 4);
+      const position = geometry.attributes.position, normal = geometry.attributes.normal;
+      const half = [width / 2 - radius, height / 2 - radius, depth / 2 - radius];
+      for (let index = 0; index < position.count; index++) {
+        const point = [position.getX(index), position.getY(index), position.getZ(index)];
+        const centre = point.map((value, axis) => clamp(value, -half[axis], half[axis]));
+        const direction = new T.Vector3(point[0] - centre[0], point[1] - centre[1], point[2] - centre[2]).normalize();
+        position.setXYZ(index, centre[0] + direction.x * radius, centre[1] + direction.y * radius, centre[2] + direction.z * radius);
+        normal.setXYZ(index, direction.x, direction.y, direction.z);
+      }
+      return geometry;
+    }
     const geo = {
-      thigh: new T.BoxGeometry(0.2, 0.43, 0.2), shin: new T.BoxGeometry(0.19, 0.42, 0.19), boot: new T.BoxGeometry(0.2, 0.1, 0.29),
-      upArm: new T.BoxGeometry(0.19, 0.32, 0.19), foArm: new T.BoxGeometry(0.18, 0.31, 0.18), hand: new T.BoxGeometry(0.18, 0.1, 0.18),
-      chest: new T.BoxGeometry(0.43, 0.62, 0.22), shorts: new T.BoxGeometry(0.43, 0.26, 0.23), neck: new T.BoxGeometry(0.08, 0.1, 0.08),
-      head: new T.BoxGeometry(0.23, 0.23, 0.23), hair: new T.BoxGeometry(0.245, 0.1, 0.245), numPlane: new T.PlaneGeometry(0.23, 0.23), curl: new T.SphereGeometry(0.05, 7, 5), tail: new T.CapsuleGeometry(0.035, 0.2, 2, 6), bun: new T.SphereGeometry(0.055, 8, 6), dread: new T.CapsuleGeometry(0.018, 0.2, 2, 5),
+      thigh: roundedBody(0.2, 0.43, 0.2, 0.045), shin: roundedBody(0.19, 0.42, 0.19, 0.04), boot: roundedBody(0.2, 0.1, 0.29, 0.035),
+      upArm: roundedBody(0.19, 0.32, 0.19, 0.05), foArm: roundedBody(0.18, 0.31, 0.18, 0.045), hand: roundedBody(0.18, 0.1, 0.18, 0.04),
+      chest: roundedBody(0.43, 0.62, 0.22, 0.055), shorts: roundedBody(0.43, 0.26, 0.23, 0.04), neck: new T.BoxGeometry(0.08, 0.1, 0.08),
+      head: roundedBody(0.23, 0.23, 0.23, 0.075), hair: roundedBody(0.245, 0.1, 0.245, 0.035), numPlane: new T.PlaneGeometry(0.23, 0.23), curl: new T.SphereGeometry(0.05, 7, 5), tail: new T.CapsuleGeometry(0.035, 0.2, 2, 6), bun: new T.SphereGeometry(0.055, 8, 6), dread: new T.CapsuleGeometry(0.018, 0.2, 2, 5),
     };
     const matCache = {};
     const std = (col, rough) => { const k = col + '|' + rough; return matCache[k] || (matCache[k] = new T.MeshStandardMaterial({ color: new T.Color(col), roughness: rough == null ? 0.8 : rough, metalness: 0.02 })); };

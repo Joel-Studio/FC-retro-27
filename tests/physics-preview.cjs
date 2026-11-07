@@ -61,3 +61,31 @@ session.room = { emit: async () => {}, leave() {} };
 session.onCtl({ data: { k: 'hello', v: 1 }, peer: 'old-peer' });
 assert.equal(session.closed, true);
 console.log('PASS coincident collisions, fixed-step dribbling, kick contacts, finite CPU simulation, deterministic replay, online version rejection.');
+// A sprint needs more stopping distance than a jog; stationary facing remains stable.
+function stopDistance(initialSpeed, dt) {
+  const m = match(), p = m.players.find(p => !p.isGK);
+  m.players = [p]; m.ball.owner = null;
+  p.x = 50; p.y = 40; p.fx = 1; p.fy = 0; p.vx = initialSpeed; p.vy = 0;
+  p.tx = p.ty = p.sx = p.sy = 0;
+  const origin = p.x;
+  for (let step = 0; step < 4 / dt; step++) { m.integratePlayers(dt); finite(m); }
+  assert(Math.hypot(p.vx, p.vy) < 0.01);
+  assert(p.fx > 0.99);
+  return p.x - origin;
+}
+for (const dt of [1 / 30, 1 / 60, 1 / 120]) assert(stopDistance(8,dt) > stopDistance(4,dt));
+// The keeper cannot save a shot several metres away or before his dive reaction time.
+const saveMatch = match();
+const keeper = saveMatch.players.find(p => p.isGK && p.team === 1);
+const shooter = saveMatch.players.find(p => p.team === 0 && !p.isGK);
+keeper.x = 90; keeper.y = 40;
+saveMatch.ball.owner = null;
+Object.assign(saveMatch.ball, { x: 94, y: 40, z: 0.3, vx: 20, vy: 0, vz: 0,
+  shot: { team: 0, by: shooter, saveChecked: false } });
+saveMatch.checkSave();
+assert.equal(saveMatch.ball.shot.saveChecked,false);
+keeper.dive = { t: 0.02, react: 0.2, y: 40 };
+saveMatch.ball.x = 90.5;
+saveMatch.checkSave();
+assert.equal(saveMatch.ball.shot.saveChecked,false);
+console.log('PASS braking distance across step sizes, stationary facing, unreachable keeper contact, and reaction timing.');
