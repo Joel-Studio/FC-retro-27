@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>FC RETRO 27</title>
   <!-- Optional pixel font. Without internet the game falls back to monospace and still runs. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="css/themes.css">
   <link rel="stylesheet" href="css/menu2.css">
   <link rel="stylesheet" href="css/menufx.css">
+  <link rel="stylesheet" href="css/mobile-menu.css">
   <script src="js/theme.js"></script>
 </head>
 <body>
@@ -43,7 +44,7 @@
     <div class="dim">Ratings are estimates. Saves live in this browser.</div>
   </footer>
   <nav class="mnav" id="mnav" aria-label="Main">
-    <button data-act="nav" data-v="home"><i>&#8962;</i>Home</button><button data-act="nav" data-v="clubhub"><i>&#9917;</i>Club</button><button data-act="nav" data-v="playhub"><i>&#9654;</i>Play</button><button data-act="nav" data-v="markethub"><i>&#8644;</i>Market</button><button data-act="nav" data-v="store"><i>&#9670;</i>Store</button><button id="mnav-more"><i>&#9776;</i>Menu</button>
+    <button data-act="nav" data-v="home"><i>&#8962;</i>Home</button><button data-act="nav" data-v="clubhub"><i>&#9917;</i>Club</button><button data-act="nav" data-v="playhub"><i>&#9654;</i>Play</button><button id="mnav-more"><i>&#9776;</i>Explore</button>
   </nav>
   <div id="modal-root"></div>
   <div id="toasts"></div>
@@ -92,7 +93,9 @@
   <script src="js/engine.js"></script>
   <script src="js/commentary.js"></script>
   <script src="js/intro3d.js"></script>
+  <script src="js/welcome-gift.js"></script>
   <script src="js/main.js"></script>
+  <script src="js/mobile-menu.js"></script>
   <script src="js/updater.js"></script>
 </body>
 </html>

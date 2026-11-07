@@ -1918,11 +1918,30 @@
     markethub: ['Market', [['market', 'Search', 'Find players', 'market', '', { mt: 'search' }], ['market', 'Transfer List', 'Your listings', 'sbc', '', { mt: 'tl' }], ['market', 'Watchlist', 'Players you follow', 'quest', '', { mt: 'wl' }], ['promoshop', 'Promo Shop', 'Promo players', 'store'], ['fsgal', 'Future Stars', 'See all 30 cards', 'evo'], ['bdorgal', 'Ballon d\'Or', 'The 2026 nominees', 'club']]],
     sbchub: ['SBCs', [['sbc', 'Challenges', 'Build squads for rewards', 'sbc'], ['store', 'Store', 'Open packs', 'store'], ['promoshop', 'Promo Shop', 'Promo players', 'market']]],
   };
+  // Each mobile hub features one destination and groups the rest by purpose.
+  const MOBILE_HUBS = {
+    clubhub: [5, [['Manage your squad', [6, 7, 8, 10]], ['Develop players', [0, 1, 2, 3]], ['Clubhouse and guides', [4, 9, 11, 12, 13, 14]]]],
+    playhub: [0, [['Find a match', [1, 2, 3]], ['Events and challenges', [4, 5, 6, 7, 9]], ['Practise and learn', [8, 10, 11, 12]]]],
+    leaguehub: [0, [['Other competitions', [1, 2]]]],
+    markethub: [0, [['Manage transfers', [1, 2]], ['Special cards', [3, 4, 5]]]],
+    sbchub: [0, [['Packs and promos', [1, 2]]]],
+  };
   const HUB_OF = { clubhub: 'club squad tactics staff pstats evo fsevo fsprog kits playstyles gametraits unassigned trophies friends', playhub: 'play casual online rivals moments cup campaign scout compare battles penalties rules', leaguehub: 'league top5', markethub: 'market promoshop bdorgal fsgal', sbchub: 'sbc sbc-build' };
   const hubOf = v => Object.keys(HUB_OF).find(k => HUB_OF[k].split(' ').includes(v)) || v;
   const hubPage = key => {
     const M = RUT.Menu2, st = D(), badge = { un: st.unassigned.length, tr: RUT.Progress ? RUT.Progress.ready() : 0, sc: RUT.Scout && !RUT.Scout.state().taken ? 1 : 0 }, H = HUBS[key], items = H[1];
     const tile = t => { const ex = t[5] || {}, bd = t[4] ? badge[t[4]] : 0; return `<button class="m2-tile" data-act="hub-go" data-v="${t[0]}"${ex.mt ? ` data-mt="${ex.mt}"` : ''}${ex.t5 ? ` data-t5="${ex.t5}"` : ''}${ex.train ? ' data-train="1"' : ''}><b>${esc(t[1])}</b><small>${esc(t[2])}</small>${M && M.art ? M.art(t[3]) : ''}${bd ? `<span class="m2-bdg">${bd}</span>` : ''}</button>`; };
+    if (matchMedia('(max-width: 800px)').matches) {
+      const [featured, groups] = MOBILE_HUBS[key];
+      const active = Math.min(App.mobileHubTabs?.[key] || 0, groups.length - 1);
+      const sections = groups.map(([title, indices], index) =>
+        `<div class="fc-hub-panel" role="tabpanel" id="${key}-panel-${index}" aria-labelledby="${key}-tab-${index}" ${index === active ? '' : 'hidden'}>${indices.map(i => tile(items[i])).join('')}</div>`
+      ).join('');
+      const tabs = groups.map(([title], index) =>
+        `<button role="tab" id="${key}-tab-${index}" aria-controls="${key}-panel-${index}" aria-selected="${index === active}" data-act="mobile-hub-tab" data-key="${key}" data-index="${index}">${esc(title)}</button>`
+      ).join('');
+      return `<section class="fc-hub"><header><button class="btn" data-act="nav" data-v="home" aria-label="Back to Home">‹</button><h1>${esc(H[0])}</h1></header><div class="fc-hub-feature">${tile(items[featured])}</div><div class="fc-hub-panels">${sections}</div><div class="fc-hub-tabs" role="tablist" aria-label="${esc(H[0])} sections">${tabs}</div></section>`;
+    }
     let rows = ''; for (let i = 0; i < items.length; i += 4) rows += `<div class="m2-tiles m2-tiles3">${items.slice(i, i + 4).map(tile).join('')}</div>`;
     return `<section class="m2 m2-c"><div class="m2-bar"><b>${H[0]}</b></div>${rows}</section>`;
   };
@@ -3838,6 +3857,12 @@ const NATION_FULL = {ARG: 'Argentina',AUT: 'Austria',BEL: 'Belgium',BFA: 'Burkin
     'pen-next': () => { const P = App.pen; if (!P) return; if (P.last) { penFinish(); return; } const mg = P.my.length, ag = P.ai.length; if (mg === ag) { P.phase = 'aim'; render(); } else { P.phase = 'dive'; render(); } },
     'kit-preset': el => { const K = kitsOf(), p = KIT_PRESETS[+el.dataset.i]; K.home = p.slice(); K.custom = true; State.save(); render(); },
     'kit-reset': () => { delete D().kits; State.save(); toast('Kit and stadium reset', 'good'); render(); },
+    'mobile-hub-tab': el => {
+      const tabs = App.mobileHubTabs || (App.mobileHubTabs = {});
+      tabs[el.dataset.key] = Number(el.dataset.index);
+      render();
+      document.getElementById(el.id)?.focus();
+    },
     'hub-go': el => { if (el.dataset.train) { startTraining(); return; } if (el.dataset.mt) App.marketTab = el.dataset.mt; if (el.dataset.v === 'top5') App.t5tab = el.dataset.t5 || 'lg'; setView(el.dataset.v); },
     'camp-play': () => { const C = RUT.Camp; if (C.done()) return; const t = C.tier(), n = C.state().i + 1; aiChallenge('Campaign: match ' + n, t, 90, { after: x => { const o = C.result(x); if (!o) return ''; updateHeader(); return `<p class="gold">Campaign: +${o.p} points (${C.state().pts})</p>` + (o.pay ? `<p class="gold">Campaign finished! +${fmt(o.pay.coins)} coins${o.pay.pack ? ' and a ' + o.pay.pack + ' pack' : ''}</p>` : o.over ? '<p class="dim">Campaign finished, no prize this time. Start a new one.</p>' : ''); } }); },
     'camp-restart': () => { RUT.Camp.restart(); render(); },
@@ -4093,6 +4118,7 @@ const NATION_FULL = {ARG: 'Argentina',AUT: 'Austria',BEL: 'Belgium',BFA: 'Burkin
     if (RUT.Auth && RUT.Auth.user && D().clubName !== RUT.Auth.user.name) D().clubName = RUT.Auth.user.name;   // the club is named after the account
     if (!D().aw198) { D().aw198 = 1; const ids = Object.keys(D().items).filter(id => (D().items[id].promo || {}).type === 'award'); ids.forEach(id => State.destroy(id)); if (ids.length) State.save(); }   // v198 (JODIO): the first award cards (wrong winners) are removed
     Market.init();
+    if (RUT.WelcomeGift && RUT.WelcomeGift.grant()) setTimeout(() => toast("Your one-time gift: 11 special players rated 89–92 are in your Club.", "good"), 1000);
     // v140 (JODIO): every club named like "FC Barcelone" gets one CL Doué card, once (checked on every login so accounts made later are covered too)
     try {
       const nm = String(D().clubName || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z]/g, '');
