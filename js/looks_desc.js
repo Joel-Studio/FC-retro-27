@@ -296,6 +296,10 @@ Francesco Pio Esposito|188|F|N|short|0|w
     if (f[5] === '0') { x.beard = false; x.full = false; } else if (f[5] === '1') { x.beard = true; x.full = false; } else if (f[5] === '2') { x.beard = true; x.full = true; }
     if (BUILD[f[6]]) x.bw = BUILD[f[6]];
   });
+  // Explicit likeness corrections override the older generic appearance table.
+  Object.assign(RUT.REAL['Michael Olise'], { style: 'dreads', hair: '#17120f', locProfile: 'olise', beard: false, full: false });
+  Object.assign(RUT.REAL['Yan Diomandé'], { style: 'dreads', hair: '#17120e', locProfile: 'diomande', beard: false, full: false });
+  RUT.REAL['Pau Cubarsí'] = Object.assign({}, RUT.REAL['Pau Cubarsí'], { style: 'short', hair: '#493126', beard: false, full: false });
   // heights go onto the database cards (card pages, the pixel figure's size and the 3D model all read details.height)
   if (RUT.DB && RUT.DB.all) RUT.DB.all.forEach(c => { const h = RUT.HEIGHTS[c.name]; if (h && c.details) c.details.height = h; });
 })();
