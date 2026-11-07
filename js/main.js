@@ -286,10 +286,13 @@
     const packs = Object.entries(st.packsOwned).filter(([, n]) => n > 0);
     const s = st.stats;
     if (matchMedia('(max-width: 800px)').matches) {
+      const futureStars = (DB.FSTAR_IDS || []).map(id => DB.all.find(card => card.promo === 'fstar' && card.baseId === id)).filter(Boolean).sort((a, b) => b.rating - a.rating).slice(0, 10);
+      const showcase = futureStars.map(card => cardHTML(card, { mini: true, attrs: `data-act="price" data-card="${card.id}"` })).join('');
       const link = (view, title, subtitle) => `<button data-act="nav" data-v="${view}"><b>${title}</b><small>${subtitle}</small><span aria-hidden="true">↗</span></button>`;
       return `<section class="fc-home"><header><small>YOUR CLUB</small><h1>${esc(st.clubName)}</h1></header>
         <div class="fc-home-stats" aria-label="Club summary"><div><small>Rating</small><b>${rating}</b></div><div><small>Chemistry</small><b>${chem}/33</b></div><div><small>Record</small><b>${s.wins}W · ${s.draws}D · ${s.losses}L</b></div></div>
-        <div class="fc-home-actions">${link('playhub', 'Play', 'Choose your match')}${link('clubhub', 'Club', 'Squad & development')}${link('quests', 'Objectives', 'Challenges & rewards')}${link('store', 'Packs', packs.reduce((total, [, count]) => total + count, 0) + ' available')}${link('markethub', 'Transfers', 'Buy & sell players')}${link('leaguehub', 'Leagues', 'Season & competitions')}</div>
+        <section class="fc-home-stars" aria-label="Future Stars"><h2>Future Stars</h2><div class="fc-home-starstrip">${showcase || '<p>Future Stars cards are coming soon.</p>'}</div></section>
+        <div class="fc-home-actions">${link('playhub', 'Play', 'Choose your match')}${link('clubhub', 'Club', 'Squad & development')}</div>
         <p class="fc-home-status">${st.unassigned.length ? st.unassigned.length + ' items waiting in Club → Unassigned' : 'Your club is ready. Pick a mode and play.'}</p></section>`;
     }
     const stars = DB.players.filter(c => DB.signatureFor(c));

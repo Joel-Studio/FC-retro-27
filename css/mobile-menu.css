@@ -94,3 +94,10 @@
 @media (max-width: 800px) {
   .fc-explore-trigger { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; margin-left: auto; }
 }
+@media (max-width: 800px) {
+  .fc-home-stars { min-width: 0; }
+  .fc-home-stars h2 { font: 700 18px 'Barlow Condensed',sans-serif; margin: 0 0 6px; color: var(--m2acc,var(--accent)); }
+  .fc-home-starstrip { display: flex; overflow-x: auto; gap: 8px; padding: 4px 2px 10px; scroll-snap-type: x mandatory; }
+  .fc-home-starstrip > * { flex: 0 0 auto; scroll-snap-align: start; }
+  .fc-home .fc-home-actions { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
