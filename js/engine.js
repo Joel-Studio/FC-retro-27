@@ -801,7 +801,7 @@ window.RUT = window.RUT || {};
   };
 
   P.contactEvent = function (player, kind, x, y) {
-    player.contact = { kind, time: this.t, tick: this.tk, yaw: Math.atan2(x || player.fx, y || player.fy) };
+    player.contact = { kind, time: this.t, tick: this.tk, yaw: Math.atan2(Number.isFinite(x) ? x : player.fx, Number.isFinite(y) ? y : player.fy) };
   };
 
   P.giveBall = function (p) {

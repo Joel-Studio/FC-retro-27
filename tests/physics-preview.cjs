@@ -89,3 +89,48 @@ saveMatch.ball.x = 90.5;
 saveMatch.checkSave();
 assert.equal(saveMatch.ball.shot.saveChecked,false);
 console.log('PASS braking distance across step sizes, stationary facing, unreachable keeper contact, and reaction timing.');
+// Verify every named player's card and match hair using real Three.js geometry, without WebGL.
+let cardRasters = 0;
+context.document.createElement = () => ({ width: 0, height: 0,
+  toDataURL: () => 'data:image/png;base64,test',
+  getContext: () => ({ createImageData: (w,h) => ({ data: new Uint8ClampedArray(w*h*4) }),
+    putImageData: image => { assert(image.data.some(value => value)); cardRasters++; }, drawImage() {} }) });
+for (const name of ['looks_real','looks_desc','pixelart','three.min']) {
+  vm.runInContext(fs.readFileSync('js/' + name + '.js','utf8'),context);
+}
+const renderer = fs.readFileSync('js/render3d.js','utf8');
+const hairSource = renderer.slice(renderer.indexOf('    function roundedBody'),renderer.indexOf('    function makeRig'));
+vm.runInContext('const T = THREE; const clamp = (v,a,b) => Math.max(a,Math.min(b,v));' + hairSource
+  + ';window.testHair = look => { const head = new T.Group(); addHair(head,look.style,std(look.hair,0.6),look); return head; };',context);
+for (const card of RUT.DB.players) {
+  const look = RUT.PixelArt.lookFor(card.name,RUT.DB.kitFor(card.club),card.position === 'GK',0,{club:card.club});
+  const head = context.testHair(look);
+  const hair = head.children.find(mesh => mesh.name === 'hair-details');
+  if (look.style !== 'bald') assert.equal(hair.count,104,card.name);
+  RUT.PixelArt.cardFigure(card);
+}
+assert.equal(cardRasters,RUT.DB.players.length);
+console.log('PASS all ' + cardRasters + ' named card renders and 104-instance 3D hairstyles.');
+// Human inputs use the same deterministic simulation as CPU play.
+function humanReplay() {
+  const m = new RUT.Engine.Match({ home: { name:'Human',cards }, away:{name:'CPU',cards}, humans:[0],seed:47,halfSeconds:5 });
+  m.headless = true;
+  for (let i=0;i<600;i++) {
+    m.ctls[0].input.right = i < 120;
+    m.ctls[0].input.left = i >= 120 && i < 240;
+    m.ctls[0].input.up = i >= 240 && i < 360;
+    m.ctls[0].input.sprint = i < 240;
+    m.update(1/60); finite(m);
+  }
+  return JSON.stringify([m.score,m.ball.x,m.ball.y,m.players.map(p=>[p.x,p.y,p.fx,p.fy])]);
+}
+assert.equal(humanReplay(),humanReplay());
+const contactMatch = match(), kicker = contactMatch.players.find(p=>!p.isGK);
+contactMatch.kick(kicker,0,20,0,0,null);
+assert.equal(kicker.contact.yaw,0);
+const peer = new RUT.Net.Session({role:'host',code:'TEST',club:'Test',cards,onEvent(){}});
+peer.room = {emit:async()=>{},leave(){}};
+peer.onCtl({data:{k:'hello',v:2},peer:'new-peer'});
+assert.equal(peer.state,'paired');
+peer.close(true);
+console.log('PASS human-input replay, axis-aligned kick facing, and matching online physics handshake.');
