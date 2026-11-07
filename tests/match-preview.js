@@ -16,13 +16,13 @@ const canvas = document.querySelector('#pitch');
 const status = document.querySelector('#performance');
 function begin() {
   if (match) match.stop();
-  match = new RUT.Engine.Match({ home: { name: 'Preview', cards: squad('Barcelona') },
-    away: { name: 'Practice CPU', cards: squad('Bayern') }, humans: [0], seed: 38214, pitch: 'standard', train: true });
-  const hero = match.players.find(p => p.team === 0 && !p.isGK);
+  const homeCards = squad('Barcelona'), awayCards = squad('Bayern');
   const card = RUT.DB.players.find(c => c.name === playerSelect.value);
-  if (card) hero.card = card;
-  match.training = true; match.hero = hero; match.phase = 'play';
-  match.giveBall(hero); match.start(canvas);
+  match = new RUT.Engine.Match({ home: { name: 'Preview', cards: homeCards },
+    away: { name: 'Practice CPU', cards: awayCards }, humans: [0], seed: 38214, pitch: 'standard',
+    training: { hero: card, mates: homeCards.slice(1,10), foes: awayCards.slice(1), foeMode: 'ai',
+      keeper: awayCards[0], mateKeeper: homeCards[0] } });
+  match.start(canvas);
   match.camMode = document.querySelector('#view').value;
   paused = false; document.querySelector('#pause').textContent = 'Pause';
 }
