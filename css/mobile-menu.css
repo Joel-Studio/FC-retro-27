@@ -126,7 +126,7 @@
   .fc-hub-tabs { grid-column: 1 / -1; margin: 0; }
 }
 /* Mobile match controls inspired by the supplied gameplay reference. */
-@media (pointer: coarse) and (orientation: landscape) {
+@media (orientation: landscape) and (max-height: 500px) {
   .match-wrap .tc { --u: clamp(44px, 11dvh, 64px); }
   .match-wrap .tb { background: rgba(13,20,28,.68); border: 2px solid #ffffff48; box-shadow: inset 0 0 0 4px #0004, 0 2px 8px #0005; font: 700 clamp(10px,2.8dvh,14px) 'Barlow Condensed',sans-serif; }
   .match-wrap .tb-shoot { bottom: calc(var(--u) * 1.45); right: 0; border-color: #ed9b38; }

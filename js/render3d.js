@@ -114,7 +114,7 @@
     const T = THREE, W = env.W, H = env.H, PW2 = W / 2, PH2 = H / 2;
     if (T.ColorManagement) T.ColorManagement.legacyMode = false;       // v154: hex colours are sRGB, so kits and grass keep their real colour instead of washing out
     const canvas = document.createElement('canvas');
-    const renderer = new T.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', alpha: false });
+    const renderer = new T.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', alpha: false });
     renderer.setPixelRatio(1);
     renderer.outputEncoding = T.sRGBEncoding;
     renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.9;
@@ -128,7 +128,7 @@
     /* ---- light: soft sky fill + one hard floodlight sun that casts the shadows ---- */
     scene.add(new T.HemisphereLight(0xa8b4ff, 0x2f4a26, 0.55));
     const sun = new T.DirectionalLight(0xfff0d0, 1.25);
-    sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);   // v200: 4x fewer shadow-map pixels
+    sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);   // v200: 4x fewer shadow-map pixels
     const sc = sun.shadow.camera; sc.left = -46; sc.right = 46; sc.top = 46; sc.bottom = -46; sc.near = 10; sc.far = 220;
     sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.04; sun.shadow.radius = 2.5;
     scene.add(sun); scene.add(sun.target);
@@ -357,7 +357,7 @@
       const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
       for (let index = 0; index < 104; index++) {
         const angle = index * 2.39996;
-        const radius = Math.sqrt((index + 0.5) / 104) * 0.108;
+        const radius = Math.sqrt(((index * 0.61803398875) % 1) * 0.92 + 0.04) * 0.108;
         const x = Math.cos(angle) * radius, z = Math.sin(angle) * radius;
         const height = (curls ? 0.145 : 0.12) + (1 - radius / 0.12) * 0.025 * volume;
         transform.position.set(x, height, z);

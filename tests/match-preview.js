@@ -54,7 +54,7 @@ function monitor(time) {
   if (time - startedAt > 2000) {
     const fps = Math.round(frames * 1000 / (time - startedAt));
     const stage = match && match._u3;
-    status.textContent = match ? (stage ? 'WebGL 3D' : '3D unavailable') + ' · ' + fps + ' display FPS · ' + (match._u3Fail ? 'renderer error' : 'running') : 'Ready · no club progress saved';
+    status.textContent = match ? (stage ? 'WebGL 3D' : '3D unavailable') + ' · ' + fps + ' display FPS · ' + (stage ? stage.renderer.info.render.calls + ' draws · ' : '') + (match._u3Fail ? 'renderer error' : 'running') : 'Ready · no club progress saved';
     frames = 0; startedAt = time;
   }
   requestAnimationFrame(monitor);
