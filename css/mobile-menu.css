@@ -125,3 +125,20 @@
   .fc-hub-panel > .m2-tile { height: 110px; }
   .fc-hub-tabs { grid-column: 1 / -1; margin: 0; }
 }
+/* Mobile match controls inspired by the supplied gameplay reference. */
+@media (pointer: coarse) and (orientation: landscape) {
+  .match-wrap .tc { --u: clamp(44px, 11dvh, 64px); }
+  .match-wrap .tb { background: rgba(13,20,28,.68); border: 2px solid #ffffff48; box-shadow: inset 0 0 0 4px #0004, 0 2px 8px #0005; font: 700 clamp(10px,2.8dvh,14px) 'Barlow Condensed',sans-serif; }
+  .match-wrap .tb-shoot { bottom: calc(var(--u) * 1.45); right: 0; border-color: #ed9b38; }
+  .match-wrap .tb-pass { bottom: 0; right: calc(var(--u) * 1.55); border-color: #44b7e8; }
+  .match-wrap .tb-thru { bottom: calc(var(--u) * 1.45); right: calc(var(--u) * 1.55); border-color: #e0c64e; }
+  .match-wrap .tb-lob { bottom: 0; right: 0; border-color: #54d99b; color: white; }
+  .match-wrap .tc-skill { bottom: calc(var(--u) * 3); gap: 5px; }
+  .match-wrap .tb.sk { min-width: 44px; min-height: 44px; border-radius: 12px; font-size: 10px; }
+  .match-wrap .mb-top { background: linear-gradient(#0b1024bd,#0b102430); border: 0; box-shadow: none; }
+}
+@media (pointer: coarse) {
+  .match-wrap .tb, .match-wrap .tb.sk, .match-wrap .mb-top button { min-width:44px; min-height:44px; }
+  .match-wrap .tc-act { right:max(12px,env(safe-area-inset-right)); bottom:max(12px,env(safe-area-inset-bottom)); }
+  .match-wrap .mb-top { padding-top:env(safe-area-inset-top); }
+}

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>FC RETRO 27 — 3D practice preview</title>
+<link rel="stylesheet" href="../css/style.css"><link rel="stylesheet" href="../css/mobile-menu.css">
+<style>
+html,body{margin:0;background:#111425;color:white;font:14px system-ui;overflow:hidden}
+.preview-tools{position:fixed;left:max(8px,env(safe-area-inset-left));top:4px;z-index:50;display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:#111425d9;padding:5px;border-radius:8px}
+.preview-tools button,.preview-tools select{min-height:44px}
+.match-wrap{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;margin:0!important}
+canvas{width:100%;height:100%;display:block}
+#performance{font-size:12px}
+</style>
+</head>
+<body>
+<div class="preview-tools">
+<button id="start">Start practice</button><button id="pause">Pause</button><button id="reset">Ball to feet</button>
+<select id="view" aria-label="Camera"><option value="tv">Sideline</option><option value="close">Close-up</option><option value="fc">Wide</option></select>
+<select id="player" aria-label="Player"></select><span id="performance" role="status">Ready · preview saves no club progress</span>
+</div>
+<div class="match-wrap"><canvas id="pitch"></canvas><div class="tc">
+<div class="tc-zone"></div><div class="tc-stick"><i></i></div>
+<div class="tc-act">
+<button class="tb tb-thru" data-pad="through"><b>THROUGH</b></button><button class="tb tb-lob" data-pad="lob"><b>LOB</b></button>
+<button class="tb tb-pass" data-pad="pass"><b>PASS</b></button><button class="tb tb-shoot" data-pad="shoot"><b>SHOOT</b></button>
+<div class="tc-skill"><button class="tb sk" data-pad="sig">SKILL</button><button class="tb sk" data-pad="sprint">SPRINT</button></div>
+</div></div></div>
+<script src="../js/potw_data.js"></script><script src="../js/nl_data.js"></script><script src="../js/season_data.js"></script><script src="../js/futurestar_data.js"></script>
+<script src="../js/database.js"></script><script src="../js/looks_real.js"></script><script src="../js/looks_desc.js"></script><script src="../js/pixelart.js"></script>
+<script src="../js/traits.js"></script><script src="../js/roles.js"></script><script src="../js/three.min.js"></script><script src="../js/render3d.js"></script><script src="../js/engine.js"></script>
+<script src="match-preview.js"></script>
+</body></html>

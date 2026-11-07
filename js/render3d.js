@@ -332,7 +332,7 @@
     const std = (col, rough) => { const k = col + '|' + rough; return matCache[k] || (matCache[k] = new T.MeshStandardMaterial({ color: new T.Color(col), roughness: rough == null ? 0.8 : rough, metalness: 0.02 })); };
     function ink(m, castShadow) { m.castShadow = castShadow !== false; m.receiveShadow = false; return m; }
     /** Hair by style: a cap plus whatever the style adds (a puff for curls, a bun, a ponytail, dreads, a faded side). */
-    function addHair(head, style, hairM) {
+    function addHair(head, style, hairM, look) {
       if (style === 'bald') return;
       if (style === 'curlfade') style = 'curly';   // v195: curly top on faded sides draws like curls in 3D
       const cap = ink(new T.Mesh(geo.hair, hairM)); cap.position.y = 0.085; head.add(cap);
@@ -344,6 +344,52 @@
       else if (style === 'long') { cap.scale.set(1.03, 1.04, 1.06); add(geo.tail, 0, -0.07, -0.085, 1.5, 1, 0.7); }
       else if (style === 'bun') { cap.scale.set(0.96, 1.0, 1.0); add(geo.bun, 0, 0.1, -0.11); }
       else if (style === 'dreads') { cap.scale.set(1.04, 1.06, 1.06); for (let i = 0; i < 8; i++) { const a = (i / 8 - 0.5) * Math.PI * 1.5; add(geo.dread, Math.sin(a) * 0.1, -0.03, -0.06 - Math.cos(a) * 0.04, 0.9, 1, 0.9); } }
+      const volume = look.hairVolume || 1;
+      const topMaterial = look.hairTop ? std(look.hairTop, 0.88) : hairM;
+      if (look.hairTop) cap.material = topMaterial;
+      // Shared geometry and instancing keep 104 distinct hair details in two draw calls.
+      const curls = style === 'curly' || style === 'afro';
+      const detailGeometry = curls ? geo.curl : geo.dread;
+      const detailMaterial = topMaterial;
+      const details = new T.InstancedMesh(detailGeometry, detailMaterial, 104);
+      const transform = new T.Object3D();
+      let seed = (look.fseed || 1) >>> 0;
+      const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+      for (let index = 0; index < 104; index++) {
+        const angle = index * 2.39996;
+        const radius = Math.sqrt((index + 0.5) / 104) * 0.108;
+        const x = Math.cos(angle) * radius, z = Math.sin(angle) * radius;
+        const height = (curls ? 0.145 : 0.12) + (1 - radius / 0.12) * 0.025 * volume;
+        transform.position.set(x, height, z);
+        const size = style === 'buzz' ? 0.13 : curls ? 0.3 + random() * 0.16 : 0.24;
+        transform.scale.set(size, curls ? size * volume : 0.16, size);
+        transform.rotation.set(curls ? 0 : 0.6, angle, 0);
+        transform.updateMatrix(); details.setMatrixAt(index, transform.matrix);
+      }
+      details.instanceMatrix.needsUpdate = true;
+      details.name = 'hair-details'; head.add(details);
+      if (look.locProfile) {
+        const locks = new T.InstancedMesh(geo.dread, hairM, 20);
+        for (let index = 0; index < 20; index++) {
+          const angle = index / 20 * Math.PI * 2;
+          const olise = look.locProfile === 'olise';
+          const length = look.locProfile === 'raphinha' ? 0.5 : olise ? 0.8 : 1.2;
+          transform.position.set(Math.sin(angle) * 0.12, 0.04 - length * 0.03, Math.cos(angle) * 0.11);
+          transform.scale.set(0.65, length, 0.65);
+          transform.rotation.set(0.12 * Math.cos(angle), 0, -0.12 * Math.sin(angle));
+          transform.updateMatrix(); locks.setMatrixAt(index, transform.matrix);
+        }
+        locks.instanceMatrix.needsUpdate = true; head.add(locks);
+      }
+      if (look.band) {
+        const band = new T.Mesh(new T.TorusGeometry(0.126, 0.009, 5, 24), std(look.band, 0.95));
+        band.rotation.x = Math.PI / 2; band.position.y = 0.055; head.add(band);
+      }
+      if (look.locProfile === 'olise') {
+        const tie = new T.Mesh(new T.TorusGeometry(0.038, 0.012, 6, 16), std('#56515f', 0.95));
+        tie.position.set(0.025, 0.06, -0.15); head.add(tie);
+        for (let index = 0; index < 7; index++) add(geo.dread, (index - 3) * 0.012, -0.015, -0.15, 0.6, 0.85, 0.6);
+      }
     }
     function makeRig(p, look, kit) {
       const bw = look.bw || 1, root = new T.Group(), skin = std(look.skin, 0.75), hairM = std(look.hair, 0.6);
@@ -356,7 +402,7 @@
       const neck = new T.Mesh(geo.neck, skin); neck.position.y = 0.64; torso.add(neck);
       const head = new T.Group(); head.position.y = 0.76; torso.add(head);
       const hd = ink(new T.Mesh(geo.head, skin)); hd.scale.set(1, 1, 1); head.add(hd);
-      addHair(head, look.style, hairM);
+      addHair(head, look.style, hairM, look);
       if (look.beard) { const br = new T.Mesh(new T.BoxGeometry(0.24, 0.085, 0.24), hairM); br.position.set(0, -0.075, 0); head.add(br); }
       const facePl = new T.Mesh(new T.PlaneGeometry(0.228, 0.228), new T.MeshStandardMaterial({ map: faceTexture(look), roughness: 0.75, metalness: 0.02 })); facePl.position.set(0, 0, 0.1156); head.add(facePl);
       const nose = new T.Mesh(new T.ConeGeometry(0.012, 0.03, 6), skin); nose.rotation.x = Math.PI / 2 + 0.5; nose.position.set(0, -0.012, 0.125); head.add(nose);
@@ -381,7 +427,7 @@
       const hgt = ((p.card.details && p.card.details.height) || 180) / 180, big = 1.55 * clamp(hgt, 0.9, 1.12);
       root.scale.setScalar(big);
       scene.add(root);
-      return { root, pelvis, torso, head, aL, aR, lL, lR, big, yaw: 0, ph: Math.random() * 6, lastY: 0, lean: 0 };
+      return { root, pelvis, torso, head, aL, aR, lL, lR, big, yaw: 0, ph: (hash(p.card.name) % 628) / 100, lastY: 0, lean: 0 };
     }
 
     /* ---- pose: the shared animation names (engine.animOf) drive joint angles ---- */
@@ -456,7 +502,7 @@
     }
 
     /* ---- camera ---- */
-    const CAM = { fc: { fov: 42, h: 70, back: 34, curve: 40 }, tv: { fov: 37, h: 36, back: 68 }, wide: { fov: 41, h: 24, back: 36 }, close: { fov: 46, h: 13, back: 22 } };   // v309 (JODIO): zoomed out more (wider field of view)   // v172: about 40% higher (JODIO: "make the view higher")
+    const CAM = { fc: { fov: 42, h: 70, back: 34, curve: 40 }, tv: { fov: 40, h: 31, back: 54 }, wide: { fov: 41, h: 24, back: 36 }, close: { fov: 46, h: 13, back: 22 } };   // v309 (JODIO): zoomed out more (wider field of view)   // v172: about 40% higher (JODIO: "make the view higher")
     const camTarget = new T.Vector3(), camPos = new T.Vector3();
     let curW = 0, curH = 0;
     const mProj = new T.Vector3();
@@ -499,10 +545,22 @@
         const r0 = rigFor(p, m); r0.root.visible = !view.sprites; if (view.sprites) return;   // v171 (JODIO): players can be drawn as the normal-mode pixel sprites instead
         const r = r0, { anim, t } = m.animOf(p);
         const root = r.root; root.position.set(p.x - PW2, 0, p.y - PH2);
-        let tf = Math.atan2(p.fx, p.fy);
+        const moving = Math.hypot(p.vx || 0, p.vy || 0) > 0.45;
+        const contact = p.contact;
+        const kicking = contact && contact.kind === 'kick' && m.t - contact.time < 0.3;
+        const tf = kicking ? contact.yaw : moving ? Math.atan2(p.vx, p.vy) : r.yaw;
         let dd = tf - r.yaw; dd = Math.atan2(Math.sin(dd), Math.cos(dd));
         r.yaw += dd * (1 - Math.exp(-view.dt / (0.05 + 0.09 * (1 - (p.agil != null ? p.agil : 0.5)))));
         root.rotation.y = r.yaw;
+        // Hair detail follows projected size, with hysteresis around both transitions.
+        const headPixels = 0.25 * r.big * Math.abs(proj(p.x, p.y, 1.7, view.w, view.h).k);
+        const previous = r.hairCount || 16;
+        const hairCount = headPixels > (previous === 104 ? 38 : 46) ? 104
+          : headPixels > (previous >= 52 ? 15 : 20) ? 52 : 16;
+        if (hairCount !== r.hairCount) {
+          r.head.children.forEach(child => { if (child.name === 'hair-details') child.count = hairCount; });
+          r.hairCount = hairCount;
+        }
         { const dt = Math.max(view.dt, 1 / 120), k = 1 - Math.exp(-dt / 0.12), ax = (p.vx - (r.pvx == null ? p.vx : r.pvx)) / dt, ay = (p.vy - (r.pvy == null ? p.vy : r.pvy)) / dt;
           r.pvx = p.vx; r.pvy = p.vy; r.accF = (r.accF || 0) + (clamp((ax * p.fx + ay * p.fy) / 28, -0.6, 0.6) - (r.accF || 0)) * k; r.accL = (r.accL || 0) + (clamp((ax * p.fy - ay * p.fx) / 28, -0.6, 0.6) - (r.accL || 0)) * k; }
         pose(r, anim, t, p, m, view.dt);

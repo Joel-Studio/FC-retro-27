@@ -13,6 +13,7 @@
  * ========================================================================== */
 (function () {
   'use strict';
+  const PHYSICS_VERSION = 2;
   const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'LWB', 'RWB', 'CDM', 'CM', 'CAM', 'LM', 'RM', 'LW', 'RW', 'CF', 'ST'];
   const FACE = ['pac', 'sho', 'pas', 'dri', 'def', 'phy'];
@@ -133,7 +134,7 @@
     return true;
   };
   S.emit = function (data) { if (this.closed || !this.room) return; this.room.emit('rut_ctl', data).catch(() => {}); };
-  S.hello = function () { this.emit({ k: 'hello', club: this.club, v: 1, duel: !!this.o.duel, tac: str(this.o.tac, 20, '') }); };
+  S.hello = function () { this.emit({ k: 'hello', club: this.club, v: PHYSICS_VERSION, duel: !!this.o.duel, tac: str(this.o.tac, 20, '') }); };
   /** A message that is resent until the other side acknowledges it. */
   S.rel = function (k, payload) { const n = ++this.seq, data = Object.assign({ k, n }, payload); this.pending.set(n, { data, tries: 0 }); this.emit(data); return n; };
   S.tick = function () {
@@ -146,6 +147,11 @@
     if (!this.me && this.room && this.room.peers) this.me = (this.room.peers().find(p => p.sameTab) || {}).peer || null;   // the room can still be empty when we join
     const d = m.data, k = d.k;
     if (this.partner && m.peer !== this.partner) { if (k === 'hello') this.emit({ k: 'busy', to: m.peer }); return; }   // a third person with the same code
+    if ((k === 'hello' || k === 'welcome') && d.v !== PHYSICS_VERSION) {
+      this.emit({ k: 'physics-version', to: m.peer });
+      this.fail('Game update required. Both players must reload the latest version before joining.'); return;
+    }
+    if (k === 'physics-version' && d.to === this.me) { this.fail('Game update required. Reload the game before joining.'); return; }
     if (k === 'hello' && this.role === 'host') {
       if (!!d.duel !== !!this.o.duel) { this.emit({ k: 'mode', to: m.peer, duel: !!this.o.duel }); return; }     // 1v1 duel vs club match: both must pick the same mode
       if (this.partner !== m.peer) { this.partner = m.peer; this.theirClub = str(d.club, 20, 'Guest'); this.theirTac = str(d.tac, 20, ''); this.state = 'paired'; this.say('Friend found: ' + this.theirClub); this.o.onEvent({ type: 'paired', club: this.theirClub }); this.sendTeam(); }
@@ -180,6 +186,7 @@
       return;
     }
     if (k === 'start') {
+      if (d.physicsVersion !== PHYSICS_VERSION) { this.fail('Game update required before starting.'); return; }
       if (this.theirs.length < 11) return;                      // not ready: no ack, the host keeps asking
       this.emit({ k: 'ack', a: n });
       if (this.seen.has(key)) return; this.seen.add(key);
@@ -200,7 +207,7 @@
   S.sendStart = function () {
     if (this.startSent) return; this.startSent = true; const c = this.startWanted;
     c.delay = this.inputDelay();                                  // fewer stalls on slow links: sized from the measured round trip
-    this.startN = this.rel('start', { delay: c.delay, seed: c.seed, half: c.half, pitch: c.pitch === 'colossal' ? 'colossal' : 'huge', brain: c.brain, phys: cleanPhys(c.phys), duel: !!c.duel, styles: c.styles });
+    this.startN = this.rel('start', { physicsVersion: PHYSICS_VERSION, delay: c.delay, seed: c.seed, half: c.half, pitch: c.pitch === 'colossal' ? 'colossal' : 'huge', brain: c.brain, phys: cleanPhys(c.phys), duel: !!c.duel, styles: c.styles });
     const wait = setInterval(() => { if (this.closed) { clearInterval(wait); return; } if (!this.pending.has(this.startN)) { clearInterval(wait); this.begin(c); } }, 100);   // the guest acknowledged: both go
   };
   S.begin = function (c) {

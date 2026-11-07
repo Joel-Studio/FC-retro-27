@@ -800,8 +800,19 @@ window.RUT = window.RUT || {};
     this.armSet(label, team, taker);
   };
 
+  P.contactEvent = function (player, kind, x, y) {
+    player.contact = { kind, time: this.t, tick: this.tk, yaw: Math.atan2(x || player.fx, y || player.fy) };
+  };
+
   P.giveBall = function (p) {
     const b = this.ball;
+    const incoming = Math.hypot(b.vx - p.vx, b.vy - p.vy);
+    const approach = incoming > 0.1 ? Math.abs((b.vx - p.vx) * p.fy - (b.vy - p.vy) * p.fx) / incoming : 0;
+    const pressure = this.players.some(other => other.team !== p.team && Math.hypot(other.x - p.x, other.y - p.y) < 2);
+    p.firstTouch = { until: this.t + Math.min(0.4, 0.08 + incoming / 150 + approach * 0.08 + (pressure ? 0.06 : 0)),
+      offset: Math.min(0.65, incoming / 45 * (1 - nrm(p.card.sub.ballControl || 60)) + approach * 0.12) };
+    this.contactEvent(p, p.isGK ? 'save' : 'touch');
+    p._touchOwnerTick = this.tk;
     const prev = b.owner || b.last;
     if (prev && prev.team !== p.team) { this.lostAt[prev.team] = this.t; this.wonAt[p.team] = this.t; }
     if (b.passTo && prev && this.pstat) { if (prev.team === p.team) { if (p !== prev) this.pst(prev, 'pc'); } else this.pst(p, 'int'); }
@@ -811,6 +822,7 @@ window.RUT = window.RUT || {};
       if (q && this.t - q.t < 7 && ((q.a === prev && q.b === p) || (q.a === p && q.b === prev))) { q.n++; q.t = this.t; } else pp[p.team] = { a: prev, b: p, n: 1, t: this.t };
     }
     b.airZ = b.owner ? 0 : b.z; b.airT = this.t;   // v332: a ball taken out of the air (a cross) can still be headed at goal for a moment
+    p.dribbleTouch = null;
     b.owner = p; b.last = p; b.z = 0; b.vz = 0; b.spin = 0; b.tspin = 0; b.shot = null; b.trailType = null; b.passTo = null; b.cross = null; b.gotT = this.t; b.gotSp = this._inSp || 0;
     const c = this.ctls[p.team]; if (c) c.controlled = p;
   };
@@ -863,6 +875,7 @@ window.RUT = window.RUT || {};
   P.leftFoot = function (p) { if (p._lf == null) { let h = 0; const n = p.card.name || ''; for (let i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) % 997; p._lf = h % 4 === 0; } return p._lf; };   // v317: about a quarter of players kick with the left foot (drawing only)
   P.kick = function (p, vx, vy, vz, spin, trailType, tspin) {
     const b = this.ball; this._kz = b.z;
+    this.contactEvent(p, 'kick', vx, vy);
     b.owner = null; b.last = p; b.vx = vx; b.vy = vy; b.vz = vz; b.spin = spin || 0; b.tspin = tspin || 0;
     b.noPick = p; b.noPickT = 0.25; b.trailType = trailType || null; b.trail = []; b.passTo = null; b.cross = null;
     p.cool.kick = 0.35; p.kickType = trailType === 'shot' ? 'shot' : vz > 4 ? 'chip' : Math.hypot(vx, vy) > 21 ? 'drive' : 'pass';
@@ -1510,9 +1523,10 @@ window.RUT = window.RUT || {};
     if (won) {
       this.stats.tkWon[def.team]++;
       this.ev('tkw', def, { car });
+      this.contactEvent(def, 'tackle', car.x - def.x, car.y - def.y);
       if ((def.pf['Bruiser'] || 0)) car.cool.stun = 0.8;
       this.psIconAny(def, ['Bruiser', slide && 'Slide Tackle', 'Anticipate', !slide && 'Jockey', !slide && 'Enforcer'], 1.2);   // v166
-      if (!slide && this.rng() < 0.55 + 0.45 * (def.pf['Anticipate'] || 0)) { this.giveBall(def); }
+      if (!slide && len(def.vx - car.vx, def.vy - car.vy) < 5 && this.rng() < 0.45 + 0.35 * nrm(ds.ballControl || 60) + 0.15 * (def.pf['Anticipate'] || 0)) { this.giveBall(def); }
       else {
         const a = Math.atan2(def.fy, def.fx) + (this.rng() - 0.5);
         this.kick(def, Math.cos(a) * 7, Math.sin(a) * 7, 0, 0, null);
@@ -3246,9 +3260,9 @@ window.RUT = window.RUT || {};
           let par = dvx * ux + dvy * uy;
           let perpX = dvx - par * ux, perpY = dvy - par * uy;
           // explosive first steps that taper towards top speed (an exponential-looking build), and braking quicker than accelerating
-          const maxPar = (par > 0 ? acc * clamp(1.3 - 0.7 * sp / Math.max(4, p.sprintMax), 0.6, 1.3) : acc * 1.6) * dt;
+          const maxPar = (par > 0 ? acc * clamp(1.3 - 0.7 * sp / Math.max(4, p.sprintMax), 0.6, 1.3) : acc * (1.3 + 0.3 * nrm(p.card.sub.balance || 60))) * dt;
           par = clamp(par, -maxPar, maxPar);
-          const pl = len(perpX, perpY), maxPerp = turn * dt;
+          const pl = len(perpX, perpY), maxPerp = turn * dt / (1 + 0.32 * Math.pow(sp / Math.max(1, p.sprintMax), 2));
           if (pl > maxPerp) { perpX *= maxPerp / pl; perpY *= maxPerp / pl; }
           p.vx += par * ux + perpX; p.vy += par * uy + perpY;
         } else {
@@ -3338,8 +3352,11 @@ window.RUT = window.RUT || {};
       if (a.cool.stun > 0.5 || c.cool.stun > 0.5) continue;                 // bodies on the grass don't block
       let dx = c.x - a.x, dy = c.y - a.y; const d2 = dx * dx + dy * dy;
       if (dt && a.team !== c.team && d2 < (R + 0.9) * (R + 0.9) && d2 > 1e-6 && !a.isGK && !c.isGK) this.shoulder(a, c, Math.sqrt(d2), dx, dy, dt);
-      if (d2 >= R * R || d2 < 1e-6) continue;
-      const d = Math.sqrt(d2), ov = R - d;
+      if (d2 >= R * R) continue;
+      // Stable pair-index normal also separates coincident bodies without randomness.
+      if (d2 < 1e-6) { const angle = (i * 31 + k * 17) * 2.39996; dx = Math.cos(angle) * 0.001; dy = Math.sin(angle) * 0.001; }
+
+      const d = Math.max(0.001, Math.hypot(dx, dy)), ov = R - d;
       let ma = a.mass || 75, mc = c.mass || 75;
       if (a.team !== c.team && !a.isGK && !c.isGK) { const gap = this.bullyPower(a) - this.bullyPower(c); if (gap > 0.05) ma *= 1 + Math.min(6, gap * 25); else if (gap < -0.05) mc *= 1 + Math.min(6, -gap * 25); }   // a stronger player cannot be bodied off by a weaker one
       const mt = ma + mc;
@@ -3347,7 +3364,7 @@ window.RUT = window.RUT || {};
       a.x -= dx * ov * mc / mt; a.y -= dy * ov * mc / mt; c.x += dx * ov * ma / mt; c.y += dy * ov * ma / mt;
       const vn = (c.vx - a.vx) * dx + (c.vy - a.vy) * dy;
       if (vn >= 0) continue;
-      const imp = -1.15 * vn / (1 / ma + 1 / mc);
+      const imp = Math.min(8, -1.08 * vn) / (1 / ma + 1 / mc);
       a.vx -= imp / ma * dx; a.vy -= imp / ma * dy; c.vx += imp / mc * dx; c.vy += imp / mc * dy;
       // shoulder to shoulder with the ball carrier
       const car = b.owner === a ? a : b.owner === c ? c : null, hit = car === a ? c : a;
@@ -3386,12 +3403,27 @@ window.RUT = window.RUT || {};
     const b = this.ball, o = b.owner;
     if (!o) return;
     const sp = len(o.vx, o.vy), k = clamp(sp / Math.max(1, o.sprintMax), 0, 1);
-    const pulse = 0.5 + 0.5 * Math.sin((o.anim || 0) * 2.2), off = 0.55 + k * (0.2 + 0.6 * pulse * pulse), sw = Math.sin((o.anim || 0) * 1.1) * 0.1 * k;   // v322 (JODIO, FC27 video): on the run the ball is knocked a little ahead with each stride and drawn back in, instead of being glued to the boot
-    const tx = o.x + o.fx * off - o.fy * sw + (o.skOx || 0), ty = o.y + o.fy * off + o.fx * sw + (o.skOy || 0);
-    if (snap || !dt || o.skill) { b.x = tx; b.y = ty; }
-    else { const f = 1 - Math.exp(-(22 + 20 * nrm(o.card.sub.ballControl)) * dt); b.x += (tx - b.x) * f; b.y += (ty - b.y) * f; }
-    b.z = 0;
-    b.vx = o.vx; b.vy = o.vy; b.vz = 0;
+    const beat = Math.floor((o.gait || 0) * 2);
+    const cadence = Math.max(0.16, 0.42 - k * 0.22);
+    const settling = o.firstTouch && o.firstTouch.until > this.t ? o.firstTouch.offset : 0;
+    if (snap || !dt || o.skill || !o.dribbleTouch) {
+      const offset = 0.5 + k * 0.65 + settling;
+      b.x = o.x + o.fx * offset + (o.skOx || 0); b.y = o.y + o.fy * offset + (o.skOy || 0);
+      b.vx = o.vx; b.vy = o.vy;
+      o.dribbleTouch = { time: this.t, beat };
+    } else if (beat !== o.dribbleTouch.beat && this.t - o.dribbleTouch.time >= cadence * 0.65
+        || this.t - o.dribbleTouch.time >= cadence
+        || Math.hypot(b.x - o.x, b.y - o.y) > 1.8) {
+      const control = nrm(o.card.sub.ballControl || 60);
+      const lead = 0.5 + k * (0.55 + 0.2 * (1 - control)) + settling;
+      const remaining = cadence;
+      b.vx = o.vx + (o.x + o.fx * lead - b.x) / remaining;
+      b.vy = o.vy + (o.y + o.fy * lead - b.y) / remaining;
+      o.dribbleTouch = { time: this.t, beat };
+      this.contactEvent(o, 'touch');
+    }
+    if (dt && !snap && !o.skill) { b.x += b.vx * dt; b.y += b.vy * dt; }
+    b.z = 0; b.vz = 0;
   };
 
   P.updateBall = function (dt) {
@@ -3707,7 +3739,7 @@ window.RUT = window.RUT || {};
     this.stats.onTarget[b.shot.team]++;
     this.ev('sot', b.shot.by, { team: b.shot.team });
     const saved = this.rng() < p; if (!saved) b.shot.beat = true;
-    if (saved) { const dx0 = b.x - gk.x, dy0 = b.y - gk.y, dd0 = Math.hypot(dx0, dy0); if (dd0 > 0.8) { gk.x += dx0 / dd0 * (dd0 - 0.8); gk.y += dy0 / dd0 * (dd0 - 0.8); } }   // v343 (JODIO): the keeper lunges onto the ball: it only bounces off him when it touches his body   // v197: a beaten keeper can't then just gather it with his body
+
     if (saved) {
       this.ev('save', gk, { by: b.shot.by });
       this.psIconAny(gk, [shooterDist < 14 && 'Footwork', shooterDist < 14 && '1v1 Close Down', b.z > 1.8 && 'Cross Claimer', 'Far Reach', 'Deflector'], 1.4);   // v166
@@ -4219,17 +4251,17 @@ window.RUT = window.RUT || {};
       // too heavy for this machine? after a couple of seconds of slow frames drop to High so the game stays playable
       this._u3n = (this._u3n || 0) + 1; this._u3sum = (this._u3sum || 0) + dt;
       if (this._u3n >= 150) { const av = this._u3sum / this._u3n, u = this._u3scale || 0.9; if (av > 0.024 && !window.RUT_KEEP3D && u > 0.5) this._u3scale = Math.max(0.5, u * 0.85); else if (av < 0.0175 && u < 0.9) this._u3scale = Math.min(0.9, u / 0.9); this._u3n = this._u3sum = 0; }   // v167: slow machine: fewer pixels, still full 3D
-      U.frame(this, { w: CW, h: CH, mode: this.camMode, camX, camY: this.cam.y, fy: CAM_FY, shake, crowd: crowdFrame, dt, sprites: true, spCam: this.spView === 'tv' ? null : (c => c && Object.assign({ view: this.spView || 'behind' }, c))(this.spCamera()) });   // v171: the 3D world, players drawn below as the normal-mode pixel sprites
+      U.frame(this, { w: CW, h: CH, mode: this.camMode, camX, camY: this.cam.y, fy: CAM_FY, shake, crowd: crowdFrame, dt, sprites: false, spCam: this.spView === 'tv' ? null : (c => c && Object.assign({ view: this.spView || 'behind' }, c))(this.spCamera()) });   // v171: the 3D world, players drawn below as the normal-mode pixel sprites
       ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(U.canvas, 0, 0, CW, CH); ctx.restore();
       const proj = (x, y, z) => U.proj(x, y, z, VIEW_W, VIEW_H);
       this.proj = proj; this._cv = ctx.canvas;
       this.drawGroundFx(ctx, proj); this.drawFcGround(ctx, proj);
-      // v171 (JODIO: "the players look the same as normal mode, with the better 3D physics"): soft shadows, then the pixel players and the ball, far to near
-      this.players.forEach(p => { const ro = this.runOff(p), s = proj(p.x + (ro ? ro.x : 0) + 0.25 / ZOOM, p.y + (ro ? ro.y : 0), 0), a = s.k / ZOOM * PLAYER_BIG * this._sizeOf(p); ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(s.x + 0.4 * a, s.y, 0.62 * a, 0.2 * a, 0, 0, Math.PI * 2); ctx.fill(); });
-      { const kOf = (x, y) => proj(x, y, 0).k;   // v185: sorted by distance to the camera (the set-piece camera looks down the pitch, not across it)
-        const items = this.players.map(p => { const ro = this.runOff(p); return { y: kOf(p.x + (ro ? ro.x : 0), p.y + (ro ? ro.y : 0)), draw: () => this.drawPlayer3D(ctx, p, proj) }; });   // v177: the ball joins the depth sort so a player never hides it
-        { const bp = this.ballDrawPos(); items.push({ y: kOf(bp.x, bp.y) * 1.002, draw: () => this.drawBall3D(ctx, this.ball, proj) }); }
-        this.trWallItems(ctx, proj, kOf).forEach(it => items.push(it)); items.sort((a, c) => a.y - c.y).forEach(it => it.draw()); }
+      // WebGL owns player and ball geometry. Retain only screen-space labels and controls.
+      this.players.forEach(player => {
+        const feet = proj(player.x, player.y, 0);
+        const controller = this.ctls.find(control => control && control.controlled === player);
+        this.drawPlayerHud(ctx, player, feet, Math.max(0.35, feet.k / 24), controller);
+      });
       const b = this.ball, tc = { shot: '#ffffff' }[b.trailType];
       if (tc) b.trail.forEach((q, i) => { const s = proj(q.x, q.y, q.z + 0.11); ctx.globalAlpha = i / b.trail.length * 0.8; ctx.fillStyle = tc; const w = Math.max(2, Math.round(0.25 * s.k / ZOOM)); ctx.fillRect(Math.round(s.x - w / 2), Math.round(s.y - w / 2), w, w); });
       ctx.globalAlpha = 1;
@@ -4324,7 +4356,7 @@ void main(){
     };
     this.proj = proj; this._cv = ctx.canvas;
     // full screen: the drawing space follows the window's aspect (4:3 up to ultra-wide) at 1080 lines (times the adaptive quality)
-    if (this.gfx !== 'auto') this._q = GFX_Q[this.gfx] * (this.gfx === '3d' ? (this._u3scale || 0.9) : 1);   // v200: 3D starts at 90% resolution (972 lines), smoothing hides it
+    if (this.gfx !== 'auto') this._q = GFX_Q[this.gfx] * (this.gfx === '3d' ? (this._u3scale || 0.65) : 1);   // v200: 3D starts at 90% resolution (972 lines), smoothing hides it
     const LQ = this._q || 1, lite = LQ <= 0.85, lite2 = LQ <= 0.5, lite3 = LQ <= 0.35;      // cheaper drawing on weak machines
     { const PX = RUT.PixelArt; if (PX && PX.setHD && PX.isHD() === lite) PX.setHD(!lite); }                                       // HD sprites (more parts, 1.4x supersampled) unless the machine is struggling
     { const cv = ctx.canvas, asp = cv.clientWidth > 50 && cv.clientHeight > 50 ? cv.clientWidth / cv.clientHeight : 4 / 3, q = this._q || 1;
@@ -5529,7 +5561,7 @@ void main(){
   /** Attach to a canvas and run with requestAnimationFrame (fixed 60 Hz steps). */
   P.start = function (canvas) {
     this.canvas = canvas; this._q = 1;
-    { let g = '3d'; try { g = localStorage.getItem('rut_gfx') || '3d'; } catch (e) {} if (window.RUT_LITE && /^(3d|ultra|high|auto)$/.test(g)) { this.gfx = 'low'; this._q = GFX_Q.low; } else this.setGfx(GFX_Q[g] ? g : '3d'); }   // v200 Lite mode: 2D Low, no WebGL, no 600 KB three.js download   // v151: Full 3D unless the player chose another look canvas.width = OUT_W; canvas.height = OUT_H;
+    this.setGfx('3d'); // Full 3D is the match default, including touch devices.
     const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });   // GPU-composited canvas, low-latency presentation
     const step = 1 / 60;
     let acc = 0, last = performance.now();

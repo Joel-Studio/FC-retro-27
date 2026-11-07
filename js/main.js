@@ -2467,7 +2467,7 @@
   }
   function trainPanelHTML() {
     const sel = (id, opts, cur) => `<select id="${id}">${opts.map(([v, t]) => `<option value="${v}" ${String(cur) === String(v) ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
-    return `<div class="tr-panel"><button class="btn sm y" data-tr="toggle">Setup ▾</button><div class="tr-body">
+    return `<div class="tr-panel shut"><button class="btn sm y" data-tr="toggle">Setup ▸</button><div class="tr-body">
       <label>Player</label><input id="tr-hero" list="tr-dl" value="${esc(TR.hero.name)}" autocomplete="off"><datalist id="tr-dl">${DB.all.map(c => `<option value="${esc(c.name)}">`).join('')}</datalist>
       <label>Pitch</label>${sel('tr-pitch', [['huge', 'Huge 160x116'], ['large', 'Large 130x96'], ['standard', 'Standard 105x80']], TR.pitch)}
       <label>Opponents</label><div class="row">${sel('tr-foes', [0, 1, 2, 3, 4].map(n => [n, n]), TR.foes)}${sel('tr-mode', [['cone', 'Cones (still)'], ['press', 'Defenders (press)'], ['attack', 'Attackers (you defend)']], TR.foeMode)}${sel('tr-lvl', [['amateur', 'Weak'], ['pro', 'Good'], ['world', 'World class']], TR.lvl)}</div>
@@ -4157,7 +4157,7 @@ const NATION_FULL = {ARG: 'Argentina',AUT: 'Austria',BEL: 'Belgium',BFA: 'Burkin
         if (App.match || document.querySelector('#modal-root .modal') || document.getElementById('fcr-intro')) return;
         clearInterval(releaseTimer);
         modal(`<h1>What's new</h1><p class="gold">FC RETRO 27 · Version ${window.RUT_VERSION}</p>
-          <ul style="line-height:1.7"><li>Card figures have refined body proportions, layered hair and facial-hair texture, with simple hands and boots.</li><li>Champions League form now includes all November 3–4 results.</li><li>Home now features Future Stars cards with quick Play and Club actions.</li><li>Mobile menus have larger tiles and grouped section tabs.</li><li>Bottom navigation: Home, Play, Club, League and Store.</li><li>Landscape layout puts cards and controls side by side.</li></ul>
+          <ul style="line-height:1.7"><li>Full 3D match players turn with movement and use shared player hairstyles.</li><li>Stride-timed touches, momentum and contact-aware keeper saves.</li><li>104 hair details up close with adaptive match detail.</li><li>Card figures have refined body proportions, layered hair and facial-hair texture, with simple hands and boots.</li><li>Champions League form now includes all November 3–4 results.</li><li>Home now features Future Stars cards with quick Play and Club actions.</li><li>Mobile menus have larger tiles and grouped section tabs.</li><li>Bottom navigation: Home, Play, Club, League and Store.</li><li>Landscape layout puts cards and controls side by side.</li></ul>
           <button class="btn y" data-act="release-dismiss">Let's play</button>`);
       }, 1000);
     }

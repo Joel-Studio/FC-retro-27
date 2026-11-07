@@ -1238,7 +1238,7 @@ window.RUT = window.RUT || {};
         const hairRandom = rng((L.fseed || 1) ^ 0x51a7);
         const curled = ['curly', 'curlfade', 'afro'].includes(style);
         const cropped = style === 'fade';
-        const count = curled ? 72 : style === 'dreads' ? 64 : 56;
+        const count = 104;
         for (let index = 0; index < count; index++) {
           const angle = index * 2.39996 + hairRandom() * 0.25;
           let height = 0.3 + 0.68 * hairRandom();
