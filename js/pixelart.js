@@ -200,8 +200,8 @@ window.RUT = window.RUT || {};
       : (lum(shirt) > 0.55 ? (lum(second) < 0.45 ? second : '#151515') : (lum(second) > 0.6 ? second : '#ffffff'));
     return {
       fseed: hashStr(name + '#face'),
-      key: [skin, hair, style, eye || '', beard ? 1 : 0, full ? 1 : 0, band || '', bw.toFixed(2), star ? star.id : '', x && x.locProfile || '', shirt, pattern, pc, shorts, socks, boots, isGK ? 1 : 0, number].join('|'),
-      locProfile: x && x.locProfile, eye, full, band, bw, star, skin, skinL: shade(skin, 0.2), skinD: shade(skin, -0.24),
+      key: [skin, hair, style, eye || '', beard ? 1 : 0, full ? 1 : 0, band || '', bw.toFixed(2), star ? star.id : '', x && x.locProfile || '', x && x.hairTop || '', shirt, pattern, pc, shorts, socks, boots, isGK ? 1 : 0, number].join('|'),
+      hairTop: x && x.hairTop, locProfile: x && x.locProfile, eye, full, band, bw, star, skin, skinL: shade(skin, 0.2), skinD: shade(skin, -0.24),
       hair, hairL: shade(hair, 0.32), hairD: shade(hair, -0.35), style, beard,
       shirt, pat: makePattern(pattern, shirt, pc), pattern,
       trim, sponsor, number, numCol,
@@ -1210,6 +1210,7 @@ window.RUT = window.RUT || {};
         const low = l.y < hairline(style, l.z) + 0.3;
         if (style === 'curly' || style === 'afro' || style === 'curlfade') { const k = style === 'afro' ? 9 : 13, cx = n.x * k, cy = n.y * k, cz = n.z * k;
           const v = Math.sin(cx + Math.sin(cy * 1.3)) * Math.sin(cy + Math.sin(cz * 1.7)) * Math.sin(cz + Math.sin(cx * 1.1));
+          if (L.hairTop && l.y > 0.52) return shade(L.hairTop, v > 0.32 ? 0.18 : v < -0.3 ? -0.25 : 0);
           return v > 0.32 ? L.hairL : v < -0.3 || low ? L.hairD : L.hair; }
         if (style === 'dreads') { const a = Math.atan2(l.x, l.z), q = Math.sin(a * 11 + l.y * 2); return q > 0.55 ? L.hairL : q < -0.5 || low ? L.hairD : L.hair; }   // locs run down from the crown
         if (style === 'short' || style === 'long' || style === 'bun' || style === 'slick') { const q = Math.sin((style === 'slick' || style === 'bun' ? l.x * 3 + l.z * 18 : l.x * 22 + l.z * 4)); return l.y > 0.55 && q > 0.6 ? L.hairL : low || q < -0.75 ? L.hairD : L.hair; }   // strands
@@ -1229,7 +1230,7 @@ window.RUT = window.RUT || {};
           if (height < hairline(style, local.z, local.x) + (cropped ? 0.23 : 0.08)) continue;
           const position = vadd(hc, vmul(toView(local), hr + grow * 0.65));
           const size = curled ? 0.65 + hairRandom() * 0.65 : 0.35 + hairRandom() * 0.35;
-          const colour = shade(L.hair, -0.12 + hairRandom() * 0.25);
+          const colour = shade(L.hairTop && height > 0.52 ? L.hairTop : L.hair, -0.12 + hairRandom() * 0.25);
           if (curled) {
             ellipsoid(R, position, size, size * 0.85, normal => normal.y > 0.6 ? shade(colour, 0.12) : colour, ID.hair);
           } else {
@@ -1247,13 +1248,13 @@ window.RUT = window.RUT || {};
         for (let index = 0; index < count; index++) {
           const angle = index / count * Math.PI * 2;
           const front = Math.cos(angle) > 0.25;
-          const length = (olise ? 0.65 : 0.85) + random() * 0.3;
+          const length = (olise ? 0.65 : 1.1) + random() * 0.3;
           const root = V(Math.sin(angle) * 0.72, olise ? 0.65 : 0.42, Math.cos(angle) * 0.65);
           const middle = V(root.x * 1.18, root.y - length * 0.42, root.z * 1.2);
           const end = V(root.x * 1.25, root.y - length, root.z * 1.3);
           if (front) { end.y += olise ? 0.18 : 0.1; end.x += (index % 2 ? 1 : -1) * 0.12; }
           const point = local => vadd(hc, vmul(toView(local), hr));
-          const radius = olise ? 0.65 : 0.53;
+          const radius = olise ? 0.65 : 0.66;
           capsule(R, point(root), point(middle), radius, radius * 0.9, () => L.hairD, ID.hair);
           capsule(R, point(middle), point(end), radius * 0.9, radius * 0.6, (t, n) => n.x > 0.4 ? L.hair : L.hairD, ID.hair);
         }
@@ -1261,7 +1262,13 @@ window.RUT = window.RUT || {};
       if (style === 'dreads' && !L.locProfile) [-0.7, -0.35, 0, 0.35, 0.7].forEach(x => capsule(R, vadd(hc, vmul(toView(V(x, 0.2, -0.78)), hr)), vadd(hc, vmul(toView(V(x * 1.15, -1.1, -0.72)), hr)), 1.5, 1.2, () => L.hair, ID.hair));
       if (style === 'long') capsule(R, vadd(hc, vmul(toView(V(0, -0.1, -0.8)), hr)), vadd(hc, vmul(toView(V(0, -1.25, -0.6)), hr)), 4.0, 3.4, () => L.hair, ID.hair);
     }
-    if (L.band) [-0.78, -0.4, 0, 0.4, 0.78].forEach(x => ellipsoid(R, vadd(hc, vmul(toView(V(x, 0.5 - Math.abs(x) * 0.12, Math.sqrt(Math.max(0.05, 1 - x * x - 0.25)))), hr * 1.01)), 1.5, 1.3, () => L.band, ID.hair));   // headband
+    if (L.band && L.locProfile) {
+      for (let segment = 0; segment < 32; segment++) {
+        const ringPoint = angle => vadd(hc, vmul(toView(V(Math.sin(angle) * 1.08, 0.29, Math.cos(angle) * 1.08)), hr));
+        capsule(R, ringPoint(segment / 32 * Math.PI * 2), ringPoint((segment + 1) / 32 * Math.PI * 2), 0.5, 0.5, () => L.band, ID.hair);
+      }
+    }
+    if (L.band && !L.locProfile) [-0.78, -0.4, 0, 0.4, 0.78].forEach(x => ellipsoid(R, vadd(hc, vmul(toView(V(x, 0.5 - Math.abs(x) * 0.12, Math.sqrt(Math.max(0.05, 1 - x * x - 0.25)))), hr * 1.01)), 1.5, 1.3, () => L.band, ID.hair));   // headband
     if (L.full) ellipsoid(R, vadd(hc, vmul(toView(V(0, -0.72, 0.5)), hr)), L.cardBody ? hr * 0.55 : 4.4, L.cardBody ? hr * 0.43 : 3.4, normal => {
       if (!L.cardBody) return L.hairD;
       const strands = Math.sin(normal.x * 48 + normal.y * 7) * Math.sin(normal.y * 33);
