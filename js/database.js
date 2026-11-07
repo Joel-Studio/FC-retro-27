@@ -1335,6 +1335,7 @@ window.RUT = window.RUT || {};
   }
   function raphinhaFix(card) {
     if (!card || card.name !== 'Raphinha') return card;
+    card.playStyles = ['Low Driven Shot+'].concat(card.playStyles.filter(style => !/^Low Driven Shot/.test(style)));
     const shooting = Math.min(99, card.rating + 3);
     card.face.sho = shooting;
     SUB_MAP.sho.forEach(stat => { card.sub[stat] = shooting; });

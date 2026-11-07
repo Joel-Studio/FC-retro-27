@@ -298,6 +298,7 @@ Francesco Pio Esposito|188|F|N|short|0|w
   });
   Object.assign(RUT.REAL['Lamine Yamal'], { style: 'curlfade', hair: '#191310', hairTop: '#d3b36b', beard: false, full: false });
   Object.assign(RUT.REAL['Jude Bellingham'], { style: 'fade', hairVolume: 1, beard: false, full: false });
+  Object.assign(RUT.REAL['Raphinha'], { style: 'dreads', locProfile: 'raphinha', hair: '#21170f' });
   // Explicit likeness corrections override the older generic appearance table.
   Object.assign(RUT.REAL['Michael Olise'], { style: 'dreads', hair: '#17120f', locProfile: 'olise', beard: false, full: false });
   Object.assign(RUT.REAL['Yan Diomandé'], { style: 'dreads', hair: '#17120e', locProfile: 'diomande', band: '#17171b', beard: false, full: false });

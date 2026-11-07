@@ -1268,7 +1268,7 @@ window.RUT = window.RUT || {};
         for (let index = 0; index < count; index++) {
           const angle = index / count * Math.PI * 2;
           const front = Math.cos(angle) > 0.25;
-          const length = (olise ? 0.65 : 1.1) + random() * 0.3;
+          const length = (L.locProfile === 'raphinha' ? 0.48 : olise ? 0.65 : 1.1) + random() * 0.3;
           const root = V(Math.sin(angle) * 0.72, olise ? 0.65 : 0.42, Math.cos(angle) * 0.65);
           const middle = V(root.x * 1.18, root.y - length * 0.42, root.z * 1.2);
           const end = V(root.x * 1.25, root.y - length, root.z * 1.3);
