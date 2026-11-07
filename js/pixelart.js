@@ -1063,10 +1063,11 @@ window.RUT = window.RUT || {};
 
   /** Render the whole figure for one pose, view yaw and scale. Returns the raster. */
   function renderFigure(L, anim, t, yaw, gk, scale) {
-    const r6 = L.r6 !== false, Bsave = r6 ? Object.assign({}, B) : null;
+    const r6 = L.r6 !== false, Bsave = (r6 || L.cardBody) ? Object.assign({}, B) : null;
     if (r6) Object.assign(B, R6B);
-    flatL = !!L.flat;   // v276: card figures are flat 2D, two-tone cel shading
-    try { return renderFigure0(L, anim, t, yaw, gk, scale, r6); } finally { flatL = false; if (Bsave) Object.assign(B, Bsave); }
+    if (L.cardBody) Object.assign(B, { torso: 15.2, shW: 7.3, upper: 7.1, fore: 6.5, neck: 1.6, headR: 5.4 });
+    flatL = !!L.flat; smoothL = !!L.cardBody;   // v276: card figures are flat 2D, two-tone cel shading
+    try { return renderFigure0(L, anim, t, yaw, gk, scale, r6); } finally { flatL = false; smoothL = false; if (Bsave) Object.assign(B, Bsave); }
   }
   function renderFigure0(L, anim, t, yaw, gk, scale, r6) {
     // sprite-artist cheat: in profile the chest and face turn ~30 degrees toward the camera, so both arms and the face read
@@ -1154,10 +1155,11 @@ window.RUT = window.RUT || {};
       if (HD) {                                                                  // v127 detail: shoulder, biceps, fingers and thumb (keepers: gloves with cuff strap)
         ellipsoid(R, J['sh' + sd], 3.0, 3.0, () => sleeve[k], id);
         ellipsoid(R, vadd(J['sh' + sd], vmul(vsub(J['elbow' + sd], J['sh' + sd]), 0.38)), 2.6, 2.9, () => sleeve[k], id);
-        const hd0 = J['hand' + sd], fd = vnorm(vsub(hd0, J['elbow' + sd])), pp = V(-fd.y, fd.x, 0), fl = isGK ? 3.0 : 2.5, fr = isGK ? 0.85 : 0.6;
-        [-1.5, -0.5, 0.5, 1.5].forEach(o => capsule(R, vadd(hd0, vmul(pp, o * 0.55)), vadd(vadd(hd0, vmul(fd, fl - Math.abs(o) * 0.25)), vmul(pp, o * 0.7)), fr, fr * 0.9, () => hand, id));
-        capsule(R, hd0, vadd(vadd(hd0, vmul(fd, 1.3)), vmul(pp, (sd === 'L' ? 1 : -1) * 1.9)), fr * 1.1, fr, () => hand, id);
-        if (isGK) capsule(R, vadd(hd0, vmul(fd, -1.1)), vadd(hd0, vmul(fd, 0.2)), 2.1, 2.1, () => L.trim, id);
+        // A single rounded hand keeps the silhouette readable without digits.
+        if (isGK) {
+          const handDirection = vnorm(vsub(J['hand' + sd], J['elbow' + sd]));
+          capsule(R, vadd(J['hand' + sd], vmul(handDirection, -1.1)), J['hand' + sd], 2.1, 2.1, () => L.trim, id);
+        }
       }
     });
 
@@ -1175,6 +1177,21 @@ window.RUT = window.RUT || {};
         if (l.y > hl) return style === 'buzz' ? L.hairD : L.hair;
         if ((style === 'fade' || style === 'curlfade') && l.y > hl - 0.4 && l.z < 0.35) return l.y > hl - 0.2 ? L.hairD : L.skinD;   // v195: the fade goes from hair to skin
       }
+      if (L.cardBody && (L.beard || L.full) && l.z > 0.08) {
+        const side = Math.abs(l.x);
+        const cheekLine = -0.38 + side * 0.18;
+        const mouthOpening = side < 0.28 && l.y > -0.62 && l.y < -0.39 && l.z > 0.6;
+        const moustache = side < 0.38 && l.y > -0.43 && l.y < -0.32 && l.z > 0.62;
+        const sideburn = side > 0.75 && l.y > -0.35 && l.y < 0.08;
+        if (!mouthOpening && (l.y < cheekLine || moustache || sideburn)) {
+          const strand = Math.sin(l.x * 65 + l.y * 18) * Math.sin(l.y * 57 - l.z * 9);
+          const edge = l.y > cheekLine - 0.08;
+          if (edge && strand < 0.15 && !moustache && !sideburn) return shade(sk, -0.12);
+          if (!L.full && strand < -0.1) return shade(sk, -0.22);
+          return strand > 0.5 ? shade(L.hair, 0.13) : L.hairD;
+        }
+        return sk;
+      }
       if (L.beard && l.z > 0.05 && l.y < -0.34 && !(l.y > -0.62 && Math.abs(l.x) < 0.28 && l.z > 0.6)) return L.hairD;
       return sk;
     };
@@ -1182,7 +1199,8 @@ window.RUT = window.RUT || {};
     else ellipsoid(R, hc, hr, hry, n => headCol(toLocal(n)), ID.head);
     const hairVol = true;   // v267: hair keeps its volume on the round R6 head
     if (style !== 'bald') {                                                                  // hair volume above the scalp
-      const grow = style === 'afro' ? 3.6 : style === 'curly' ? 1.8 : style === 'curlfade' ? 1.5 : style === 'dreads' ? 1.4 : style === 'buzz' ? 0.3 : style === 'fade' ? 0.5 : style === 'slick' ? 0.7 : 0.9;
+      const hairScale = L.cardBody ? 0.78 : 1;
+      const grow = hairScale * (style === 'afro' ? 3.6 : style === 'curly' ? 1.8 : style === 'curlfade' ? 1.5 : style === 'dreads' ? 1.4 : style === 'buzz' ? 0.3 : style === 'fade' ? 0.5 : style === 'slick' ? 0.7 : 0.9);
       const c2 = style === 'afro' ? vadd(hc, V(0, 1.4, -0.3)) : style === 'curly' ? vadd(hc, V(0, 0.8, 0)) : hc;
       if (hairVol) ellipsoid(R, c2, hr + grow, hry + grow, n => {
         const l = toLocal(n);
@@ -1197,13 +1215,40 @@ window.RUT = window.RUT || {};
         if (style === 'short' || style === 'long' || style === 'bun' || style === 'slick') { const q = Math.sin((style === 'slick' || style === 'bun' ? l.x * 3 + l.z * 18 : l.x * 22 + l.z * 4)); return l.y > 0.55 && q > 0.6 ? L.hairL : low || q < -0.75 ? L.hairD : L.hair; }   // strands
         return style === 'buzz' ? L.hairD : low ? L.hairD : L.hair;
       }, ID.hair);
-      if (style === 'bun') { ellipsoid(R, vadd(hc, vmul(toView(V(0, 0.95, -0.45)), hr)), 3.4, 3.1, () => L.hair, ID.hair); ellipsoid(R, vadd(hc, vmul(toView(V(0, 1.05, -0.4)), hr)), 2.0, 1.6, () => L.hairL, ID.hair); }   // top knot, seen from the front too
+      // Card-size geometry creates an uneven silhouette, not just painted scalp texture.
+      if (L.cardBody && style !== 'buzz' && style !== 'bald') {
+        const hairRandom = rng((L.fseed || 1) ^ 0x51a7);
+        const curled = ['curly', 'curlfade', 'afro'].includes(style);
+        const cropped = style === 'fade';
+        const count = curled ? 38 : style === 'dreads' ? 16 : cropped ? 12 : 22;
+        for (let index = 0; index < count; index++) {
+          const angle = index * 2.39996 + hairRandom() * 0.25;
+          const height = 0.3 + 0.68 * hairRandom();
+          const radius = Math.sqrt(1 - height * height);
+          const local = V(Math.cos(angle) * radius, height, Math.sin(angle) * radius);
+          if (height < hairline(style, local.z, local.x) + (cropped ? 0.23 : 0.08)) continue;
+          const position = vadd(hc, vmul(toView(local), hr + grow * 0.65));
+          const size = curled ? 0.65 + hairRandom() * 0.65 : 0.35 + hairRandom() * 0.35;
+          const colour = shade(L.hair, -0.12 + hairRandom() * 0.25);
+          if (curled) {
+            ellipsoid(R, position, size, size * 0.85, normal => normal.y > 0.6 ? shade(colour, 0.12) : colour, ID.hair);
+          } else {
+            const sweep = style === 'slick' || style === 'bun' ? V(0, 0.1, -0.32) : V(0.2, -0.08, 0.18);
+            capsule(R, position, vadd(position, vmul(toView(sweep), hr)), size, size * 0.35, () => colour, ID.hair);
+          }
+        }
+      }
+      if (style === 'bun') { ellipsoid(R, vadd(hc, vmul(toView(V(0, 0.95, -0.45)), hr)), L.cardBody ? 2.6 : 3.4, L.cardBody ? 2.4 : 3.1, () => L.hair, ID.hair); ellipsoid(R, vadd(hc, vmul(toView(V(0, 1.05, -0.4)), hr)), 2.0, 1.6, () => L.hairL, ID.hair); }   // top knot, seen from the front too
       if (style === 'mohawk') capsule(R, vadd(hc, vmul(toView(V(0, 0.95, 0.5)), hr)), vadd(hc, vmul(toView(V(0, 0.8, -0.7)), hr)), 1.7, 1.5, () => L.hairL, ID.hair);
       if (style === 'dreads') [-0.7, -0.35, 0, 0.35, 0.7].forEach(x => capsule(R, vadd(hc, vmul(toView(V(x, 0.2, -0.78)), hr)), vadd(hc, vmul(toView(V(x * 1.15, -1.1, -0.72)), hr)), 1.5, 1.2, () => L.hair, ID.hair));
       if (style === 'long') capsule(R, vadd(hc, vmul(toView(V(0, -0.1, -0.8)), hr)), vadd(hc, vmul(toView(V(0, -1.25, -0.6)), hr)), 4.0, 3.4, () => L.hair, ID.hair);
     }
     if (L.band) [-0.78, -0.4, 0, 0.4, 0.78].forEach(x => ellipsoid(R, vadd(hc, vmul(toView(V(x, 0.5 - Math.abs(x) * 0.12, Math.sqrt(Math.max(0.05, 1 - x * x - 0.25)))), hr * 1.01)), 1.5, 1.3, () => L.band, ID.hair));   // headband
-    if (L.full) ellipsoid(R, vadd(hc, vmul(toView(V(0, -0.72, 0.5)), hr)), 4.4, 3.4, () => L.hairD, ID.hair);   // full beard
+    if (L.full) ellipsoid(R, vadd(hc, vmul(toView(V(0, -0.72, 0.5)), hr)), L.cardBody ? hr * 0.55 : 4.4, L.cardBody ? hr * 0.43 : 3.4, normal => {
+      if (!L.cardBody) return L.hairD;
+      const strands = Math.sin(normal.x * 48 + normal.y * 7) * Math.sin(normal.y * 33);
+      return strands > 0.35 ? L.hair : L.hairD;
+    }, ID.hair);   // full beard
     [1, -1].forEach(sg => ellipsoid(R, vadd(hc, vmul(toView(V(sg * 0.98, -0.05, -0.08)), hr)), 1.25, 1.55, () => sk, ID.head));
     ellipsoid(R, vadd(hc, vmul(toView(V(0, -0.14, 1)), hr)), FV.nrx, FV.nry * 1.15, () => sk, ID.head);
     if (HD && !(L.beard || L.full)) ellipsoid(R, vadd(J.neck, V(0, B.neck * 0.55, 0.35)), 2.0, 1.1, () => shade(sk, -0.2), ID.head);   // v264: the jaw's shadow on the neck
@@ -1383,7 +1428,7 @@ window.RUT = window.RUT || {};
     const key = card.name + '|' + card.club + '|' + card.position + '|' + (pose || 'idle');
     if (figCache[key]) return figCache[key];
     const L0 = lookFor(card.name, kit, card.position === 'GK', 0, { club: card.club, number: card.details && card.details.number, strength: card.sub && card.sub.strength });
-    const L = Object.assign({}, L0, { r6: false, flat: true, key: L0.key + '|oldflat' });   // v281 (JODIO): card figures are a flat 2D drawing of the old v260 body
+    const L = Object.assign({}, L0, { r6: false, flat: false, cardBody: true, key: L0.key + '|athletic-card-hair-beard-v3' });   // v281 (JODIO): card figures are a flat 2D drawing of the old v260 body
     let anim = pose === 'up' ? 'up' : pose === 'cross' ? 'cross' : idleFor(card.position), t = anim === 'up' ? 0.25 : 0.1, yaw = -0.45;
     if (!pose || pose === 'idle') { const pz = cardPose(card); anim = pz[0]; t = pz[1]; yaw = pz[2]; }
     yaw *= 0.5;   // v281: nearly front view   // v259 (JODIO): every player strikes his own pose on his card
