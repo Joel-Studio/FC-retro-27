@@ -285,6 +285,13 @@
     const rating = SBC.squadRating(cards.map(c => (c ? c.rating : 0))), chem = SBC.chemistry(cards).total;
     const packs = Object.entries(st.packsOwned).filter(([, n]) => n > 0);
     const s = st.stats;
+    if (matchMedia('(max-width: 800px)').matches) {
+      const link = (view, title, subtitle) => `<button data-act="nav" data-v="${view}"><b>${title}</b><small>${subtitle}</small><span aria-hidden="true">↗</span></button>`;
+      return `<section class="fc-home"><header><small>YOUR CLUB</small><h1>${esc(st.clubName)}</h1></header>
+        <div class="fc-home-stats" aria-label="Club summary"><div><small>Rating</small><b>${rating}</b></div><div><small>Chemistry</small><b>${chem}/33</b></div><div><small>Record</small><b>${s.wins}W · ${s.draws}D · ${s.losses}L</b></div></div>
+        <div class="fc-home-actions">${link('playhub', 'Play', 'Choose your match')}${link('clubhub', 'Club', 'Squad & development')}${link('quests', 'Objectives', 'Challenges & rewards')}${link('store', 'Packs', packs.reduce((total, [, count]) => total + count, 0) + ' available')}${link('markethub', 'Transfers', 'Buy & sell players')}${link('leaguehub', 'Leagues', 'Season & competitions')}</div>
+        <p class="fc-home-status">${st.unassigned.length ? st.unassigned.length + ' items waiting in Club → Unassigned' : 'Your club is ready. Pick a mode and play.'}</p></section>`;
+    }
     const stars = DB.players.filter(c => DB.signatureFor(c));
     const feat = stars[Math.floor(Date.now() / 8000) % stars.length];
     if (RUT.Menu2 && RUT.Menu2.on()) {   // v284: the new FC 26/27 style menu (set by js/menu2.js)
