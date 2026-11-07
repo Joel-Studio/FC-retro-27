@@ -200,8 +200,8 @@ window.RUT = window.RUT || {};
       : (lum(shirt) > 0.55 ? (lum(second) < 0.45 ? second : '#151515') : (lum(second) > 0.6 ? second : '#ffffff'));
     return {
       fseed: hashStr(name + '#face'),
-      key: [skin, hair, style, eye || '', beard ? 1 : 0, full ? 1 : 0, band || '', bw.toFixed(2), star ? star.id : '', x && x.locProfile || '', x && x.hairTop || '', x && x.hairVolume || 1, shirt, pattern, pc, shorts, socks, boots, isGK ? 1 : 0, number].join('|'),
-      hairVolume: x && x.hairVolume || 1, hairTop: x && x.hairTop, locProfile: x && x.locProfile, eye, full, band, bw, star, skin, skinL: shade(skin, 0.2), skinD: shade(skin, -0.24),
+      key: [skin, hair, style, eye || '', beard ? 1 : 0, full ? 1 : 0, band || '', bw.toFixed(2), star ? star.id : '', x && x.locProfile || '', x && x.hairTop || '', x && x.hairVolume || 1, x && x.hairProfile || '', shirt, pattern, pc, shorts, socks, boots, isGK ? 1 : 0, number].join('|'),
+      hairProfile: x && x.hairProfile, hairVolume: x && x.hairVolume || 1, hairTop: x && x.hairTop, locProfile: x && x.locProfile, eye, full, band, bw, star, skin, skinL: shade(skin, 0.2), skinD: shade(skin, -0.24),
       hair, hairL: shade(hair, 0.32), hairD: shade(hair, -0.35), style, beard,
       shirt, pat: makePattern(pattern, shirt, pc), pattern,
       trim, sponsor, number, numCol,
@@ -1202,7 +1202,7 @@ window.RUT = window.RUT || {};
       const hairScale = (L.cardBody ? 0.78 : 1) * (L.hairVolume || 1);
       const grow = hairScale * (style === 'afro' ? 3.6 : style === 'curly' ? 1.8 : style === 'curlfade' ? 1.5 : style === 'dreads' ? 1.4 : style === 'buzz' ? 0.3 : style === 'fade' ? 0.5 : style === 'slick' ? 0.7 : 0.9);
       const c2 = style === 'afro' ? vadd(hc, V(0, 1.4, -0.3)) : style === 'curly' ? vadd(hc, V(0, 0.8, 0)) : hc;
-      if (hairVol) ellipsoid(R, c2, hr + grow, hry + grow, n => {
+      if (hairVol && L.hairProfile !== 'jude-crop') ellipsoid(R, c2, hr + grow, hry + grow, n => {
         const l = toLocal(n);
         if (l.y <= hairline(style, l.z) + 0.08) return null;
         if (style === 'mohawk' && Math.abs(l.x) > 0.34) return null;
@@ -1216,8 +1216,25 @@ window.RUT = window.RUT || {};
         if (style === 'short' || style === 'long' || style === 'bun' || style === 'slick') { const q = Math.sin((style === 'slick' || style === 'bun' ? l.x * 3 + l.z * 18 : l.x * 22 + l.z * 4)); return l.y > 0.55 && q > 0.6 ? L.hairL : low || q < -0.75 ? L.hairD : L.hair; }   // strands
         return style === 'buzz' ? L.hairD : low ? L.hairD : L.hair;
       }, ID.hair);
+      if (L.hairProfile === 'jude-crop') {
+        // A tapered rectangular crown with softly rounded edges and short coiled curls.
+        const bottom = vadd(hc, vmul(toView(V(0, 0.48, 0)), hr));
+        const top = vadd(hc, vmul(toView(V(0, 1.12, 0)), hr));
+        boxy(R, bottom, top, hyaw, hr * 0.79, hr * 0.68, (x, z, t) => {
+          const texture = Math.sin(x * 9 + z * 4) * Math.sin(z * 11 - t * 16);
+          return texture > 0.35 ? L.hair : L.hairD;
+        }, ID.hair, 0.6);
+        const random = rng(L.fseed);
+        for (let row = 0; row < 8; row++) for (let column = 0; column < 8; column++) {
+          const x = (column / 7 - 0.5) * 1.48;
+          const z = (row / 7 - 0.5) * 1.25;
+          const height = 1.1 + random() * 0.08;
+          const centre = vadd(hc, vmul(toView(V(x, height, z)), hr));
+          ellipsoid(R, centre, hr * 0.11, hr * (0.075 + random() * 0.025), n => n.y > 0.55 ? L.hair : L.hairD, ID.hair);
+        }
+      }
       // Card-size geometry creates an uneven silhouette, not just painted scalp texture.
-      if (L.cardBody && style !== 'bald') {
+      if (L.cardBody && style !== 'bald' && L.hairProfile !== 'jude-crop') {
         const hairRandom = rng((L.fseed || 1) ^ 0x51a7);
         const curled = ['curly', 'curlfade', 'afro'].includes(style);
         const cropped = style === 'fade';
