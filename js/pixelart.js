@@ -200,8 +200,8 @@ window.RUT = window.RUT || {};
       : (lum(shirt) > 0.55 ? (lum(second) < 0.45 ? second : '#151515') : (lum(second) > 0.6 ? second : '#ffffff'));
     return {
       fseed: hashStr(name + '#face'),
-      key: [skin, hair, style, eye || '', beard ? 1 : 0, full ? 1 : 0, band || '', bw.toFixed(2), star ? star.id : '', x && x.locProfile || '', x && x.hairTop || '', shirt, pattern, pc, shorts, socks, boots, isGK ? 1 : 0, number].join('|'),
-      hairTop: x && x.hairTop, locProfile: x && x.locProfile, eye, full, band, bw, star, skin, skinL: shade(skin, 0.2), skinD: shade(skin, -0.24),
+      key: [skin, hair, style, eye || '', beard ? 1 : 0, full ? 1 : 0, band || '', bw.toFixed(2), star ? star.id : '', x && x.locProfile || '', x && x.hairTop || '', x && x.hairVolume || 1, shirt, pattern, pc, shorts, socks, boots, isGK ? 1 : 0, number].join('|'),
+      hairVolume: x && x.hairVolume || 1, hairTop: x && x.hairTop, locProfile: x && x.locProfile, eye, full, band, bw, star, skin, skinL: shade(skin, 0.2), skinD: shade(skin, -0.24),
       hair, hairL: shade(hair, 0.32), hairD: shade(hair, -0.35), style, beard,
       shirt, pat: makePattern(pattern, shirt, pc), pattern,
       trim, sponsor, number, numCol,
@@ -1199,7 +1199,7 @@ window.RUT = window.RUT || {};
     else ellipsoid(R, hc, hr, hry, n => headCol(toLocal(n)), ID.head);
     const hairVol = true;   // v267: hair keeps its volume on the round R6 head
     if (style !== 'bald') {                                                                  // hair volume above the scalp
-      const hairScale = L.cardBody ? 0.78 : 1;
+      const hairScale = (L.cardBody ? 0.78 : 1) * (L.hairVolume || 1);
       const grow = hairScale * (style === 'afro' ? 3.6 : style === 'curly' ? 1.8 : style === 'curlfade' ? 1.5 : style === 'dreads' ? 1.4 : style === 'buzz' ? 0.3 : style === 'fade' ? 0.5 : style === 'slick' ? 0.7 : 0.9);
       const c2 = style === 'afro' ? vadd(hc, V(0, 1.4, -0.3)) : style === 'curly' ? vadd(hc, V(0, 0.8, 0)) : hc;
       if (hairVol) ellipsoid(R, c2, hr + grow, hry + grow, n => {
@@ -1217,19 +1217,22 @@ window.RUT = window.RUT || {};
         return style === 'buzz' ? L.hairD : low ? L.hairD : L.hair;
       }, ID.hair);
       // Card-size geometry creates an uneven silhouette, not just painted scalp texture.
-      if (L.cardBody && style !== 'buzz' && style !== 'bald') {
+      if (L.cardBody && style !== 'bald') {
         const hairRandom = rng((L.fseed || 1) ^ 0x51a7);
         const curled = ['curly', 'curlfade', 'afro'].includes(style);
         const cropped = style === 'fade';
-        const count = curled ? 38 : style === 'dreads' ? 16 : cropped ? 12 : 22;
+        const count = curled ? 72 : style === 'dreads' ? 64 : 56;
         for (let index = 0; index < count; index++) {
           const angle = index * 2.39996 + hairRandom() * 0.25;
-          const height = 0.3 + 0.68 * hairRandom();
+          let height = 0.3 + 0.68 * hairRandom();
+          const minimum = Math.min(0.9, hairline(style, Math.sin(angle)) + (cropped ? 0.23 : 0.08));
+          height = Math.max(height, minimum + (0.98 - minimum) * hairRandom());
           const radius = Math.sqrt(1 - height * height);
           const local = V(Math.cos(angle) * radius, height, Math.sin(angle) * radius);
-          if (height < hairline(style, local.z, local.x) + (cropped ? 0.23 : 0.08)) continue;
+          height = Math.max(height, Math.min(0.98, hairline(style, local.z, local.x) + 0.12));
+          local.y = height;
           const position = vadd(hc, vmul(toView(local), hr + grow * 0.65));
-          const size = curled ? 0.65 + hairRandom() * 0.65 : 0.35 + hairRandom() * 0.35;
+          const size = style === 'buzz' ? 0.13 : curled ? 0.45 + hairRandom() * 0.5 : 0.2 + hairRandom() * 0.22;
           const colour = shade(L.hairTop && height > 0.52 ? L.hairTop : L.hair, -0.12 + hairRandom() * 0.25);
           if (curled) {
             ellipsoid(R, position, size, size * 0.85, normal => normal.y > 0.6 ? shade(colour, 0.12) : colour, ID.hair);
@@ -1257,6 +1260,21 @@ window.RUT = window.RUT || {};
           const radius = olise ? 0.65 : 0.66;
           capsule(R, point(root), point(middle), radius, radius * 0.9, () => L.hairD, ID.hair);
           capsule(R, point(middle), point(end), radius * 0.9, radius * 0.6, (t, n) => n.x > 0.4 ? L.hair : L.hairD, ID.hair);
+        }
+      }
+      if (L.locProfile === 'olise') {
+        const tie = vadd(hc, vmul(toView(V(0.22, 0.22, -1.12)), hr));
+        for (let index = 0; index < 12; index++) {
+          const offset = (index - 5.5) * 0.12;
+          const root = vadd(tie, toView(V(offset * hr, 0.1, 0)));
+          const tip = vadd(root, toView(V(offset * 2, -hr * (0.65 + (index % 3) * 0.1), -hr * 0.12)));
+          capsule(R, root, tip, 0.5, 0.28, () => index % 3 ? L.hairD : L.hair, ID.hair);
+        }
+        // Fabric scrunchie wraps the gathered locks at the back of the head.
+        for (let segment = 0; segment < 16; segment++) {
+          const angle = segment / 16 * Math.PI * 2;
+          const point = vadd(tie, toView(V(Math.cos(angle) * 1.8, Math.sin(angle) * 1.1, 0.1)));
+          ellipsoid(R, point, 0.6, 0.55, () => segment % 2 ? '#25212d' : '#66616f', ID.hair);
         }
       }
       if (style === 'dreads' && !L.locProfile) [-0.7, -0.35, 0, 0.35, 0.7].forEach(x => capsule(R, vadd(hc, vmul(toView(V(x, 0.2, -0.78)), hr)), vadd(hc, vmul(toView(V(x * 1.15, -1.1, -0.72)), hr)), 1.5, 1.2, () => L.hair, ID.hair));
