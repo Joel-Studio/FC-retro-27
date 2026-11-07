@@ -90,3 +90,7 @@
   .fc-home { gap: 6px; }
   .fc-home-stats { padding: 6px 0; }
 }
+.fc-explore-trigger { display: none; }
+@media (max-width: 800px) {
+  .fc-explore-trigger { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; margin-left: auto; }
+}
