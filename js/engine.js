@@ -3405,24 +3405,22 @@ window.RUT = window.RUT || {};
     const sp = len(o.vx, o.vy), k = clamp(sp / Math.max(1, o.sprintMax), 0, 1);
     const beat = Math.floor((o.gait || 0) * 2);
     const cadence = Math.max(0.16, 0.42 - k * 0.22);
-    const settling = o.firstTouch && o.firstTouch.until > this.t ? o.firstTouch.offset : 0;
-    if (snap || !dt || o.skill || !o.dribbleTouch) {
-      const offset = 0.5 + k * 0.65 + settling;
-      b.x = o.x + o.fx * offset + (o.skOx || 0); b.y = o.y + o.fy * offset + (o.skOy || 0);
-      b.vx = o.vx; b.vy = o.vy;
-      o.dribbleTouch = { time: this.t, beat };
-    } else if (beat !== o.dribbleTouch.beat && this.t - o.dribbleTouch.time >= cadence * 0.65
-        || this.t - o.dribbleTouch.time >= cadence
-        || Math.hypot(b.x - o.x, b.y - o.y) > 1.8) {
-      const control = nrm(o.card.sub.ballControl || 60);
-      const lead = 0.5 + k * (0.55 + 0.2 * (1 - control)) + settling;
-      const remaining = cadence;
-      b.vx = o.vx + (o.x + o.fx * lead - b.x) / remaining;
-      b.vy = o.vy + (o.y + o.fy * lead - b.y) / remaining;
-      o.dribbleTouch = { time: this.t, beat };
-      this.contactEvent(o, 'touch');
+    const settling = o.firstTouch && o.firstTouch.until > this.t ? Math.min(0.12, o.firstTouch.offset) : 0;
+    const lead = 0.48 + k * 0.28 + settling;
+    const targetX = o.x + o.fx * lead + (o.skOx || 0), targetY = o.y + o.fy * lead + (o.skOy || 0);
+    const previousX = b.x, previousY = b.y;
+    // Control responds every step; stride cadence controls animation only.
+    const blend = snap || !dt || o.skill || !o.dribbleTouch ? 1 : 1 - Math.exp(-dt / 0.025);
+    b.x += (targetX - b.x) * blend; b.y += (targetY - b.y) * blend;
+    const distance = Math.hypot(b.x - o.x, b.y - o.y);
+    if (distance > 0.95 && !o.skill) {
+      b.x = o.x + (b.x - o.x) * 0.95 / distance; b.y = o.y + (b.y - o.y) * 0.95 / distance;
     }
-    if (dt && !snap && !o.skill) { b.x += b.vx * dt; b.y += b.vy * dt; }
+    b.vx = dt ? (b.x - previousX) / dt : o.vx; b.vy = dt ? (b.y - previousY) / dt : o.vy;
+    if (!o.dribbleTouch || snap || beat !== o.dribbleTouch.beat && this.t - o.dribbleTouch.time >= cadence * 0.65
+        || this.t - o.dribbleTouch.time >= cadence) {
+      o.dribbleTouch = { time: this.t, beat }; this.contactEvent(o, 'touch');
+    }
     b.z = 0; b.vz = 0;
   };
 

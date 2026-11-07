@@ -99,7 +99,7 @@ for (const name of ['looks_real','looks_desc','pixelart','three.min']) {
   vm.runInContext(fs.readFileSync('js/' + name + '.js','utf8'),context);
 }
 const renderer = fs.readFileSync('js/render3d.js','utf8');
-const hairSource = renderer.slice(renderer.indexOf('    function roundedBody'),renderer.indexOf('    function makeRig'));
+const hairSource = renderer.slice(renderer.indexOf('    const geo = {'),renderer.indexOf('    function makeRig'));
 vm.runInContext('const T = THREE; const clamp = (v,a,b) => Math.max(a,Math.min(b,v));' + hairSource
   + ';window.testHair = look => { const head = new T.Group(); addHair(head,look.style,std(look.hair,0.6),look); return head; };',context);
 for (const card of RUT.DB.players) {
@@ -129,8 +129,21 @@ const contactMatch = match(), kicker = contactMatch.players.find(p=>!p.isGK);
 contactMatch.kick(kicker,0,20,0,0,null);
 assert.equal(kicker.contact.yaw,0);
 const peer = new RUT.Net.Session({role:'host',code:'TEST',club:'Test',cards,onEvent(){}});
-peer.room = {emit:async()=>{},leave(){}};
-peer.onCtl({data:{k:'hello',v:2},peer:'new-peer'});
-assert.equal(peer.state,'paired');
+let welcome; peer.room = {emit:async (channel,message)=>{welcome=message;},leave(){}};
+peer.onCtl({data:{k:'hello',v:3},peer:'new-peer'});
+assert.equal(peer.state,'paired'); assert.equal(welcome.data ? welcome.data.v : welcome.v,3);
 peer.close(true);
 console.log('PASS human-input replay, axis-aligned kick facing, and matching online physics handshake.');
+
+for(const dt of [1/30,1/60,1/120]) {
+ const m=match(),p=m.players.find(p=>!p.isGK);
+ Object.assign(p,{x:50,y:40,fx:1,fy:0,vx:8,vy:0});m.giveBall(p);
+ for(let i=0;i<1/dt;i++){m.t+=dt;p.x+=p.vx*dt;m.stickBall(dt);assert(Math.hypot(m.ball.x-p.x,m.ball.y-p.y)<=0.951);}
+ p.fx=-1;p.vx=-8;
+ for(let i=0;i<Math.ceil(0.1/dt);i++){m.t+=dt;p.x+=p.vx*dt;m.stickBall(dt);}
+ assert(m.ball.x<p.x,'reverse within 100ms');p.vx=0;
+ for(let i=0;i<Math.ceil(0.1/dt);i++){m.t+=dt;m.stickBall(dt);}
+ assert(Math.abs(m.ball.vx)<0.25,'stop promptly');
+}
+assert(!renderer.includes('roundedBody'));
+console.log('PASS close control, responsive reversal/stopping and restored model geometry.');

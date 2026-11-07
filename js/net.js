@@ -13,7 +13,7 @@
  * ========================================================================== */
 (function () {
   'use strict';
-  const PHYSICS_VERSION = 2;
+  const PHYSICS_VERSION = 3;
   const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'LWB', 'RWB', 'CDM', 'CM', 'CAM', 'LM', 'RM', 'LW', 'RW', 'CF', 'ST'];
   const FACE = ['pac', 'sho', 'pas', 'dri', 'def', 'phy'];
@@ -155,7 +155,7 @@
     if (k === 'hello' && this.role === 'host') {
       if (!!d.duel !== !!this.o.duel) { this.emit({ k: 'mode', to: m.peer, duel: !!this.o.duel }); return; }     // 1v1 duel vs club match: both must pick the same mode
       if (this.partner !== m.peer) { this.partner = m.peer; this.theirClub = str(d.club, 20, 'Guest'); this.theirTac = str(d.tac, 20, ''); this.state = 'paired'; this.say('Friend found: ' + this.theirClub); this.o.onEvent({ type: 'paired', club: this.theirClub }); this.sendTeam(); }
-      this.emit({ k: 'welcome', to: m.peer, club: this.club, v: 1 });
+      this.emit({ k: 'welcome', to: m.peer, club: this.club, v: PHYSICS_VERSION });
     } else if (k === 'welcome' && this.role === 'guest' && d.to === this.me && this.state === 'joining') {
       this.partner = m.peer; this.theirClub = str(d.club, 20, 'Host'); this.state = 'paired'; this.say('Connected to ' + this.theirClub);
       this.o.onEvent({ type: 'paired', club: this.theirClub }); this.sendTeam();
