@@ -294,16 +294,33 @@
           const lg = new T.BufferGeometry(); lg.setAttribute('position', new T.BufferAttribute(pos, 3)); lg.setIndex(ln);
           const mesh = new T.LineSegments(lg, new T.LineBasicMaterial({ color: 0xf2f4ff, transparent: true, opacity: 0.8, depthWrite: false })); mesh.renderOrder = 2; mesh.frustumCulled = false;
           scene.add(sheet); scene.add(mesh);
-          cloth.push({ net, idx, pos, geoP, lg });
+          cloth.push({ net, idx, pos, geoP, lg, normal: pl.normal });
         });
       });
       return true;
+    }
+    // Render-only exaggeration: fixed frame knots, a local pocket and damped rebound.
+    function netStretch(net, index, normal, hit) {
+      if (!hit || hit.side !== net.side || hit.t < 0 || hit.t > 2.5 || net.pin[index]) return 0;
+      const k = index * 3, q = net.p0;
+      const dx = q[k] - hit.x, dy = q[k + 1] - hit.y, dz = q[k + 2] - hit.z;
+      const along = dx * normal[0] + dy * normal[1] + dz * normal[2];
+      const radial = Math.max(0, dx * dx + dy * dy + dz * dz - along * along);
+      const local = Math.exp(-radial / 1.5) * Math.exp(-along * along / 1.8);
+      const age = hit.t;
+      const pulse = (1 - Math.exp(-age * 32)) * Math.exp(-age * 2.4) * (1 + 0.2 * Math.sin(age * 18));
+      return 4.8 * (0.55 + 0.45 * hit.s) * local * pulse;
     }
     function updateCloth(m) {
       if (!cloth.length && !buildCloth(m)) return;
       cloth.forEach(c => {
         const q = c.net.pos, o = c.pos;
-        for (let i = 0; i < c.idx.length; i++) { const k = c.idx[i] * 3; o[i * 3] = q[k] - PW2; o[i * 3 + 1] = q[k + 2]; o[i * 3 + 2] = q[k + 1] - PH2; }
+        for (let i = 0; i < c.idx.length; i++) {
+          const index = c.idx[i], k = index * 3, stretch = netStretch(c.net, index, c.normal, m.netHit);
+          o[i * 3] = q[k] - PW2 + c.normal[0] * stretch;
+          o[i * 3 + 1] = q[k + 2] + c.normal[2] * stretch;
+          o[i * 3 + 2] = q[k + 1] - PH2 + c.normal[1] * stretch;
+        }
         c.geoP.attributes.position.needsUpdate = true; c.lg.attributes.position.needsUpdate = true;
       });
     }
@@ -456,9 +473,24 @@
         case 'touch': gait(0.55, 0.9, 0.5, 0.1); rh += -0.35 * Math.sin(Math.PI * clamp(t, 0, 1)); lel = 0.9; rel = 0.9; break;
         case 'trap': rh = -0.75; rk = 0.8; lk = 0.3; lean = -0.12; lsw = -0.5; rsw = 0.3; aSpread = 0.5; break;
         case 'dive_hi': case 'dive_lo': {
-          const air = clamp(t / 0.35, 0, 1), hi = anim === 'dive_hi', toRight = -Math.sin(r.yaw) * (p.dvSide >= 0 ? 1 : -1) >= 0 ? 1 : -1;   // which of his own sides the dive goes to
-          roll = -toRight * 1.3 * air; py = 0.5 + (hi ? clamp((p.dvZ || 1.75) - 1.1, 0.65, 2.0) : 0.25) *   /* v220 (JODIO): a high dive rises to the ball's height, up to the top corner */ Math.sin(Math.PI * clamp(t / 0.55, 0, 1)) + 0.15 * (1 - air); if (t > 0.5) py = 0.22;
-          lsw = rsw = -2.9; aSpread = 0.1; lh = 0.4; rh = 0.2; lk = 0.5; rk = 0.3; break; }
+          const smooth = x => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
+          const launch = smooth(t / 0.18), land = smooth((t - 0.34) / 0.18), recover = smooth((t - 0.70) / 0.30);
+          const side = -Math.sin(r.yaw) * (p.dvSide >= 0 ? 1 : -1) >= 0 ? 1 : -1;
+          const hi = anim === 'dive_hi', flight = Math.sin(Math.PI * clamp(t / 0.52, 0, 1));
+          roll = -side * 1.40 * launch * (1 - recover);
+          py = lerp(0.84, 0.24, land) + (hi ? 0.85 : 0.25) * flight;
+          py = lerp(py, 0.92, recover);
+          lean = 0.16 * (1 - launch) + 0.28 * recover * (1 - recover);
+          twist = side * 0.18 * Math.sin(Math.PI * clamp(t / 0.7, 0, 1)) * (1 - recover);
+          lsw = lerp(-0.7, hi ? -2.8 : -1.7, launch); rsw = lsw + side * 0.25 * launch;
+          aSpread = lerp(0.48, 0.12, launch);
+          lel = 0.65 * (1 - launch) + 0.2 * land; rel = 0.45 * (1 - launch) + 0.4 * land;
+          lh = lerp(-0.5, 0.35, launch); rh = lerp(-0.2, -0.45, launch);
+          lk = 0.6 + 0.55 * land; rk = 0.35 + 0.35 * land;
+          lsw = lerp(lsw, -0.65, recover); rsw = lerp(rsw, -0.65, recover);
+          lh = lerp(lh, -0.35, recover); rh = lerp(rh, -0.35, recover);
+          lk = lerp(lk, 0.75, recover); rk = lerp(rk, 0.75, recover);
+          break; }
         case 'up': case 'cross': case 'celeb_up': case 'celeb_wide': case 'celeb_sky': {
           const b = Math.abs(Math.sin(m.t * 6 + r.ph)); py += 0.22 * b; lsw = rsw = -2.7; aSpread = 0.6 + 0.2 * Math.sin(m.t * 9); lel = rel = 0.4; lk = rk = 0.4 * b; lean = -0.08; break; }
         case 'celeb_slide': pitch = -1.15; py = 0.34; lsw = rsw = -2.7; aSpread = 0.8; rh = -0.4; lh = -0.3; break;
@@ -472,7 +504,13 @@
           tilt = sd * 0.32 * Math.sin(Math.PI * u); lean = 0.15; rh = -0.6 * w; lh = 0.5 * w; rk = 0.7 * Math.abs(w); lk = 0.4; lsw = -0.5 * w; rsw = 0.5 * w; twist = sd * 0.35 * Math.sin(Math.PI * u); aSpread = 0.4; break; }
         default: {
           const gk = p.isGK, br = Math.sin(m.t * 1.7 + r.ph);
-          if (gk) { lh = rh = -0.35; lk = rk = 0.75; lean = 0.22; py = 0.8; lsw = rsw = -0.7; aSpread = 0.55; lel = rel = 0.7; }
+          if (gk) {
+            const bounce = Math.sin(m.t * 5 + r.ph);
+            lh = -0.35 + 0.035 * bounce; rh = -0.35 - 0.035 * bounce; lk = rk = 0.75;
+            lean = 0.22 + 0.025 * br; py = 0.8 + 0.025 * bounce;
+            lsw = -0.7 + 0.04 * br; rsw = -0.7 - 0.04 * br; aSpread = 0.55; lel = rel = 0.7;
+            if (m.ball.owner === p) { lsw = rsw = -1.0; lel = rel = 1.3; aSpread = 0.15; }
+          }
           else { lean = 0.02 + 0.012 * br; lsw = 0.04 * br; rsw = -0.04 * br; lh = 0.04; rh = -0.04; }
           if (!gk) {                                                              // v154: the position stances of the pixel game
             if (anim === 'idle_cb') { lsw = rsw = -0.55; aSpread = -0.25; lel = rel = 1.7; }
@@ -548,7 +586,7 @@
         const moving = Math.hypot(p.vx || 0, p.vy || 0) > 0.45;
         const contact = p.contact;
         const kicking = contact && contact.kind === 'kick' && m.t - contact.time < 0.3;
-        const tf = kicking ? contact.yaw : moving ? Math.atan2(p.vx, p.vy) : r.yaw;
+        const tf = p.isGK && p.dvT != null ? r.yaw : kicking ? contact.yaw : moving ? Math.atan2(p.vx, p.vy) : r.yaw;
         let dd = tf - r.yaw; dd = Math.atan2(Math.sin(dd), Math.cos(dd));
         r.yaw += dd * (1 - Math.exp(-view.dt / (0.05 + 0.09 * (1 - (p.agil != null ? p.agil : 0.5)))));
         root.rotation.y = r.yaw;

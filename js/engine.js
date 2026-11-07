@@ -3571,7 +3571,7 @@ window.RUT = window.RUT || {};
     h = h || 1 / 60;
     const depth = (b.x - gx) * dir;                       // metres behind the goal line
     if (depth < 0) return;
-    const hit = (y, z, s) => { if (s > 1.5 && !(this.netHit && this.netHit.t < 0.25)) this.netHit = { side, y, z, t: 0, s: Math.min(1, s / 18) }; };
+    const hit = (y, z, s) => { if (s > 1.5 && !(this.netHit && this.netHit.t < 0.25)) this.netHit = { side, x: b.x, y, z, t: 0, s: Math.min(1, s / 18) }; };
     const soft = (pen, v, max) => {                       // returns the velocity change along the outward normal
       if (pen > max) return { clamp: true };
       return { dv: -(NET_K * pen + NET_C * v) * h };
