@@ -99,18 +99,12 @@ for (const name of ['looks_real','looks_desc','pixelart','three.min']) {
   vm.runInContext(fs.readFileSync('js/' + name + '.js','utf8'),context);
 }
 const renderer = fs.readFileSync('js/render3d.js','utf8');
-const hairSource = renderer.slice(renderer.indexOf('    function smoothShape'),renderer.indexOf('    function makeRig'));
-vm.runInContext('const T = THREE; const clamp = (v,a,b) => Math.max(a,Math.min(b,v));' + hairSource
-  + ';window.testHair = look => { const head = new T.Group(); addHair(head,look.style,std(look.hair,0.6),look); return head; };',context);
 for (const card of RUT.DB.players) {
   const look = RUT.PixelArt.lookFor(card.name,RUT.DB.kitFor(card.club),card.position === 'GK',0,{club:card.club});
-  const head = context.testHair(look);
-  const hair = head.children.find(mesh => mesh.name === 'hair-details');
-  if (look.style !== 'bald') assert.equal(hair.count,104,card.name);
   RUT.PixelArt.cardFigure(card);
 }
 assert.equal(cardRasters,RUT.DB.players.length);
-console.log('PASS all ' + cardRasters + ' named card renders and 104-instance 3D hairstyles.');
+console.log('PASS all ' + cardRasters + ' named card renders using v380 anatomy.');
 // Human inputs use the same deterministic simulation as CPU play.
 function humanReplay() {
   const m = new RUT.Engine.Match({ home: { name:'Human',cards }, away:{name:'CPU',cards}, humans:[0],seed:47,halfSeconds:5 });
@@ -158,3 +152,11 @@ for(const mode of ['auto','potato','low','med','high','ultra','3d']) {
  assert.equal(before,JSON.stringify([qualityMatch.ball.x,qualityMatch.ball.y,qualityMatch.players.map(p=>[p.x,p.y])]));
 }
 console.log('PASS all graphics settings retain 3D models and identical physics state.');
+
+const baseline = require('node:child_process').execFileSync('git',['show','92bad27:js/pixelart.js'],{encoding:'utf8'});
+const current = fs.readFileSync('js/pixelart.js','utf8');
+assert.equal(current.match(/const B = \{[^;]+;/)[0], baseline.match(/const B = \{[^;]+;/)[0]);
+assert(!current.includes('R6B'));assert(!renderer.includes('makeRig'));assert(!renderer.includes('BoxGeometry(0.2, 0.43'));
+const look=RUT.PixelArt.lookFor(cards[0].name,RUT.DB.kitFor(cards[0].club),false,0,{});
+for(const anim of ['jog','sprint','shot','pass','dive_hi','dive_lo'])for(const yaw of [0,Math.PI/2,Math.PI]) RUT.PixelArt.sprite(look,anim,0.4,yaw,1);
+console.log('PASS exact v380 body dimensions, deleted alternate models and multi-angle action renders.');

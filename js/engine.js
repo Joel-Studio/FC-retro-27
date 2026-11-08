@@ -4266,17 +4266,17 @@ window.RUT = window.RUT || {};
       // too heavy for this machine? after a couple of seconds of slow frames drop to High so the game stays playable
       this._u3n = (this._u3n || 0) + 1; this._u3sum = (this._u3sum || 0) + dt;
       if (this._u3n >= 150) { const av = this._u3sum / this._u3n, u = this._u3scale || 0.65; if (av > 0.024 && !window.RUT_KEEP3D && u > 0.34) this._u3scale = Math.max(0.34, u * 0.85); else if (av < 0.0175 && u < 0.9) this._u3scale = Math.min(0.9, u / 0.9); this._u3n = this._u3sum = 0; }   // v167: slow machine: fewer pixels, still full 3D
-      U.frame(this, { w: CW, h: CH, mode: this.camMode, camX, camY: this.cam.y, fy: CAM_FY, shake, crowd: crowdFrame, dt, sprites: false, spCam: this.spView === 'tv' ? null : (c => c && Object.assign({ view: this.spView || 'behind' }, c))(this.spCamera()) });   // v171: the 3D world, players drawn below as the normal-mode pixel sprites
+      U.frame(this, { w: CW, h: CH, mode: this.camMode, camX, camY: this.cam.y, fy: CAM_FY, shake, crowd: crowdFrame, dt, sprites: true, spCam: this.spView === 'tv' ? null : (c => c && Object.assign({ view: this.spView || 'behind' }, c))(this.spCamera()) });   // v171: the 3D world, players drawn below as the normal-mode pixel sprites
       ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(U.canvas, 0, 0, CW, CH); ctx.restore();
       const proj = (x, y, z) => U.proj(x, y, z, VIEW_W, VIEW_H);
       this.proj = proj; this._cv = ctx.canvas;
       this.drawGroundFx(ctx, proj); this.drawFcGround(ctx, proj);
-      // WebGL owns player and ball geometry. Retain only screen-space labels and controls.
-      this.players.forEach(player => {
-        const feet = proj(player.x, player.y, 0);
-        const controller = this.ctls.find(control => control && control.controlled === player);
-        this.drawPlayerHud(ctx, player, feet, Math.max(0.35, feet.k / 24), controller);
-      });
+      // v171 (JODIO: "the players look the same as normal mode, with the better 3D physics"): soft shadows, then the pixel players and the ball, far to near
+      this.players.forEach(p => { const ro = this.runOff(p), s = proj(p.x + (ro ? ro.x : 0) + 0.25 / ZOOM, p.y + (ro ? ro.y : 0), 0), a = s.k / ZOOM * PLAYER_BIG * this._sizeOf(p); ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(s.x + 0.4 * a, s.y, 0.62 * a, 0.2 * a, 0, 0, Math.PI * 2); ctx.fill(); });
+      { const kOf = (x, y) => proj(x, y, 0).k;   // v185: sorted by distance to the camera (the set-piece camera looks down the pitch, not across it)
+        const items = this.players.map(p => { const ro = this.runOff(p); return { y: kOf(p.x + (ro ? ro.x : 0), p.y + (ro ? ro.y : 0)), draw: () => this.drawPlayer3D(ctx, p, proj) }; });   // v177: the ball joins the depth sort so a player never hides it
+        { const bp = this.ballDrawPos(); items.push({ y: kOf(bp.x, bp.y) * 1.002, draw: () => this.drawBall3D(ctx, this.ball, proj) }); }
+        this.trWallItems(ctx, proj, kOf).forEach(it => items.push(it)); items.sort((a, c) => a.y - c.y).forEach(it => it.draw()); }
       const b = this.ball, tc = { shot: '#ffffff' }[b.trailType];
       if (tc) b.trail.forEach((q, i) => { const s = proj(q.x, q.y, q.z + 0.11); ctx.globalAlpha = i / b.trail.length * 0.8; ctx.fillStyle = tc; const w = Math.max(2, Math.round(0.25 * s.k / ZOOM)); ctx.fillRect(Math.round(s.x - w / 2), Math.round(s.y - w / 2), w, w); });
       ctx.globalAlpha = 1;

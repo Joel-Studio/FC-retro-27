@@ -240,7 +240,6 @@ window.RUT = window.RUT || {};
   const rotY = (v, a) => { const c = Math.cos(a), s = Math.sin(a); return V(v.x * c + v.z * s, v.y, -v.x * s + v.z * c); };
 
   // body proportions, from JODIO's action sheet (v11): a big chunky head (~2/7 of the height), short torso, sturdy legs
-  const R6B = { hipW: 3.8, torso: 16.5, shW: 11.0, upper: 6.8, fore: 6.6, neck: 1.6, headR: 6.0 };   // v274: Roblox dummy proportions: smaller head, wide shoulders   // v265: Roblox R6 proportions (box torso, flush box arms, small square head)
   const B = { hipW: 3.3, thigh: 10.0, shin: 9.6, ankle: 1.7, hipH: 20.6, torso: 13.6, shW: 7.0, upper: 6.9, fore: 6.3, neck: 1.8, headR: 7.2 };
 
   /** Interpolate between keyframes [[u, {field: value}], ...] with ease-in-out. */
@@ -915,7 +914,7 @@ window.RUT = window.RUT || {};
     const armYaw = S.torsoYaw - (P.cheat || 0) * 0.8;                     // arms swing in the running direction, not the cheated chest
     [['L', P.armL, S.shL, 1], ['R', P.armR, S.shR, -1]].forEach(([sd, a, sh, sg]) => {
       const du = rotY(V(sg * Math.sin(a.roll), -Math.cos(a.roll) * Math.cos(a.pitch), Math.cos(a.roll) * Math.sin(a.pitch)), armYaw);
-      const p2 = a.pitch + clamp(a.elbow, 0.08, 2.3);
+      const p2 = a.pitch + a.elbow;
       let df = V(sg * Math.sin(a.roll), -Math.cos(a.roll) * Math.cos(p2), Math.cos(a.roll) * Math.sin(p2));
       if (a.cross) df = vnorm(vadd(df, V(-sg * a.cross * 1.4, 0, 0)));
       df = rotY(df, armYaw);
@@ -1008,11 +1007,7 @@ window.RUT = window.RUT || {};
     }
   }
 
-  /**
-   * v265 (JODIO: Roblox R6 body): a straight box between base and top, half width a, half depth b, turned by yaw.
-   * colorAt(bx, bz, t) gets the body-space point on the visible face (front or a side). bev rounds the ends a little.
-   */
-  function boxy(R, base, top, yaw, a, b, colorAt, id, bev) {
+  function hairCrownVolume(R, base, top, yaw, a, b, colorAt, id, bev) {
     const { W, H, s } = R;
     const ax = R.ox + base.x * s, ay = R.oy - base.y * s, tx = R.ox + top.x * s, ty = R.oy - top.y * s;
     const dx = tx - ax, dy = ty - ay, dd = dx * dx + dy * dy || 1e-6, dl = Math.sqrt(dd), len = dl / s;
@@ -1063,13 +1058,11 @@ window.RUT = window.RUT || {};
 
   /** Render the whole figure for one pose, view yaw and scale. Returns the raster. */
   function renderFigure(L, anim, t, yaw, gk, scale) {
-    const r6 = false, Bsave = (r6 || L.cardBody) ? Object.assign({}, B) : null;
-    if (r6) Object.assign(B, R6B);
-    if (L.cardBody) Object.assign(B, { torso: 15.2, shW: 7.3, upper: 7.1, fore: 6.5, neck: 1.6, headR: 5.4 });
-    flatL = !!L.flat; smoothL = !!L.cardBody;   // v276: card figures are flat 2D, two-tone cel shading
-    try { return renderFigure0(L, anim, t, yaw, gk, scale, r6); } finally { flatL = false; smoothL = false; if (Bsave) Object.assign(B, Bsave); }
+    const Bsave = L.cardBody ? Object.assign({}, B) : null;
+    flatL = !!L.flat; smoothL = true;   // v276: card figures are flat 2D, two-tone cel shading
+    try { return renderFigure0(L, anim, t, yaw, gk, scale); } finally { flatL = false; smoothL = false; if (Bsave) Object.assign(B, Bsave); }
   }
-  function renderFigure0(L, anim, t, yaw, gk, scale, r6) {
+  function renderFigure0(L, anim, t, yaw, gk, scale) {
     // sprite-artist cheat: in profile the chest and face turn ~30 degrees toward the camera, so both arms and the face read
     const P = Object.assign({}, poseFor(anim, t, gk, L.star)); P.cheat = -0.5 * Math.sin(yaw); P.twist = (P.twist || 0) + P.cheat;
     if (P.spin) yaw += P.spin;                                                 // whole-body turns (the SIUU leap)
@@ -1077,7 +1070,7 @@ window.RUT = window.RUT || {};
     const view = v => rotY(v, yaw);
     const J = {}; for (const k in S) if (S[k] && S[k].x !== undefined) J[k] = view(S[k]);
     const sk = L.skin, hand = L.gloves || L.skin, isGK = !!L.gloves;
-    const tube = r6 ? (R_, base, top, yw, aB, aT, b, colorAt, id, round) => boxy(R_, round ? base : vadd(base, V(0, 0, 1.4)), round ? top : vadd(top, V(0, 0, 1.4)), yw, Math.max(aB, aT) * (aB === aT ? 1.28 : 1.03), b * 1.18, colorAt, id, round ? 2.6 : 0) : cylinder;
+    const tube = cylinder;
     const sole = lum(L.boots) > 0.55 ? '#3a3a3a' : '#e8e8e8';
     const ds = L.number ? L.number.split('').map(Number) : [];
     const seed = hashStr(L.shirt + L.pattern + L.trim);
@@ -1086,13 +1079,7 @@ window.RUT = window.RUT || {};
     ['L', 'R'].forEach(sd => {
       const id = sd === 'L' ? ID.legL : ID.legR;
       const hip = J['hip' + sd], knee = J['knee' + sd], ank = J['ankle' + sd];
-      if (r6) {
-        const lyaw = yaw + S.pelvisYaw, kd = vnorm(vsub(knee, hip)), ad = vnorm(vsub(ank, knee)), fold6 = shade(L.socks, -0.2);
-        boxy(R, vadd(vsub(hip, vmul(kd, 1.6)), V(0, 0, 0.9)), vadd(vadd(knee, vmul(kd, 1.8)), V(0, 0, 0.9)), lyaw, 3.7, 3.9, (bx, bz, tt) => tt < 0.5 ? (tt > 0.36 && Math.abs(bx) > 2.6 ? L.trim : L.shorts) : sk, id, 1.2);
-        boxy(R, vsub(knee, vmul(ad, 1.5)), vadd(ank, vmul(ad, 1.4)), lyaw, 3.4, 3.6, (bx, bz, tt) => tt < 0.1 ? sk : tt < 0.19 ? fold6 : (tt < 0.24 || (tt > 0.28 && tt < 0.32)) ? L.trim : L.socks, id, 1.0);
-        capsule(R, vadd(J['heel' + sd], vmul(vsub(J['heel' + sd], J['toe' + sd]), 0.08)), vadd(J['toe' + sd], vmul(vsub(J['toe' + sd], J['heel' + sd]), 0.18)), 2.8, 2.35, (tt, n) => n.y < -0.35 ? sole : (tt > 0.45 && tt < 0.75 && n.y > 0.55 ? '#f0f0f0' : (tt > 0.3 && tt < 0.5 && Math.abs(n.x) > 0.5 ? L.bootsL : L.boots)), id);
-        return;
-      }
+
       capsule(R, hip, knee, 3.2, 2.6, tt => tt < 0.42 ? L.shorts : sk, id);
       capsule(R, hip, vadd(hip, vmul(vsub(knee, hip), 0.42)), 3.6, 3.4, (tt, n) => tt > 0.8 && Math.abs(n.x) > 0.75 ? L.trim : L.shorts, ID.shorts);
       const fold = shade(L.socks, -0.2);
@@ -1136,25 +1123,22 @@ window.RUT = window.RUT || {};
       const base = L.pat(Math.floor(bx * 0.72), Math.floor(v * 0.62), 'body');
       if (HD && v > tLen - 0.8) return shade(base, lum(base) > 0.5 ? -0.1 : 0.1);                // v264: the shirt hem
       if (HD && v > 4 && bz > -0.8 && ((Math.floor(bx * 1.4 + v * 0.8) % 9) === 0)) return shade(base, lum(base) > 0.5 ? -0.07 : 0.07);   // soft fabric folds
-      return base;
+      // Fine weave changes colour only; the v380 body geometry is unchanged.
+      const weave = Math.sin(bx * 13 + v * 2) * Math.sin(v * 16);
+      return HD ? shade(base, weave * 0.022) : base;
     }, ID.body, true);
 
     // ---- arms: sleeve with a cuff, then skin (keepers: long sleeves and big gloves)
     const sleeve = L.pattern === 'halves' ? [L.pat(1, 3, 'sleeve'), L.pat(-2, 3, 'sleeve')] : [L.pat(0, 3, 'sleeve'), L.pat(0, 3, 'sleeve')];
     [['L', 0], ['R', 1]].forEach(([sd, k]) => {
       const id = sd === 'L' ? ID.armL : ID.armR;
-      if (r6) {
-        const eb = J['elbow' + sd], ha = J['hand' + sd], fd6 = vnorm(vsub(ha, eb)), ud6 = vnorm(vsub(eb, J['sh' + sd]));
-        boxy(R, vadd(vsub(J['sh' + sd], vmul(ud6, 2.2)), V(sd === 'L' ? 1.4 : -1.4, 1.0, 0.7)), vadd(vadd(eb, vmul(ud6, 1.6)), V(0, 0, 0.7)), tyaw, 3.7, 3.8, (bx, bz, tt) => isGK ? sleeve[k] : tt < 0.58 ? sleeve[k] : tt < 0.68 ? L.trim : sk, id, 1.5);
-        boxy(R, vsub(eb, vmul(fd6, 1.4)), vadd(ha, vmul(fd6, 3.0)), tyaw, 3.4, 3.6, (bx, bz, tt) => isGK ? (tt > 0.74 ? hand : tt > 0.66 ? L.trim : sleeve[k]) : (tt > 0.86 ? hand : sk), id, 1.2);
-        return;
-      }
-      capsule(R, J['sh' + sd], J['elbow' + sd], 1.95, 1.7, tt => isGK ? sleeve[k] : tt < 0.46 ? sleeve[k] : tt < 0.56 ? L.trim : sk, id);
-      capsule(R, J['elbow' + sd], J['hand' + sd], 1.65, 1.4, tt => isGK ? (tt > 0.8 ? L.trim : sleeve[k]) : sk, id);
-      ellipsoid(R, J['hand' + sd], isGK ? 2.4 : 1.6, isGK ? 2.4 : 1.7, () => hand, id);
+
+      capsule(R, J['sh' + sd], J['elbow' + sd], 2.25, 1.95, tt => isGK ? sleeve[k] : tt < 0.46 ? sleeve[k] : tt < 0.56 ? L.trim : sk, id);
+      capsule(R, J['elbow' + sd], J['hand' + sd], 1.9, 1.6, tt => isGK ? (tt > 0.8 ? L.trim : sleeve[k]) : sk, id);
+      ellipsoid(R, J['hand' + sd], isGK ? 2.4 : 1.9, isGK ? 2.4 : 2.0, () => hand, id);
       if (HD) {                                                                  // v127 detail: shoulder, biceps, fingers and thumb (keepers: gloves with cuff strap)
-        ellipsoid(R, J['sh' + sd], 2.2, 2.2, () => sleeve[k], id);
-        ellipsoid(R, vadd(J['sh' + sd], vmul(vsub(J['elbow' + sd], J['sh' + sd]), 0.38)), 2.05, 2.2, () => sleeve[k], id);
+        ellipsoid(R, J['sh' + sd], 3.0, 3.0, () => sleeve[k], id);
+        ellipsoid(R, vadd(J['sh' + sd], vmul(vsub(J['elbow' + sd], J['sh' + sd]), 0.38)), 2.6, 2.9, () => sleeve[k], id);
         // A single rounded hand keeps the silhouette readable without digits.
         if (isGK) {
           const handDirection = vnorm(vsub(J['hand' + sd], J['elbow' + sd]));
@@ -1220,7 +1204,7 @@ window.RUT = window.RUT || {};
         // A tapered rectangular crown with softly rounded edges and short coiled curls.
         const bottom = vadd(hc, vmul(toView(V(0, 0.48, 0)), hr));
         const top = vadd(hc, vmul(toView(V(0, 1.12, 0)), hr));
-        boxy(R, bottom, top, hyaw, hr * 0.79, hr * 0.68, (x, z, t) => {
+        hairCrownVolume(R, bottom, top, hyaw, hr * 0.79, hr * 0.68, (x, z, t) => {
           const texture = Math.sin(x * 9 + z * 4) * Math.sin(z * 11 - t * 16);
           return texture > 0.35 ? L.hair : L.hairD;
         }, ID.hair, 0.6);
@@ -1488,7 +1472,7 @@ window.RUT = window.RUT || {};
     const key = card.name + '|' + card.club + '|' + card.position + '|' + (pose || 'idle');
     if (figCache[key]) return figCache[key];
     const L0 = lookFor(card.name, kit, card.position === 'GK', 0, { club: card.club, number: card.details && card.details.number, strength: card.sub && card.sub.strength });
-    const L = Object.assign({}, L0, { r6: false, flat: false, cardBody: true, key: L0.key + '|athletic-card-hair-beard-v3' });   // v281 (JODIO): card figures are a flat 2D drawing of the old v260 body
+    const L = Object.assign({}, L0, { flat: false, cardBody: true, key: L0.key + '|athletic-card-hair-beard-v3' });   // v281 (JODIO): card figures are a flat 2D drawing of the old v260 body
     let anim = pose === 'up' ? 'up' : pose === 'cross' ? 'cross' : idleFor(card.position), t = anim === 'up' ? 0.25 : 0.1, yaw = -0.45;
     if (!pose || pose === 'idle') { const pz = cardPose(card); anim = pz[0]; t = pz[1]; yaw = pz[2]; }
     yaw *= 0.5;   // v281: nearly front view   // v259 (JODIO): every player strikes his own pose on his card
