@@ -96,7 +96,9 @@ context.document.createElement = () => ({ width: 0, height: 0,
   getContext: () => ({ createImageData: (w,h) => ({ data: new Uint8ClampedArray(w*h*4) }),
     putImageData: image => { assert(image.data.some(value => value)); cardRasters++; }, drawImage() {} }) });
 for (const name of ['looks_real','looks_desc','pixelart','three.min']) {
-  vm.runInContext(fs.readFileSync('js/' + name + '.js','utf8'),context);
+  let code=fs.readFileSync('js/' + name + '.js','utf8');
+  if(name==='pixelart')code=code.replace('  RUT.PixelArt = {','  window.testMotion = { motionPose, skeleton, B, R6B };\n  RUT.PixelArt = {');
+  vm.runInContext(code,context);
 }
 const renderer = fs.readFileSync('js/render3d.js','utf8');
 for (const card of RUT.DB.players) {
@@ -104,7 +106,7 @@ for (const card of RUT.DB.players) {
   RUT.PixelArt.cardFigure(card);
 }
 assert.equal(cardRasters,RUT.DB.players.length);
-console.log('PASS all ' + cardRasters + ' named card renders using v380 anatomy.');
+console.log('PASS all ' + cardRasters + ' named card renders using v370 anatomy.');
 // Human inputs use the same deterministic simulation as CPU play.
 function humanReplay() {
   const m = new RUT.Engine.Match({ home: { name:'Human',cards }, away:{name:'CPU',cards}, humans:[0],seed:47,halfSeconds:5 });
@@ -153,10 +155,28 @@ for(const mode of ['auto','potato','low','med','high','ultra','3d']) {
 }
 console.log('PASS all graphics settings retain 3D models and identical physics state.');
 
-const baseline = require('node:child_process').execFileSync('git',['show','92bad27:js/pixelart.js'],{encoding:'utf8'});
+const baseline = require('node:child_process').execFileSync('git',['show','e625709:js/pixelart.js'],{encoding:'utf8'});
 const current = fs.readFileSync('js/pixelart.js','utf8');
 assert.equal(current.match(/const B = \{[^;]+;/)[0], baseline.match(/const B = \{[^;]+;/)[0]);
-assert(!current.includes('R6B'));assert(!renderer.includes('makeRig'));assert(!renderer.includes('BoxGeometry(0.2, 0.43'));
+assert.equal(current.match(/const R6B = \{[^;]+;/)[0],baseline.match(/const R6B = \{[^;]+;/)[0]);assert(!renderer.includes('makeRig'));assert(!renderer.includes('BoxGeometry(0.2, 0.43'));
 const look=RUT.PixelArt.lookFor(cards[0].name,RUT.DB.kitFor(cards[0].club),false,0,{});
 for(const anim of ['jog','sprint','shot','pass','dive_hi','dive_lo'])for(const yaw of [0,Math.PI/2,Math.PI]) RUT.PixelArt.sprite(look,anim,0.4,yaw,1);
-console.log('PASS exact v380 body dimensions, deleted alternate models and multi-angle action renders.');
+console.log('PASS exact v370 body dimensions, restored block model and multi-angle action renders.');
+
+// Check connected arms and finite joint positions throughout actions, including side views.
+Object.assign(context.testMotion.B,context.testMotion.R6B);
+for(const anim of ['pass','pass_m','shot','shot_m','chip','volley','header','tackle','jog','sprint','dive_lo','dive_hi']){
+ let previous;
+ for(let step=0;step<=40;step++) {
+  const pose=context.testMotion.motionPose(anim,step/40,false,null),j=context.testMotion.skeleton(pose);
+  for(const side of ['L','R']) {
+   const sh=j['sh'+side],el=j['elbow'+side],hand=j['hand'+side];
+   assert(Math.abs(Math.hypot(el.x-sh.x,el.y-sh.y,el.z-sh.z)-context.testMotion.B.upper)<1e-6);
+   assert(Math.abs(Math.hypot(hand.x-el.x,hand.y-el.y,hand.z-el.z)-context.testMotion.B.fore)<1e-6);
+   assert([sh,el,hand].every(p=>[p.x,p.y,p.z].every(Number.isFinite)));
+  }
+  previous=pose;
+ }
+}
+assert(RUT.PixelArt.FRAMES.pass>=24 && RUT.PixelArt.FRAMES.shot>=24);
+console.log('PASS original v370 geometry, connected side arms, finite action joints, and expanded animation frames.');

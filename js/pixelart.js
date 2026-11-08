@@ -200,8 +200,8 @@ window.RUT = window.RUT || {};
       : (lum(shirt) > 0.55 ? (lum(second) < 0.45 ? second : '#151515') : (lum(second) > 0.6 ? second : '#ffffff'));
     return {
       fseed: hashStr(name + '#face'),
-      key: [skin, hair, style, eye || '', beard ? 1 : 0, full ? 1 : 0, band || '', bw.toFixed(2), star ? star.id : '', x && x.locProfile || '', x && x.hairTop || '', x && x.hairVolume || 1, x && x.hairProfile || '', shirt, pattern, pc, shorts, socks, boots, isGK ? 1 : 0, number].join('|'),
-      hairProfile: x && x.hairProfile, hairVolume: x && x.hairVolume || 1, hairTop: x && x.hairTop, locProfile: x && x.locProfile, eye, full, band, bw, star, skin, skinL: shade(skin, 0.2), skinD: shade(skin, -0.24),
+      key: [skin, hair, style, eye || '', beard ? 1 : 0, full ? 1 : 0, band || '', bw.toFixed(2), star ? star.id : '', shirt, pattern, pc, shorts, socks, boots, isGK ? 1 : 0, number].join('|'),
+      eye, full, band, bw, star, skin, skinL: shade(skin, 0.2), skinD: shade(skin, -0.24),
       hair, hairL: shade(hair, 0.32), hairD: shade(hair, -0.35), style, beard,
       shirt, pat: makePattern(pattern, shirt, pc), pattern,
       trim, sponsor, number, numCol,
@@ -240,6 +240,7 @@ window.RUT = window.RUT || {};
   const rotY = (v, a) => { const c = Math.cos(a), s = Math.sin(a); return V(v.x * c + v.z * s, v.y, -v.x * s + v.z * c); };
 
   // body proportions, from JODIO's action sheet (v11): a big chunky head (~2/7 of the height), short torso, sturdy legs
+  const R6B = { hipW: 3.8, torso: 16.5, shW: 11.0, upper: 6.8, fore: 6.6, neck: 1.6, headR: 6.0 };   // v274: Roblox dummy proportions: smaller head, wide shoulders   // v265: Roblox R6 proportions (box torso, flush box arms, small square head)
   const B = { hipW: 3.3, thigh: 10.0, shin: 9.6, ankle: 1.7, hipH: 20.6, torso: 13.6, shW: 7.0, upper: 6.9, fore: 6.3, neck: 1.8, headR: 7.2 };
 
   /** Interpolate between keyframes [[u, {field: value}], ...] with ease-in-out. */
@@ -402,6 +403,8 @@ window.RUT = window.RUT || {};
     [1, { py: 0, tw: 0.1, ln: 0.06, rl: 0, lp: 0.1, lr: 0.4, rp: 0.1, rr: 0.4 }],
   ];
   function kickPose(u, shot) {
+    const contact = shot ? 0.52 : 0.48;
+    u = u <= 0.42 ? u / 0.42 * contact : contact + (u - 0.42) / 0.58 * (1 - contact);
     const R = keyed(shot ? SHOT_FOOT : PASS_FOOT, u), Bd = keyed(shot ? SHOT_BODY : PASS_BODY, u);
     const hop = shot && u > 0.55 && u < 0.92 ? 2.4 * Math.sin((u - 0.55) / 0.37 * Math.PI) : 0;
     return {
@@ -838,7 +841,7 @@ window.RUT = window.RUT || {};
   }
 
   /** Frames per animation (cache granularity). Kicks don't loop. */
-  const FRAMES = { roll: 10, roll_m: 10, step: 12, step_m: 12, feint: 10, feint_m: 10, knock: 8, header: 10, volley: 10, trap: 8, touch: 8, chest: 8, thigh: 8, chip: 10, shield: 8, jostle: 8, celeb_plane: 10, celeb_shush: 8, celeb_cradle: 10, celeb_flex: 8, argue: 10, poke: 8, poke_m: 8, tackle_m: 8, volley_m: 10, heel: 10, clear: 12, clear_m: 12, outside: 10, outside_m: 10, fk: 14, pass_m: 12, shot_m: 12, chip_m: 10, celeb_med: 6, celeb_siu: 14, celeb_sky: 6, celeb_kneel: 6, celeb_slide: 10, celeb_dance: 10, celeb_wide: 8, celeb_bow: 10, idle: 4, idle_cb: 4, idle_fb: 4, idle_dm: 4, idle_cm: 4, idle_w: 4, idle_st: 4, gkready: 4, walk: 10, jog: 10, sprint: 10, dribble: 10, pass: 12, shot: 12, tackle: 8, slide: 10, stumble: 6, up: 6, cross: 1, save: 1, down: 1, dive_lo: 16, dive_hi: 16 };
+  const FRAMES = { roll: 10, roll_m: 10, step: 12, step_m: 12, feint: 10, feint_m: 10, knock: 8, header: 20, volley: 20, trap: 20, touch: 20, chest: 20, thigh: 20, chip: 20, shield: 8, jostle: 8, celeb_plane: 10, celeb_shush: 8, celeb_cradle: 10, celeb_flex: 8, argue: 10, poke: 20, poke_m: 20, tackle_m: 20, volley_m: 20, heel: 20, clear: 20, clear_m: 20, outside: 20, outside_m: 20, fk: 20, pass_m: 24, shot_m: 24, chip_m: 20, celeb_med: 6, celeb_siu: 14, celeb_sky: 6, celeb_kneel: 6, celeb_slide: 10, celeb_dance: 10, celeb_wide: 8, celeb_bow: 10, idle: 4, idle_cb: 4, idle_fb: 4, idle_dm: 4, idle_cm: 4, idle_w: 4, idle_st: 4, gkready: 4, walk: 20, jog: 20, sprint: 20, dribble: 20, pass: 24, shot: 24, tackle: 20, slide: 10, stumble: 6, up: 6, cross: 1, save: 1, down: 1, dive_lo: 20, dive_hi: 20 };
   function poseFor(anim, t, gk, star) {
     switch (anim) {
       case 'walk': case 'jog': case 'sprint': case 'dribble': return gaitPose(anim, t, star);
@@ -911,7 +914,7 @@ window.RUT = window.RUT || {};
     const across = rotY(V(1, 0, 0), S.torsoYaw);
     const shOff = sg => vadd(vmul(across, sg * B.shW), V(0, sg * roll * B.shW * 0.4, 0));
     S.shL = vadd(shc, shOff(1)); S.shR = vadd(shc, shOff(-1));
-    const armYaw = S.torsoYaw - (P.cheat || 0) * 0.8;                     // arms swing in the running direction, not the cheated chest
+    const armYaw = S.torsoYaw;                     // arms and shoulders share the same frame in profile
     [['L', P.armL, S.shL, 1], ['R', P.armR, S.shR, -1]].forEach(([sd, a, sh, sg]) => {
       const du = rotY(V(sg * Math.sin(a.roll), -Math.cos(a.roll) * Math.cos(a.pitch), Math.cos(a.roll) * Math.sin(a.pitch)), armYaw);
       const p2 = a.pitch + a.elbow;
@@ -1007,7 +1010,11 @@ window.RUT = window.RUT || {};
     }
   }
 
-  function hairCrownVolume(R, base, top, yaw, a, b, colorAt, id, bev) {
+  /**
+   * v265 (JODIO: Roblox R6 body): a straight box between base and top, half width a, half depth b, turned by yaw.
+   * colorAt(bx, bz, t) gets the body-space point on the visible face (front or a side). bev rounds the ends a little.
+   */
+  function boxy(R, base, top, yaw, a, b, colorAt, id, bev) {
     const { W, H, s } = R;
     const ax = R.ox + base.x * s, ay = R.oy - base.y * s, tx = R.ox + top.x * s, ty = R.oy - top.y * s;
     const dx = tx - ax, dy = ty - ay, dd = dx * dx + dy * dy || 1e-6, dl = Math.sqrt(dd), len = dl / s;
@@ -1058,19 +1065,48 @@ window.RUT = window.RUT || {};
 
   /** Render the whole figure for one pose, view yaw and scale. Returns the raster. */
   function renderFigure(L, anim, t, yaw, gk, scale) {
-    const Bsave = L.cardBody ? Object.assign({}, B) : null;
-    flatL = !!L.flat; smoothL = true;   // v276: card figures are flat 2D, two-tone cel shading
-    try { return renderFigure0(L, anim, t, yaw, gk, scale); } finally { flatL = false; smoothL = false; if (Bsave) Object.assign(B, Bsave); }
+    const r6 = L.r6 !== false, Bsave = r6 ? Object.assign({}, B) : null;
+    if (r6) Object.assign(B, R6B);
+    flatL = !!L.flat;   // v276: card figures are flat 2D, two-tone cel shading
+    try { return renderFigure0(L, anim, t, yaw, gk, scale, r6); } finally { flatL = false; if (Bsave) Object.assign(B, Bsave); }
   }
-  function renderFigure0(L, anim, t, yaw, gk, scale) {
+  /** Secondary joint motion; model geometry, materials and gameplay stay unchanged. */
+  function motionPose(anim, t, gk, star) {
+    const original = poseFor(anim, t, gk, star);
+    const p = Object.assign({}, original);
+    for (const key of ['pelvis','head','footL','footR','armL','armR']) p[key] = Object.assign({}, original[key]);
+    const action = /^(pass|shot|chip|volley|header|heel|clear|outside|fk|trap|touch|chest|thigh|tackle|poke)/.test(anim);
+    const u = clamp(t, 0, 1), wave = Math.sin(Math.PI * u), settle = Math.sin(2 * Math.PI * u) * wave;
+    const mirror = anim.endsWith('_m') ? -1 : 1;
+    if (action) {
+      p.pelvis.x += mirror * 0.35 * wave;
+      p.lean += 0.045 * settle;
+      p.twist += mirror * 0.065 * settle;
+      p.head.down = (p.head.down || 0) + 0.06 * wave;
+      p.armL.elbow += 0.16 * wave; p.armR.elbow += 0.12 * wave;
+      p.armL.pitch += 0.09 * settle; p.armR.pitch -= 0.09 * settle;
+      p.footL.pitch += 0.06 * wave; p.footR.pitch += 0.06 * wave;
+    } else if (/^(walk|jog|sprint|dribble)$/.test(anim)) {
+      const stride = Math.sin(TAU * t);
+      p.head.down = (p.head.down || 0) + 0.025 * Math.sin(TAU * t * 2);
+      p.armL.elbow += 0.08 * stride; p.armR.elbow -= 0.08 * stride;
+    } else if (anim.startsWith('dive_')) {
+      const land = clamp((u - 0.48) / 0.22, 0, 1), rise = ease(clamp((u - 0.76) / 0.24, 0, 1));
+      p.armL.elbow += 0.3 * land * (1 - rise); p.armR.elbow += 0.22 * land * (1 - rise);
+      p.head.down = (p.head.down || 0) + 0.1 * land * (1 - rise);
+    }
+    return p;
+  }
+
+  function renderFigure0(L, anim, t, yaw, gk, scale, r6) {
     // sprite-artist cheat: in profile the chest and face turn ~30 degrees toward the camera, so both arms and the face read
-    const P = Object.assign({}, poseFor(anim, t, gk, L.star)); P.cheat = -0.5 * Math.sin(yaw); P.twist = (P.twist || 0) + P.cheat;
+    const P = Object.assign({}, motionPose(anim, t, gk, L.star)); P.cheat = -0.5 * Math.sin(yaw); P.twist = (P.twist || 0) + P.cheat;
     if (P.spin) yaw += P.spin;                                                 // whole-body turns (the SIUU leap)
     const S = skeleton(P), R = newRaster(scale);
     const view = v => rotY(v, yaw);
     const J = {}; for (const k in S) if (S[k] && S[k].x !== undefined) J[k] = view(S[k]);
     const sk = L.skin, hand = L.gloves || L.skin, isGK = !!L.gloves;
-    const tube = cylinder;
+    const tube = r6 ? (R_, base, top, yw, aB, aT, b, colorAt, id, round) => boxy(R_, round ? base : vadd(base, V(0, 0, 1.4)), round ? top : vadd(top, V(0, 0, 1.4)), yw, Math.max(aB, aT) * (aB === aT ? 1.28 : 1.03), b * 1.18, colorAt, id, round ? 2.6 : 0) : cylinder;
     const sole = lum(L.boots) > 0.55 ? '#3a3a3a' : '#e8e8e8';
     const ds = L.number ? L.number.split('').map(Number) : [];
     const seed = hashStr(L.shirt + L.pattern + L.trim);
@@ -1079,7 +1115,13 @@ window.RUT = window.RUT || {};
     ['L', 'R'].forEach(sd => {
       const id = sd === 'L' ? ID.legL : ID.legR;
       const hip = J['hip' + sd], knee = J['knee' + sd], ank = J['ankle' + sd];
-
+      if (r6) {
+        const lyaw = yaw + S.pelvisYaw, kd = vnorm(vsub(knee, hip)), ad = vnorm(vsub(ank, knee)), fold6 = shade(L.socks, -0.2);
+        boxy(R, vadd(vsub(hip, vmul(kd, 1.6)), V(0, 0, 0.9)), vadd(vadd(knee, vmul(kd, 1.8)), V(0, 0, 0.9)), lyaw, 3.7, 3.9, (bx, bz, tt) => tt < 0.5 ? (tt > 0.36 && Math.abs(bx) > 2.6 ? L.trim : L.shorts) : sk, id, 1.2);
+        boxy(R, vsub(knee, vmul(ad, 1.5)), vadd(ank, vmul(ad, 1.4)), lyaw, 3.4, 3.6, (bx, bz, tt) => tt < 0.1 ? sk : tt < 0.19 ? fold6 : (tt < 0.24 || (tt > 0.28 && tt < 0.32)) ? L.trim : L.socks, id, 1.0);
+        capsule(R, vadd(J['heel' + sd], vmul(vsub(J['heel' + sd], J['toe' + sd]), 0.08)), vadd(J['toe' + sd], vmul(vsub(J['toe' + sd], J['heel' + sd]), 0.18)), 2.8, 2.35, (tt, n) => n.y < -0.35 ? sole : (tt > 0.45 && tt < 0.75 && n.y > 0.55 ? '#f0f0f0' : (tt > 0.3 && tt < 0.5 && Math.abs(n.x) > 0.5 ? L.bootsL : L.boots)), id);
+        return;
+      }
       capsule(R, hip, knee, 3.2, 2.6, tt => tt < 0.42 ? L.shorts : sk, id);
       capsule(R, hip, vadd(hip, vmul(vsub(knee, hip), 0.42)), 3.6, 3.4, (tt, n) => tt > 0.8 && Math.abs(n.x) > 0.75 ? L.trim : L.shorts, ID.shorts);
       const fold = shade(L.socks, -0.2);
@@ -1123,27 +1165,29 @@ window.RUT = window.RUT || {};
       const base = L.pat(Math.floor(bx * 0.72), Math.floor(v * 0.62), 'body');
       if (HD && v > tLen - 0.8) return shade(base, lum(base) > 0.5 ? -0.1 : 0.1);                // v264: the shirt hem
       if (HD && v > 4 && bz > -0.8 && ((Math.floor(bx * 1.4 + v * 0.8) % 9) === 0)) return shade(base, lum(base) > 0.5 ? -0.07 : 0.07);   // soft fabric folds
-      // Fine weave changes colour only; the v380 body geometry is unchanged.
-      const weave = Math.sin(bx * 13 + v * 2) * Math.sin(v * 16);
-      return HD ? shade(base, weave * 0.022) : base;
+      return base;
     }, ID.body, true);
 
     // ---- arms: sleeve with a cuff, then skin (keepers: long sleeves and big gloves)
     const sleeve = L.pattern === 'halves' ? [L.pat(1, 3, 'sleeve'), L.pat(-2, 3, 'sleeve')] : [L.pat(0, 3, 'sleeve'), L.pat(0, 3, 'sleeve')];
     [['L', 0], ['R', 1]].forEach(([sd, k]) => {
       const id = sd === 'L' ? ID.armL : ID.armR;
-
+      if (r6) {
+        const eb = J['elbow' + sd], ha = J['hand' + sd], fd6 = vnorm(vsub(ha, eb)), ud6 = vnorm(vsub(eb, J['sh' + sd]));
+        boxy(R, J['sh' + sd], vadd(eb, vmul(ud6, 0.6)), tyaw, 3.7, 3.8, (bx, bz, tt) => isGK ? sleeve[k] : tt < 0.58 ? sleeve[k] : tt < 0.68 ? L.trim : sk, id, 1.5);
+        boxy(R, vsub(eb, vmul(fd6, 0.6)), ha, tyaw, 3.4, 3.6, (bx, bz, tt) => isGK ? (tt > 0.74 ? hand : tt > 0.66 ? L.trim : sleeve[k]) : (tt > 0.86 ? hand : sk), id, 1.2);
+        return;
+      }
       capsule(R, J['sh' + sd], J['elbow' + sd], 2.25, 1.95, tt => isGK ? sleeve[k] : tt < 0.46 ? sleeve[k] : tt < 0.56 ? L.trim : sk, id);
       capsule(R, J['elbow' + sd], J['hand' + sd], 1.9, 1.6, tt => isGK ? (tt > 0.8 ? L.trim : sleeve[k]) : sk, id);
       ellipsoid(R, J['hand' + sd], isGK ? 2.4 : 1.9, isGK ? 2.4 : 2.0, () => hand, id);
       if (HD) {                                                                  // v127 detail: shoulder, biceps, fingers and thumb (keepers: gloves with cuff strap)
         ellipsoid(R, J['sh' + sd], 3.0, 3.0, () => sleeve[k], id);
         ellipsoid(R, vadd(J['sh' + sd], vmul(vsub(J['elbow' + sd], J['sh' + sd]), 0.38)), 2.6, 2.9, () => sleeve[k], id);
-        // A single rounded hand keeps the silhouette readable without digits.
-        if (isGK) {
-          const handDirection = vnorm(vsub(J['hand' + sd], J['elbow' + sd]));
-          capsule(R, vadd(J['hand' + sd], vmul(handDirection, -1.1)), J['hand' + sd], 2.1, 2.1, () => L.trim, id);
-        }
+        const hd0 = J['hand' + sd], fd = vnorm(vsub(hd0, J['elbow' + sd])), pp = V(-fd.y, fd.x, 0), fl = isGK ? 3.0 : 2.5, fr = isGK ? 0.85 : 0.6;
+        [-1.5, -0.5, 0.5, 1.5].forEach(o => capsule(R, vadd(hd0, vmul(pp, o * 0.55)), vadd(vadd(hd0, vmul(fd, fl - Math.abs(o) * 0.25)), vmul(pp, o * 0.7)), fr, fr * 0.9, () => hand, id));
+        capsule(R, hd0, vadd(vadd(hd0, vmul(fd, 1.3)), vmul(pp, (sd === 'L' ? 1 : -1) * 1.9)), fr * 1.1, fr, () => hand, id);
+        if (isGK) capsule(R, vadd(hd0, vmul(fd, -1.1)), vadd(hd0, vmul(fd, 0.2)), 2.1, 2.1, () => L.trim, id);
       }
     });
 
@@ -1161,21 +1205,6 @@ window.RUT = window.RUT || {};
         if (l.y > hl) return style === 'buzz' ? L.hairD : L.hair;
         if ((style === 'fade' || style === 'curlfade') && l.y > hl - 0.4 && l.z < 0.35) return l.y > hl - 0.2 ? L.hairD : L.skinD;   // v195: the fade goes from hair to skin
       }
-      if (L.cardBody && (L.beard || L.full) && l.z > 0.08) {
-        const side = Math.abs(l.x);
-        const cheekLine = -0.38 + side * 0.18;
-        const mouthOpening = side < 0.28 && l.y > -0.62 && l.y < -0.39 && l.z > 0.6;
-        const moustache = side < 0.38 && l.y > -0.43 && l.y < -0.32 && l.z > 0.62;
-        const sideburn = side > 0.75 && l.y > -0.35 && l.y < 0.08;
-        if (!mouthOpening && (l.y < cheekLine || moustache || sideburn)) {
-          const strand = Math.sin(l.x * 65 + l.y * 18) * Math.sin(l.y * 57 - l.z * 9);
-          const edge = l.y > cheekLine - 0.08;
-          if (edge && strand < 0.15 && !moustache && !sideburn) return shade(sk, -0.12);
-          if (!L.full && strand < -0.1) return shade(sk, -0.22);
-          return strand > 0.5 ? shade(L.hair, 0.13) : L.hairD;
-        }
-        return sk;
-      }
       if (L.beard && l.z > 0.05 && l.y < -0.34 && !(l.y > -0.62 && Math.abs(l.x) < 0.28 && l.z > 0.6)) return L.hairD;
       return sk;
     };
@@ -1183,10 +1212,9 @@ window.RUT = window.RUT || {};
     else ellipsoid(R, hc, hr, hry, n => headCol(toLocal(n)), ID.head);
     const hairVol = true;   // v267: hair keeps its volume on the round R6 head
     if (style !== 'bald') {                                                                  // hair volume above the scalp
-      const hairScale = (L.cardBody ? 0.78 : 1) * (L.hairVolume || 1);
-      const grow = hairScale * (style === 'afro' ? 3.6 : style === 'curly' ? 1.8 : style === 'curlfade' ? 1.5 : style === 'dreads' ? 1.4 : style === 'buzz' ? 0.3 : style === 'fade' ? 0.5 : style === 'slick' ? 0.7 : 0.9);
+      const grow = style === 'afro' ? 3.6 : style === 'curly' ? 1.8 : style === 'curlfade' ? 1.5 : style === 'dreads' ? 1.4 : style === 'buzz' ? 0.3 : style === 'fade' ? 0.5 : style === 'slick' ? 0.7 : 0.9;
       const c2 = style === 'afro' ? vadd(hc, V(0, 1.4, -0.3)) : style === 'curly' ? vadd(hc, V(0, 0.8, 0)) : hc;
-      if (hairVol && L.hairProfile !== 'jude-crop') ellipsoid(R, c2, hr + grow, hry + grow, n => {
+      if (hairVol) ellipsoid(R, c2, hr + grow, hry + grow, n => {
         const l = toLocal(n);
         if (l.y <= hairline(style, l.z) + 0.08) return null;
         if (style === 'mohawk' && Math.abs(l.x) > 0.34) return null;
@@ -1194,105 +1222,18 @@ window.RUT = window.RUT || {};
         const low = l.y < hairline(style, l.z) + 0.3;
         if (style === 'curly' || style === 'afro' || style === 'curlfade') { const k = style === 'afro' ? 9 : 13, cx = n.x * k, cy = n.y * k, cz = n.z * k;
           const v = Math.sin(cx + Math.sin(cy * 1.3)) * Math.sin(cy + Math.sin(cz * 1.7)) * Math.sin(cz + Math.sin(cx * 1.1));
-          if (L.hairTop && l.y > 0.52) return shade(L.hairTop, v > 0.32 ? 0.18 : v < -0.3 ? -0.25 : 0);
           return v > 0.32 ? L.hairL : v < -0.3 || low ? L.hairD : L.hair; }
         if (style === 'dreads') { const a = Math.atan2(l.x, l.z), q = Math.sin(a * 11 + l.y * 2); return q > 0.55 ? L.hairL : q < -0.5 || low ? L.hairD : L.hair; }   // locs run down from the crown
         if (style === 'short' || style === 'long' || style === 'bun' || style === 'slick') { const q = Math.sin((style === 'slick' || style === 'bun' ? l.x * 3 + l.z * 18 : l.x * 22 + l.z * 4)); return l.y > 0.55 && q > 0.6 ? L.hairL : low || q < -0.75 ? L.hairD : L.hair; }   // strands
         return style === 'buzz' ? L.hairD : low ? L.hairD : L.hair;
       }, ID.hair);
-      if (L.hairProfile === 'jude-crop') {
-        // A tapered rectangular crown with softly rounded edges and short coiled curls.
-        const bottom = vadd(hc, vmul(toView(V(0, 0.48, 0)), hr));
-        const top = vadd(hc, vmul(toView(V(0, 1.12, 0)), hr));
-        hairCrownVolume(R, bottom, top, hyaw, hr * 0.79, hr * 0.68, (x, z, t) => {
-          const texture = Math.sin(x * 9 + z * 4) * Math.sin(z * 11 - t * 16);
-          return texture > 0.35 ? L.hair : L.hairD;
-        }, ID.hair, 0.6);
-        const random = rng(L.fseed);
-        for (let row = 0; row < 8; row++) for (let column = 0; column < 8; column++) {
-          const x = (column / 7 - 0.5) * 1.48;
-          const z = (row / 7 - 0.5) * 1.25;
-          const height = 1.1 + random() * 0.08;
-          const centre = vadd(hc, vmul(toView(V(x, height, z)), hr));
-          ellipsoid(R, centre, hr * 0.11, hr * (0.075 + random() * 0.025), n => n.y > 0.55 ? L.hair : L.hairD, ID.hair);
-        }
-      }
-      // Card-size geometry creates an uneven silhouette, not just painted scalp texture.
-      if (L.cardBody && style !== 'bald' && L.hairProfile !== 'jude-crop') {
-        const hairRandom = rng((L.fseed || 1) ^ 0x51a7);
-        const curled = ['curly', 'curlfade', 'afro'].includes(style);
-        const cropped = style === 'fade';
-        const count = 104;
-        for (let index = 0; index < count; index++) {
-          const angle = index * 2.39996 + hairRandom() * 0.25;
-          let height = 0.3 + 0.68 * hairRandom();
-          const minimum = Math.min(0.9, hairline(style, Math.sin(angle)) + (cropped ? 0.23 : 0.08));
-          height = Math.max(height, minimum + (0.98 - minimum) * hairRandom());
-          const radius = Math.sqrt(1 - height * height);
-          const local = V(Math.cos(angle) * radius, height, Math.sin(angle) * radius);
-          height = Math.max(height, Math.min(0.98, hairline(style, local.z, local.x) + 0.12));
-          local.y = height;
-          const position = vadd(hc, vmul(toView(local), hr + grow * 0.65));
-          const size = style === 'buzz' ? 0.13 : curled ? 0.45 + hairRandom() * 0.5 : 0.2 + hairRandom() * 0.22;
-          const colour = shade(L.hairTop && height > 0.52 ? L.hairTop : L.hair, -0.12 + hairRandom() * 0.25);
-          if (curled) {
-            ellipsoid(R, position, size, size * 0.85, normal => normal.y > 0.6 ? shade(colour, 0.12) : colour, ID.hair);
-          } else {
-            const sweep = style === 'slick' || style === 'bun' ? V(0, 0.1, -0.32) : V(0.2, -0.08, 0.18);
-            capsule(R, position, vadd(position, vmul(toView(sweep), hr)), size, size * 0.35, () => colour, ID.hair);
-          }
-        }
-      }
-      if (style === 'bun') { ellipsoid(R, vadd(hc, vmul(toView(V(0, 0.95, -0.45)), hr)), L.cardBody ? 2.6 : 3.4, L.cardBody ? 2.4 : 3.1, () => L.hair, ID.hair); ellipsoid(R, vadd(hc, vmul(toView(V(0, 1.05, -0.4)), hr)), 2.0, 1.6, () => L.hairL, ID.hair); }   // top knot, seen from the front too
+      if (style === 'bun') { ellipsoid(R, vadd(hc, vmul(toView(V(0, 0.95, -0.45)), hr)), 3.4, 3.1, () => L.hair, ID.hair); ellipsoid(R, vadd(hc, vmul(toView(V(0, 1.05, -0.4)), hr)), 2.0, 1.6, () => L.hairL, ID.hair); }   // top knot, seen from the front too
       if (style === 'mohawk') capsule(R, vadd(hc, vmul(toView(V(0, 0.95, 0.5)), hr)), vadd(hc, vmul(toView(V(0, 0.8, -0.7)), hr)), 1.7, 1.5, () => L.hairL, ID.hair);
-      if (style === 'dreads' && L.locProfile) {
-        const olise = L.locProfile === 'olise';
-        const count = olise ? 14 : 20;
-        const random = rng(L.fseed);
-        for (let index = 0; index < count; index++) {
-          const angle = index / count * Math.PI * 2;
-          const front = Math.cos(angle) > 0.25;
-          const length = (L.locProfile === 'raphinha' ? 0.48 : olise ? 0.65 : 1.1) + random() * 0.3;
-          const root = V(Math.sin(angle) * 0.72, olise ? 0.65 : 0.42, Math.cos(angle) * 0.65);
-          const middle = V(root.x * 1.18, root.y - length * 0.42, root.z * 1.2);
-          const end = V(root.x * 1.25, root.y - length, root.z * 1.3);
-          if (front) { end.y += olise ? 0.18 : 0.1; end.x += (index % 2 ? 1 : -1) * 0.12; }
-          const point = local => vadd(hc, vmul(toView(local), hr));
-          const radius = olise ? 0.65 : 0.66;
-          capsule(R, point(root), point(middle), radius, radius * 0.9, () => L.hairD, ID.hair);
-          capsule(R, point(middle), point(end), radius * 0.9, radius * 0.6, (t, n) => n.x > 0.4 ? L.hair : L.hairD, ID.hair);
-        }
-      }
-      if (L.locProfile === 'olise') {
-        const tie = vadd(hc, vmul(toView(V(0.22, 0.22, -1.12)), hr));
-        for (let index = 0; index < 12; index++) {
-          const offset = (index - 5.5) * 0.12;
-          const root = vadd(tie, toView(V(offset * hr, 0.1, 0)));
-          const tip = vadd(root, toView(V(offset * 2, -hr * (0.65 + (index % 3) * 0.1), -hr * 0.12)));
-          capsule(R, root, tip, 0.5, 0.28, () => index % 3 ? L.hairD : L.hair, ID.hair);
-        }
-        // Fabric scrunchie wraps the gathered locks at the back of the head.
-        for (let segment = 0; segment < 16; segment++) {
-          const angle = segment / 16 * Math.PI * 2;
-          const point = vadd(tie, toView(V(Math.cos(angle) * 1.8, Math.sin(angle) * 1.1, 0.1)));
-          ellipsoid(R, point, 0.6, 0.55, () => segment % 2 ? '#25212d' : '#66616f', ID.hair);
-        }
-      }
-      if (style === 'dreads' && !L.locProfile) [-0.7, -0.35, 0, 0.35, 0.7].forEach(x => capsule(R, vadd(hc, vmul(toView(V(x, 0.2, -0.78)), hr)), vadd(hc, vmul(toView(V(x * 1.15, -1.1, -0.72)), hr)), 1.5, 1.2, () => L.hair, ID.hair));
+      if (style === 'dreads') [-0.7, -0.35, 0, 0.35, 0.7].forEach(x => capsule(R, vadd(hc, vmul(toView(V(x, 0.2, -0.78)), hr)), vadd(hc, vmul(toView(V(x * 1.15, -1.1, -0.72)), hr)), 1.5, 1.2, () => L.hair, ID.hair));
       if (style === 'long') capsule(R, vadd(hc, vmul(toView(V(0, -0.1, -0.8)), hr)), vadd(hc, vmul(toView(V(0, -1.25, -0.6)), hr)), 4.0, 3.4, () => L.hair, ID.hair);
     }
-    if (L.band && L.locProfile) {
-      for (let segment = 0; segment < 32; segment++) {
-        const ringPoint = angle => vadd(hc, vmul(toView(V(Math.sin(angle) * 1.08, 0.29, Math.cos(angle) * 1.08)), hr));
-        capsule(R, ringPoint(segment / 32 * Math.PI * 2), ringPoint((segment + 1) / 32 * Math.PI * 2), 0.5, 0.5, () => L.band, ID.hair);
-      }
-    }
-    if (L.band && !L.locProfile) [-0.78, -0.4, 0, 0.4, 0.78].forEach(x => ellipsoid(R, vadd(hc, vmul(toView(V(x, 0.5 - Math.abs(x) * 0.12, Math.sqrt(Math.max(0.05, 1 - x * x - 0.25)))), hr * 1.01)), 1.5, 1.3, () => L.band, ID.hair));   // headband
-    if (L.full) ellipsoid(R, vadd(hc, vmul(toView(V(0, -0.72, 0.5)), hr)), L.cardBody ? hr * 0.55 : 4.4, L.cardBody ? hr * 0.43 : 3.4, normal => {
-      if (!L.cardBody) return L.hairD;
-      const strands = Math.sin(normal.x * 48 + normal.y * 7) * Math.sin(normal.y * 33);
-      return strands > 0.35 ? L.hair : L.hairD;
-    }, ID.hair);   // full beard
+    if (L.band) [-0.78, -0.4, 0, 0.4, 0.78].forEach(x => ellipsoid(R, vadd(hc, vmul(toView(V(x, 0.5 - Math.abs(x) * 0.12, Math.sqrt(Math.max(0.05, 1 - x * x - 0.25)))), hr * 1.01)), 1.5, 1.3, () => L.band, ID.hair));   // headband
+    if (L.full) ellipsoid(R, vadd(hc, vmul(toView(V(0, -0.72, 0.5)), hr)), 4.4, 3.4, () => L.hairD, ID.hair);   // full beard
     [1, -1].forEach(sg => ellipsoid(R, vadd(hc, vmul(toView(V(sg * 0.98, -0.05, -0.08)), hr)), 1.25, 1.55, () => sk, ID.head));
     ellipsoid(R, vadd(hc, vmul(toView(V(0, -0.14, 1)), hr)), FV.nrx, FV.nry * 1.15, () => sk, ID.head);
     if (HD && !(L.beard || L.full)) ellipsoid(R, vadd(J.neck, V(0, B.neck * 0.55, 0.35)), 2.0, 1.1, () => shade(sk, -0.2), ID.head);   // v264: the jaw's shadow on the neck
@@ -1472,7 +1413,7 @@ window.RUT = window.RUT || {};
     const key = card.name + '|' + card.club + '|' + card.position + '|' + (pose || 'idle');
     if (figCache[key]) return figCache[key];
     const L0 = lookFor(card.name, kit, card.position === 'GK', 0, { club: card.club, number: card.details && card.details.number, strength: card.sub && card.sub.strength });
-    const L = Object.assign({}, L0, { flat: false, cardBody: true, key: L0.key + '|athletic-card-hair-beard-v3' });   // v281 (JODIO): card figures are a flat 2D drawing of the old v260 body
+    const L = Object.assign({}, L0, { r6: false, flat: true, key: L0.key + '|oldflat' });   // v281 (JODIO): card figures are a flat 2D drawing of the old v260 body
     let anim = pose === 'up' ? 'up' : pose === 'cross' ? 'cross' : idleFor(card.position), t = anim === 'up' ? 0.25 : 0.1, yaw = -0.45;
     if (!pose || pose === 'idle') { const pz = cardPose(card); anim = pz[0]; t = pz[1]; yaw = pz[2]; }
     yaw *= 0.5;   // v281: nearly front view   // v259 (JODIO): every player strikes his own pose on his card
