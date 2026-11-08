@@ -23,6 +23,7 @@ function begin() {
     training: { hero: card, mates: homeCards.slice(1,10), foes: awayCards.slice(1), foeMode: 'ai',
       keeper: awayCards[0], mateKeeper: homeCards[0] } });
   match.start(canvas);
+  match.setGfx(document.querySelector('#quality').value);
   match.camMode = document.querySelector('#view').value;
   paused = false; document.querySelector('#pause').textContent = 'Pause';
 }
@@ -60,3 +61,15 @@ function monitor(time) {
   requestAnimationFrame(monitor);
 }
 requestAnimationFrame(monitor);
+
+document.querySelector('#quality').onchange = event => { if(match) match.setGfx(event.target.value); };
+document.querySelector('#net-preview').onclick = () => {
+ if(!match)return;match.stepNets(1/60);
+ const net=match.nets[1],panel=net.panels.find(p=>p.name==='back'),k=panel.at(8,3)*3;
+ const x=net.p0[k],y=net.p0[k+1],z=net.p0[k+2];
+ paused=true;match.paused=true;document.querySelector('#pause').textContent='Resume';
+ match.hero.x=x-3;match.hero.y=y;match.camMode='close';
+ match.netHit={side:1,x,y,z,s:1,t:0.12};
+ match.ball.owner=null;Object.assign(match.ball,{x:x-0.23,y,z,vx:0,vy:0,vz:0,inNet:1,shot:null});
+ match.cam.x=x;match.cam.y=y;
+};

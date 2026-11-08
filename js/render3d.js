@@ -300,17 +300,7 @@
       return true;
     }
     // Render-only exaggeration: fixed frame knots, a local pocket and damped rebound.
-    function netStretch(net, index, normal, hit) {
-      if (!hit || hit.side !== net.side || hit.t < 0 || hit.t > 2.5 || net.pin[index]) return 0;
-      const k = index * 3, q = net.p0;
-      const dx = q[k] - hit.x, dy = q[k + 1] - hit.y, dz = q[k + 2] - hit.z;
-      const along = dx * normal[0] + dy * normal[1] + dz * normal[2];
-      const radial = Math.max(0, dx * dx + dy * dy + dz * dz - along * along);
-      const local = Math.exp(-radial / 1.5) * Math.exp(-along * along / 1.8);
-      const age = hit.t;
-      const pulse = (1 - Math.exp(-age * 32)) * Math.exp(-age * 2.4) * (1 + 0.2 * Math.sin(age * 18));
-      return 4.8 * (0.55 + 0.45 * hit.s) * local * pulse;
-    }
+    function netStretch(net, index, normal, hit) { return RUT.netStretch(net, index, normal, hit); }
     function updateCloth(m) {
       if (!cloth.length && !buildCloth(m)) return;
       cloth.forEach(c => {
@@ -339,11 +329,14 @@
     const ballQ = new T.Quaternion(), tmpV = new T.Vector3(), tmpQ = new T.Quaternion(), tmpAxis = new T.Vector3();
 
     /* ---- footballers ---- */
+    function smoothShape(width, height, depth) {
+      return new T.SphereGeometry(0.5, 12, 10).scale(width, height, depth);
+    }
     const geo = {
-      thigh: new T.BoxGeometry(0.2, 0.43, 0.2), shin: new T.BoxGeometry(0.19, 0.42, 0.19), boot: new T.BoxGeometry(0.2, 0.1, 0.29),
-      upArm: new T.BoxGeometry(0.19, 0.32, 0.19), foArm: new T.BoxGeometry(0.18, 0.31, 0.18), hand: new T.BoxGeometry(0.18, 0.1, 0.18),
-      chest: new T.BoxGeometry(0.43, 0.62, 0.22), shorts: new T.BoxGeometry(0.43, 0.26, 0.23), neck: new T.BoxGeometry(0.08, 0.1, 0.08),
-      head: new T.BoxGeometry(0.23, 0.23, 0.23), hair: new T.BoxGeometry(0.245, 0.1, 0.245), numPlane: new T.PlaneGeometry(0.23, 0.23), curl: new T.SphereGeometry(0.05, 7, 5), tail: new T.CapsuleGeometry(0.035, 0.2, 2, 6), bun: new T.SphereGeometry(0.055, 8, 6), dread: new T.CapsuleGeometry(0.018, 0.2, 2, 5),
+      thigh: smoothShape(0.2, 0.43, 0.2), shin: smoothShape(0.19, 0.42, 0.19), boot: smoothShape(0.2, 0.1, 0.29),
+      upArm: new T.CapsuleGeometry(0.085, 0.15, 4, 10), foArm: new T.CapsuleGeometry(0.075, 0.16, 4, 10), hand: smoothShape(0.15, 0.1, 0.15),
+      chest: smoothShape(0.43, 0.62, 0.22), shorts: smoothShape(0.43, 0.26, 0.23), neck: smoothShape(0.08, 0.1, 0.08),
+      head: smoothShape(0.23, 0.23, 0.23), hair: smoothShape(0.245, 0.1, 0.245), numPlane: new T.PlaneGeometry(0.23, 0.23), curl: new T.SphereGeometry(0.05, 7, 5), tail: new T.CapsuleGeometry(0.035, 0.2, 2, 6), bun: new T.SphereGeometry(0.055, 8, 6), dread: new T.CapsuleGeometry(0.018, 0.2, 2, 5),
     };
     const matCache = {};
     const std = (col, rough) => { const k = col + '|' + rough; return matCache[k] || (matCache[k] = new T.MeshStandardMaterial({ color: new T.Color(col), roughness: rough == null ? 0.8 : rough, metalness: 0.02 })); };
@@ -425,7 +418,7 @@
       const nose = new T.Mesh(new T.ConeGeometry(0.012, 0.03, 6), skin); nose.rotation.x = Math.PI / 2 + 0.5; nose.position.set(0, -0.012, 0.125); head.add(nose);
       [-1, 1].forEach(sg => { const ear = ink(new T.Mesh(new T.BoxGeometry(0.03, 0.06, 0.04), skin)); ear.position.set(sg * 0.13, -0.01, 0); head.add(ear); });
       const arm = sgn => {
-        const shd = new T.Group(); shd.position.set(sgn * 0.325 * bw, 0.54, 0); torso.add(shd);
+        const shd = new T.Group(); shd.position.set(sgn * 0.24 * bw, 0.54, 0); torso.add(shd);
         const up = ink(new T.Mesh(geo.upArm, sleeve)); up.position.y = -0.15; shd.add(up);
         const el = new T.Group(); el.position.y = -0.3; shd.add(el);
         const fo = ink(new T.Mesh(geo.foArm, skin)); fo.position.y = -0.14; el.add(fo);

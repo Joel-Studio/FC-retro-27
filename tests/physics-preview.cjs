@@ -99,7 +99,7 @@ for (const name of ['looks_real','looks_desc','pixelart','three.min']) {
   vm.runInContext(fs.readFileSync('js/' + name + '.js','utf8'),context);
 }
 const renderer = fs.readFileSync('js/render3d.js','utf8');
-const hairSource = renderer.slice(renderer.indexOf('    const geo = {'),renderer.indexOf('    function makeRig'));
+const hairSource = renderer.slice(renderer.indexOf('    function smoothShape'),renderer.indexOf('    function makeRig'));
 vm.runInContext('const T = THREE; const clamp = (v,a,b) => Math.max(a,Math.min(b,v));' + hairSource
   + ';window.testHair = look => { const head = new T.Group(); addHair(head,look.style,std(look.hair,0.6),look); return head; };',context);
 for (const card of RUT.DB.players) {
@@ -147,3 +147,14 @@ for(const dt of [1/30,1/60,1/120]) {
 }
 assert(!renderer.includes('roundedBody'));
 console.log('PASS close control, responsive reversal/stopping and restored model geometry.');
+
+// Quality changes retain the same character renderer and never alter simulation state.
+RUT.load3D=()=>Promise.resolve();
+const qualityMatch=match(),stage={dispose(){throw Error('quality must not replace models');}};
+qualityMatch._u3=stage;
+for(const mode of ['auto','potato','low','med','high','ultra','3d']) {
+ const before=JSON.stringify([qualityMatch.ball.x,qualityMatch.ball.y,qualityMatch.players.map(p=>[p.x,p.y])]);
+ qualityMatch.setGfx(mode);assert.equal(qualityMatch.gfx,mode);assert.equal(qualityMatch._u3,stage);
+ assert.equal(before,JSON.stringify([qualityMatch.ball.x,qualityMatch.ball.y,qualityMatch.players.map(p=>[p.x,p.y])]));
+}
+console.log('PASS all graphics settings retain 3D models and identical physics state.');

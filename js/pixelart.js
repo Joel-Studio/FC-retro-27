@@ -915,7 +915,7 @@ window.RUT = window.RUT || {};
     const armYaw = S.torsoYaw - (P.cheat || 0) * 0.8;                     // arms swing in the running direction, not the cheated chest
     [['L', P.armL, S.shL, 1], ['R', P.armR, S.shR, -1]].forEach(([sd, a, sh, sg]) => {
       const du = rotY(V(sg * Math.sin(a.roll), -Math.cos(a.roll) * Math.cos(a.pitch), Math.cos(a.roll) * Math.sin(a.pitch)), armYaw);
-      const p2 = a.pitch + a.elbow;
+      const p2 = a.pitch + clamp(a.elbow, 0.08, 2.3);
       let df = V(sg * Math.sin(a.roll), -Math.cos(a.roll) * Math.cos(p2), Math.cos(a.roll) * Math.sin(p2));
       if (a.cross) df = vnorm(vadd(df, V(-sg * a.cross * 1.4, 0, 0)));
       df = rotY(df, armYaw);
@@ -1063,7 +1063,7 @@ window.RUT = window.RUT || {};
 
   /** Render the whole figure for one pose, view yaw and scale. Returns the raster. */
   function renderFigure(L, anim, t, yaw, gk, scale) {
-    const r6 = L.r6 !== false, Bsave = (r6 || L.cardBody) ? Object.assign({}, B) : null;
+    const r6 = false, Bsave = (r6 || L.cardBody) ? Object.assign({}, B) : null;
     if (r6) Object.assign(B, R6B);
     if (L.cardBody) Object.assign(B, { torso: 15.2, shW: 7.3, upper: 7.1, fore: 6.5, neck: 1.6, headR: 5.4 });
     flatL = !!L.flat; smoothL = !!L.cardBody;   // v276: card figures are flat 2D, two-tone cel shading
@@ -1149,12 +1149,12 @@ window.RUT = window.RUT || {};
         boxy(R, vsub(eb, vmul(fd6, 1.4)), vadd(ha, vmul(fd6, 3.0)), tyaw, 3.4, 3.6, (bx, bz, tt) => isGK ? (tt > 0.74 ? hand : tt > 0.66 ? L.trim : sleeve[k]) : (tt > 0.86 ? hand : sk), id, 1.2);
         return;
       }
-      capsule(R, J['sh' + sd], J['elbow' + sd], 2.25, 1.95, tt => isGK ? sleeve[k] : tt < 0.46 ? sleeve[k] : tt < 0.56 ? L.trim : sk, id);
-      capsule(R, J['elbow' + sd], J['hand' + sd], 1.9, 1.6, tt => isGK ? (tt > 0.8 ? L.trim : sleeve[k]) : sk, id);
-      ellipsoid(R, J['hand' + sd], isGK ? 2.4 : 1.9, isGK ? 2.4 : 2.0, () => hand, id);
+      capsule(R, J['sh' + sd], J['elbow' + sd], 1.95, 1.7, tt => isGK ? sleeve[k] : tt < 0.46 ? sleeve[k] : tt < 0.56 ? L.trim : sk, id);
+      capsule(R, J['elbow' + sd], J['hand' + sd], 1.65, 1.4, tt => isGK ? (tt > 0.8 ? L.trim : sleeve[k]) : sk, id);
+      ellipsoid(R, J['hand' + sd], isGK ? 2.4 : 1.6, isGK ? 2.4 : 1.7, () => hand, id);
       if (HD) {                                                                  // v127 detail: shoulder, biceps, fingers and thumb (keepers: gloves with cuff strap)
-        ellipsoid(R, J['sh' + sd], 3.0, 3.0, () => sleeve[k], id);
-        ellipsoid(R, vadd(J['sh' + sd], vmul(vsub(J['elbow' + sd], J['sh' + sd]), 0.38)), 2.6, 2.9, () => sleeve[k], id);
+        ellipsoid(R, J['sh' + sd], 2.2, 2.2, () => sleeve[k], id);
+        ellipsoid(R, vadd(J['sh' + sd], vmul(vsub(J['elbow' + sd], J['sh' + sd]), 0.38)), 2.05, 2.2, () => sleeve[k], id);
         // A single rounded hand keeps the silhouette readable without digits.
         if (isGK) {
           const handDirection = vnorm(vsub(J['hand' + sd], J['elbow' + sd]));

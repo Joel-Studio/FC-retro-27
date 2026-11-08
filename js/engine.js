@@ -3565,6 +3565,18 @@ window.RUT = window.RUT || {};
    * netting and the roof against a heavily damped spring (it stretches up to ~0.5 m and soaks up almost all of the
    * ball's speed, so the ball drops into the goal). The cloth mesh (stepNets) is pushed by the ball and drawn by drawGoal3D.
    */
+    function netStretch(net, index, normal, hit) {
+      if (!hit || hit.side !== net.side || hit.t < 0 || hit.t > 2.5 || net.pin[index]) return 0;
+      const k = index * 3, q = net.p0;
+      const dx = q[k] - hit.x, dy = q[k + 1] - hit.y, dz = q[k + 2] - hit.z;
+      const along = dx * normal[0] + dy * normal[1] + dz * normal[2];
+      const radial = Math.max(0, dx * dx + dy * dy + dz * dz - along * along);
+      const local = Math.exp(-radial / 1.5) * Math.exp(-along * along / 1.8);
+      const age = hit.t;
+      const pulse = (1 - Math.exp(-age * 32)) * Math.exp(-age * 2.4) * (1 + 0.2 * Math.sin(age * 18));
+      return 9.6 * (0.55 + 0.45 * hit.s) * local * pulse;
+    }
+  RUT.netStretch = netStretch;
   const NET_K = 1500, NET_C = 66, NET_MAX = 0.55;
   P.netCollide = function (side, h) {
     const b = this.ball, dir = side ? 1 : -1, gx = side ? PITCH_W : 0;
@@ -4230,7 +4242,7 @@ window.RUT = window.RUT || {};
     return frames;
   }
 
-  P.setGfx = function (mode) { this.gfx = GFX_Q[mode] ? mode : 'auto'; if (this.gfx !== '3d' && this._u3) { try { this._u3.dispose(); } catch (err) { /* gone */ } this._u3 = null; } if (this.gfx !== 'auto') this._q = GFX_Q[this.gfx]; try { localStorage.setItem('rut_gfx', this.gfx); } catch (e) {} if (this.gfx === '3d') RUT.load3D(); return this.gfx; };
+  P.setGfx = function (mode) { this.gfx = GFX_Q[mode] ? mode : 'auto'; if (this.gfx !== 'auto') this._q = GFX_Q[this.gfx]; try { localStorage.setItem('rut_gfx', this.gfx); } catch (e) {} RUT.load3D(); return this.gfx; };
   /** v151: the three.js renderer is only downloaded when Full 3D is chosen. */
   RUT.load3D = function () {
     if (RUT.Render3D || RUT._l3) return RUT._l3;
@@ -4253,7 +4265,7 @@ window.RUT = window.RUT || {};
       const U = this._u3, now = performance.now(), dt = clamp((now - (this._u3t || now)) / 1000, 0, 0.1); this._u3t = now;
       // too heavy for this machine? after a couple of seconds of slow frames drop to High so the game stays playable
       this._u3n = (this._u3n || 0) + 1; this._u3sum = (this._u3sum || 0) + dt;
-      if (this._u3n >= 150) { const av = this._u3sum / this._u3n, u = this._u3scale || 0.9; if (av > 0.024 && !window.RUT_KEEP3D && u > 0.5) this._u3scale = Math.max(0.5, u * 0.85); else if (av < 0.0175 && u < 0.9) this._u3scale = Math.min(0.9, u / 0.9); this._u3n = this._u3sum = 0; }   // v167: slow machine: fewer pixels, still full 3D
+      if (this._u3n >= 150) { const av = this._u3sum / this._u3n, u = this._u3scale || 0.65; if (av > 0.024 && !window.RUT_KEEP3D && u > 0.34) this._u3scale = Math.max(0.34, u * 0.85); else if (av < 0.0175 && u < 0.9) this._u3scale = Math.min(0.9, u / 0.9); this._u3n = this._u3sum = 0; }   // v167: slow machine: fewer pixels, still full 3D
       U.frame(this, { w: CW, h: CH, mode: this.camMode, camX, camY: this.cam.y, fy: CAM_FY, shake, crowd: crowdFrame, dt, sprites: false, spCam: this.spView === 'tv' ? null : (c => c && Object.assign({ view: this.spView || 'behind' }, c))(this.spCamera()) });   // v171: the 3D world, players drawn below as the normal-mode pixel sprites
       ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(U.canvas, 0, 0, CW, CH); ctx.restore();
       const proj = (x, y, z) => U.proj(x, y, z, VIEW_W, VIEW_H);
@@ -4359,7 +4371,8 @@ void main(){
     };
     this.proj = proj; this._cv = ctx.canvas;
     // full screen: the drawing space follows the window's aspect (4:3 up to ultra-wide) at 1080 lines (times the adaptive quality)
-    if (this.gfx !== 'auto') this._q = GFX_Q[this.gfx] * (this.gfx === '3d' ? (this._u3scale || 0.65) : 1);   // v200: 3D starts at 90% resolution (972 lines), smoothing hides it
+    if (this.gfx !== 'auto') this._q = GFX_Q[this.gfx] * (this._u3scale || 0.65);
+    else this._q = Math.min(this._q || 1, this._u3scale || 0.65);   // v200: 3D starts at 90% resolution (972 lines), smoothing hides it
     const LQ = this._q || 1, lite = LQ <= 0.85, lite2 = LQ <= 0.5, lite3 = LQ <= 0.35;      // cheaper drawing on weak machines
     { const PX = RUT.PixelArt; if (PX && PX.setHD && PX.isHD() === lite) PX.setHD(!lite); }                                       // HD sprites (more parts, 1.4x supersampled) unless the machine is struggling
     { const cv = ctx.canvas, asp = cv.clientWidth > 50 && cv.clientHeight > 50 ? cv.clientWidth / cv.clientHeight : 4 / 3, q = this._q || 1;
@@ -4371,7 +4384,7 @@ void main(){
     ctx.setTransform(SC, 0, 0, SC, 0, 0);
     ctx.imageSmoothingEnabled = !lite3; ctx.imageSmoothingQuality = lite ? 'low' : 'high';
     const crowdFrame = (this.phase === 'goal' || this.goalFlash > 0) ? (Math.floor(this.t * 8) % 2) : (Math.floor(this.t * 1.5) % 7 === 0 ? 1 : 0);
-    if (this.gfx === '3d' && this.ultraDraw(ctx, camX, !!shake, crowdFrame, CW, CH)) return;       // Ultra: the real 3D renderer (js/render3d.js) at 1440 lines
+    if (this.ultraDraw(ctx, camX, !!shake, crowdFrame, CW, CH)) return;       // Ultra: the real 3D renderer (js/render3d.js) at 1440 lines
 
     // ---- sky
     const sky = ctx.createLinearGradient(0, 0, 0, VIEW_H * 0.6);
@@ -4864,10 +4877,13 @@ void main(){
     const net = this.nets[side], pos = net.pos;
     /* v370 (JODIO: the net must stretch like in real life in every graphics mode): in the 2D modes the push is drawn 1.7x stronger, the lines stay visible at low resolution, and a moving net is brighter */
     const flat = this.gfx !== '3d', xg = flat ? 1.7 : 1, p0 = net.p0, qv = Math.max(0.2, this._q || 1), lw = flat ? Math.min(1.7, Math.max(0.42, 0.62 / qv)) : 0.42, hot = flat && net.awake > 0;
-    const sp = i => { const k = i * 3; return xg === 1 || !p0 ? proj(pos[k], pos[k + 1], pos[k + 2]) : proj(p0[k] + (pos[k] - p0[k]) * xg, p0[k + 1] + (pos[k + 1] - p0[k + 1]) * xg, p0[k + 2] + (pos[k + 2] - p0[k + 2]) * xg); };
+    const sp = (i, normal) => {
+      const k = i * 3, stretch = netStretch(net, i, normal, this.netHit);
+      return proj(pos[k] + normal[0] * stretch, pos[k + 1] + normal[1] * stretch, pos[k + 2] + normal[2] * stretch);
+    };
     const drawPanel = (pl, fill, lineCol) => {
       const S = [];
-      for (let v = 0; v <= pl.nv; v++) for (let u = 0; u <= pl.nu; u++) S.push(sp(pl.at(u, v)));
+      for (let v = 0; v <= pl.nv; v++) for (let u = 0; u <= pl.nu; u++) S.push(sp(pl.at(u, v), pl.normal));
       const at = (u, v) => S[v * (pl.nu + 1) + u];
       if (fill) {
         ctx.fillStyle = fill; ctx.beginPath();

@@ -1,11 +1,12 @@
 'use strict';
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const source=fs.readFileSync('js/render3d.js','utf8');
+const engine=fs.readFileSync('js/engine.js','utf8');
 const context={Math,clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),lerp:(a,b,t)=>a+(b-a)*t};vm.createContext(context);
-vm.runInContext(source.slice(source.indexOf('    function netStretch'),source.indexOf('    function updateCloth'))+source.slice(source.indexOf('    function pose('),source.indexOf('    const rigs =')),context);
+vm.runInContext(engine.slice(engine.indexOf('    function netStretch'),engine.indexOf('  RUT.netStretch ='))+source.slice(source.indexOf('    function pose('),source.indexOf('    const rigs =')),context);
 const net={side:1,pin:[0,1],p0:[5,4,1,5,4,1]},normal=[1,0,0];
 const hit={side:1,x:5,y:4,z:1,s:1,t:0.12};
-assert(context.netStretch(net,0,normal,hit)>2.5,'exaggerated impact stretch');
+assert(context.netStretch(net,0,normal,hit)>5,'exaggerated impact stretch');
 assert.equal(context.netStretch(net,1,normal,hit),0,'frame remains pinned');
 assert.equal(context.netStretch(net,0,normal,{...hit,side:0}),0,'opposite net remains still');
 assert.equal(context.netStretch(net,0,normal,{...hit,t:2.6}),0,'stretch settles');
