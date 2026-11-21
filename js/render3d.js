@@ -112,14 +112,15 @@
   /* ----------------------------------- the stage ----------------------------------- */
   function create(env) {
     const T = THREE, W = env.W, H = env.H, PW2 = W / 2, PH2 = H / 2;
+    const lowGPU = !!window.RUT_LOW_GPU;
     if (T.ColorManagement) T.ColorManagement.legacyMode = false;       // v154: hex colours are sRGB, so kits and grass keep their real colour instead of washing out
     const canvas = document.createElement('canvas');
     const renderer = new T.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', alpha: false });
     renderer.setPixelRatio(1);
     renderer.outputEncoding = T.sRGBEncoding;
     renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.9;
-    renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFShadowMap;   // v200: plain PCF (soft PCF samples the shadow map many more times per pixel)
-    const maxAniso = Math.min(4, renderer.capabilities.getMaxAnisotropy());   // v200: 4x is enough at match camera angles
+    renderer.shadowMap.enabled = !lowGPU; renderer.shadowMap.type = T.PCFShadowMap;   // v394: the engine's soft contact shadows replace the costly map on weak GPUs
+    const maxAniso = Math.min(lowGPU ? 2 : 4, renderer.capabilities.getMaxAnisotropy());   // v394: 2x is visually enough at Chromebook resolutions
     const scene = new T.Scene();
     scene.background = new T.Color(0x0a0d26);
     scene.fog = new T.Fog(0x1a1a3c, 140, 330);
@@ -128,7 +129,7 @@
     /* ---- light: soft sky fill + one hard floodlight sun that casts the shadows ---- */
     scene.add(new T.HemisphereLight(0xa8b4ff, 0x2f4a26, 0.55));
     const sun = new T.DirectionalLight(0xfff0d0, 1.25);
-    sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);   // v200: 4x fewer shadow-map pixels
+    sun.castShadow = true; sun.shadow.mapSize.set(lowGPU ? 384 : 1024, lowGPU ? 384 : 1024);   // v394: compact static shadow map on weak GPUs
     const sc = sun.shadow.camera; sc.left = -46; sc.right = 46; sc.top = 46; sc.bottom = -46; sc.near = 10; sc.far = 220;
     sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.04; sun.shadow.radius = 2.5;
     scene.add(sun); scene.add(sun.target);
@@ -185,7 +186,7 @@
           const y = y0 + r * riser, z = z0 - r * tread;
           q([-hl, y, z], [hl, y, z], [hl, y + riser, z], [-hl, y + riser, z], steps);
           q([-hl, y + riser, z], [hl, y + riser, z], [hl, y + riser, z - tread], [-hl, y + riser, z - tread], steps);
-          for (let x = -hl + 0.45; x < hl - 0.3; x += 0.62) if (Math.random() < occ) fans.push([x + (Math.random() - 0.5) * 0.12, y + riser, z - tread * 0.55 + (Math.random() - 0.5) * 0.08]);
+          for (let x = -hl + 0.45; x < hl - 0.3; x += lowGPU ? 0.92 : 0.62) if (Math.random() < occ) fans.push([x + (Math.random() - 0.5) * 0.12, y + riser, z - tread * 0.55 + (Math.random() - 0.5) * 0.08]);
         }
         const zE = z0 - rows * tread, yT = y0 + rows * riser;
         [-hl, hl].forEach(x => q([x, 0, z0], [x, y0, z0], [x, yT, zE], [x, 0, zE], sides));
@@ -336,6 +337,10 @@
 
     let spBlend = 0, spLast = null;
     function frame(m, view) {
+      // v394: the cached WebGL canvas is reused between stadium frames on weak
+      // GPUs. The engine still draws moving players, ball, effects and HUD on
+      // every 60 Hz frame, so controls and gameplay remain responsive.
+      if (view.draw === false) return;
       if (view.w !== curW || view.h !== curH) { curW = view.w; curH = view.h; renderer.setSize(curW, curH, false); camera.aspect = curW / curH; camera.updateProjectionMatrix(); }
       const c = CAM[view.mode] || CAM.tv;
       if (camera.fov !== c.fov) { camera.fov = c.fov; camera.updateProjectionMatrix(); }

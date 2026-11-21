@@ -44,7 +44,7 @@ window.RUT = window.RUT || {};
   // v243 (JODIO): which site this page is, for the "Main site" setting
   const SITE = window.RUT_SITE || (h => /claude|anthropic/.test(h) ? 'claude' : /vercel/.test(h) ? 'vercel' : /wix/.test(h) ? 'wix' : /replit/.test(h) ? 'replit' : /lovable/.test(h) ? 'lovable' : /netlify/.test(h) ? 'netlify' : /github/.test(h) ? 'github' : 'other')(location.hostname || '');
   const cloud = {
-    _db: undefined, site: SITE, main: '', q: Promise.resolve(), timer: 0, last: null, err: null,
+    _db: undefined, site: SITE, main: '', q: Promise.resolve(), timer: 0, last: null, lastAt: 0, status: 'local', err: null,
     async db() {
       if (this._rec) return this._rec;   // v308: read-only recovery of an older cloud copy during a login (cloud save itself stays off)
       if (!window.RUT_CLOUD_SAVE) return null;   // v247 (JODIO): saves stay in this browser on every site, like the artifact; online is only for online matches
@@ -87,19 +87,20 @@ window.RUT = window.RUT || {};
     /** Write the account and its save (only when the save changed since the last upload). */
     async push() {
       const u = Auth.user, db = await this.db(); if (!db || !u) return false; this.auth = u.hash;
+      this.status = 'syncing';
       const raw = store.get(LEGACY + u.ns) || '', mt = +(store.get('rut_mt' + u.ns) || Date.now());
-      if (this.last === u.id + ':' + mt) return true;
+      if (this.last === u.id + ':' + mt) { this.status = 'synced'; return true; }
       const h = await this.head(u.id), base = +(store.get('rut_base' + u.ns) || 0);
       const isMain = !!(h && h.main && h.main === SITE);   // v243: the main site's save always wins
       if (!this.force && !isMain && h && h.hash === u.hash && (base ? h.savedAt !== base : h.savedAt > mt)) { if (Auth._pull) setTimeout(Auth._pull, 500); return false; }   // v243: another site saved since this page last synced, so its save is the newest: take it instead of overwriting it with this page's older club   // v240: newer play on this device (online or offline) is never dropped   // another device uploaded since this one last synced: don't overwrite it, the next login takes it
       const t = await this.pack(raw), CH = 150000, n = Math.max(1, Math.ceil(t.length / CH));
       for (let i = 0; i < n; i++) await this.timeout(db.doc('rut_saves/' + this.key(u.id) + '_' + i).set({ d: t.slice(i * CH, (i + 1) * CH) }), 20000);
       await this.timeout(db.doc('rut_clubs/' + this.key(u.id)).set({ id: u.id, name: u.name, salt: u.salt, hash: u.hash, created: u.created, savedAt: mt, n, len: raw.length, main: (h && h.main) || '', site: SITE }), 20000);
-      this.last = u.id + ':' + mt; store.set('rut_base' + u.ns, String(mt)); this.err = null; this.force = false; return true;
+      this.last = u.id + ':' + mt; this.lastAt = Date.now(); this.status = 'synced'; store.set('rut_base' + u.ns, String(mt)); this.err = null; this.force = false; return true;
     },
     schedule() {
-      if (!Auth.user) return; clearTimeout(this.timer);
-      this.timer = setTimeout(() => { this.q = this.q.then(() => this.push()).catch(e => { this.err = e && e.message || 'failed'; }); }, 4000);
+      if (!Auth.user) return; clearTimeout(this.timer); this.status = navigator.onLine === false ? 'offline-pending' : 'pending';
+      this.timer = setTimeout(() => { this.q = this.q.then(() => this.push()).catch(e => { this.status = 'offline-pending'; this.err = e && e.message || 'failed'; }); }, 4000);
     },
     /** v198: remove a club's cloud copy (head + save chunks). Never throws. */
     async drop(id) { try { const db = await this.db(); if (!db) return; const h = await this.head(id); if (h) this.auth = h.hash; for (let i = 0; i < ((h && h.n) || 0); i++) await this.timeout(db.doc('rut_saves/' + this.key(id) + '_' + i).delete()); await this.timeout(db.doc('rut_clubs/' + this.key(id)).delete()); } catch (e) { /* offline or no access: the local change still stands */ } },
@@ -179,8 +180,8 @@ window.RUT = window.RUT || {};
         const bk = async () => { const u = Auth.user; if (!u || (window.App && App.match) || typeof fetch !== 'function') return;
           const stamp = u.id + ':' + (store.get('rut_mt' + u.ns) || '0'); if (Auth._bkLast === stamp) return;
           try { const C = (RUT.Net && RUT.Net.cloudCfg) || { url: 'https://c--f528583f-d6fa-4af9-8dce-6e5ecb466150-prod.lovable.cloud', key: 'sb_publishable_blG5qm30dLoYrwpNNCrl3g_rBElzxo1' };
-            const code = await Auth.exportCode(), pw = store.get('rut_pw' + u.ns) || null;
-            const r = await fetch(C.url.replace(/\/$/, '') + '/rest/v1/rpc/rut_backup_put', { method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json', apikey: C.key }, body: JSON.stringify({ p_id: u.id, p_hash: u.hash, p_name: u.name, p_pw: pw, p_code: code, p_site: SITE + ' ' + (location.host || ''), p_created: u.created || null }) });
+            const code = await Auth.exportCode();
+            const r = await fetch(C.url.replace(/\/$/, '') + '/rest/v1/rpc/rut_backup_put', { method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json', apikey: C.key }, body: JSON.stringify({ p_id: u.id, p_hash: u.hash, p_name: u.name, p_pw: null, p_code: code, p_site: SITE + ' ' + (location.host || ''), p_created: u.created || null }) });
             if (r.ok) Auth._bkLast = stamp; } catch (e) { /* offline or blocked: next round */ } };
         setTimeout(bk, 8000); setInterval(bk, 300000); }
       if (!this._auto) { this._auto = setInterval(() => { try { if (Auth.user && RUT.State.data) RUT.State.save(true); } catch (e) { /* ignore */ } }, 3000); }   // v247 (JODIO): autosave every 3 seconds
@@ -203,11 +204,12 @@ window.RUT = window.RUT || {};
       const acc = pw ? await this.login(this.user.name, pw) : accounts()[this.user.id];   // v203: the logged-in owner needs no password
       if (!acc) throw new Error('Log in first.');
       if (RUT.State && RUT.State.save) RUT.State.save();
-      return JSON.stringify({ game: 'RETRO UT 99', v: 1, exported: Date.now(), account: { id: acc.id, name: acc.name, salt: acc.salt, hash: acc.hash, created: acc.created }, pw: store.get('rut_pw' + acc.ns) || pw || undefined, save: store.get(LEGACY + acc.ns) || null });
+      return JSON.stringify({ game: 'RETRO UT 99', v: 1, exported: Date.now(), account: { id: acc.id, name: acc.name, salt: acc.salt, hash: acc.hash, created: acc.created }, save: store.get(LEGACY + acc.ns) || null });
     },
     /** v147: the same transfer as a short text code (copy it, paste it on the other device): works where file downloads are blocked, e.g. inside the artifact. */
     async exportCode(pw) {
       const j = JSON.parse(await this.exportAccount(pw));
+      delete j.pw;   // v394: also strips the password from any older/custom export implementation
       // the market price history is ~95% of a fresh save and is rebuilt by the market on load (new prices), so the code leaves it out: 365 KB becomes a few KB
       try { const s = j.save && JSON.parse(j.save); if (s && s.market && s.market.history) { s.market.history = {}; j.save = JSON.stringify(s); } } catch (e) { /* keep the full save */ }
       return 'RUT1.' + await cloud.pack(JSON.stringify(j));

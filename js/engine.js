@@ -451,6 +451,7 @@ window.RUT = window.RUT || {};
     this.phase = 'kickoff'; this.phaseT = 1.2; this.kickTeam = 0;
     this.effects = []; this.events = [];
     this.stats = { shots: [0, 0], onTarget: [0, 0], passes: [0, 0], tackles: [0, 0], tkWon: [0, 0], possession: [0, 0], fouls: [0, 0], corners: [0, 0], cards: [] }; this.pstat = {}; this._lp = [null, null]; this._kp = [null, null];
+    this.flow = [0, 0];   // v394: completed-pass streak; a turnover resets it
     this.stoppage = 0; this.added = null; this.advantage = null; this.offsideList = [];
     // human controllers: one per human team. cfg.humans = [0] (you vs AI), [0, 1] (two players), [] (AI vs AI)
     const humans = cfg.humans || (cfg.humanTeam === 0 || cfg.humanTeam === 1 ? [cfg.humanTeam] : []);
@@ -816,6 +817,15 @@ window.RUT = window.RUT || {};
     const prev = b.owner || b.last;
     if (prev && prev.team !== p.team) { this.lostAt[prev.team] = this.t; this.wonAt[p.team] = this.t; }
     if (b.passTo && prev && this.pstat) { if (prev.team === p.team) { if (p !== prev) this.pst(prev, 'pc'); } else this.pst(p, 'int'); }
+    if (prev && prev !== p) {
+      if (prev.team === p.team && b.passTo) {
+        const n = this.flow[p.team] = Math.min(10, (this.flow[p.team] || 0) + 1);
+        if (!this.headless && (n === 5 || n === 10)) this.say(n === 10 ? 'FLOW MAX · CRISP PASSING' : 'FLOW x5 · KEEP IT MOVING');
+      } else if (prev.team !== p.team) {
+        this.flow[prev.team] = 0;
+        this.flow[p.team] = 0;
+      }
+    }
     if (b.indirect && p !== b.indirect) b.indirect = null;
     if (prev && prev !== p && prev.team === p.team) {   // v335 (JODIO): count how often the same two team-mates swap the ball (tiki-taka ping-pong)
       const pp = this.pp = this.pp || [null, null], q = pp[p.team];
@@ -938,7 +948,8 @@ window.RUT = window.RUT || {};
     // crosses from wide in the final third use Crossing; long balls Long Passing; the rest Short Passing
     const crossing = o.lob && Math.abs(p.y - PH2) > 18 && ((p.x - PW2) * dir) > 18;
     const pasN = nrm(p.isGK ? s.gkKicking : crossing ? s.crossing : (d > 30 || o.lob) ? s.longPassing : s.shortPassing);
-    let speed = clamp(7.5 + d * 1.05, 13, 33) * (0.88 + 0.32 * pasN) * 1.1;               // crisp, driven passes: the ball arrives quickly (better passers hit it harder and truer)
+    const flow = Math.min(10, (this.flow && this.flow[p.team]) || 0);
+    let speed = clamp(7.5 + d * 1.05, 13, 33) * (0.88 + 0.32 * pasN) * 1.1 * (1 + flow * 0.01);  // v394: possession builds up to 10% crisper passing
     const pinged = (p.pf['Pinged Pass'] || 0);
     const fixed = o.power != null;                                                  // human power bar: constant pace, the bar only picks the range
     if (fixed) speed = (through ? 21 : 27) * (0.92 + 0.16 * pasN);
@@ -980,6 +991,7 @@ window.RUT = window.RUT || {};
     if (this.bigMoment(p)) err *= 0.85;
     err /= p.mood;
     err *= this.ctlOf(p) ? 0 : this.smartT[p.team] > 1 ? 0.35 / this.teamIQ[p.team] : 1;   // v201: Champions League sides pass even truer                  // v120: a human's pass goes exactly where it was aimed; smart sides' passes find their man far more truly
+    err *= 1 - flow * 0.015;   // v394: Flow rewards clean build-up without making passes automatic
     if (d < 20) err *= 1 - 0.6 * (p.pf['Tiki Taka'] || 0);
     if (through) err *= 1 - 0.6 * (p.pf['Incisive Pass'] || 0);
     if (d > 30) err *= 1 - 0.6 * (p.pf['Long Ball Pass'] || 0);
@@ -4266,7 +4278,9 @@ window.RUT = window.RUT || {};
       // too heavy for this machine? after a couple of seconds of slow frames drop to High so the game stays playable
       this._u3n = (this._u3n || 0) + 1; this._u3sum = (this._u3sum || 0) + dt;
       if (this._u3n >= 150) { const av = this._u3sum / this._u3n, u = this._u3scale || 0.65; if (av > 0.024 && !window.RUT_KEEP3D && u > 0.34) this._u3scale = Math.max(0.34, u * 0.85); else if (av < 0.0175 && u < 0.9) this._u3scale = Math.min(0.9, u / 0.9); this._u3n = this._u3sum = 0; }   // v167: slow machine: fewer pixels, still full 3D
-      U.frame(this, { w: CW, h: CH, mode: this.camMode, camX, camY: this.cam.y, fy: CAM_FY, shake, crowd: crowdFrame, dt, sprites: true, spCam: this.spView === 'tv' ? null : (c => c && Object.assign({ view: this.spView || 'behind' }, c))(this.spCamera()) });   // v171: the 3D world, players drawn below as the normal-mode pixel sprites
+      const lowGPU = !!window.RUT_LOW_GPU, frame3D = this._u3frame = (this._u3frame || 0) + 1;
+      const draw3D = !lowGPU || frame3D === 1 || frame3D % 4 === 0 || shake || this.phase === 'goal';
+      U.frame(this, { w: CW, h: CH, mode: this.camMode, camX, camY: this.cam.y, fy: CAM_FY, shake, crowd: crowdFrame, dt, draw: draw3D, sprites: true, spCam: this.spView === 'tv' ? null : (c => c && Object.assign({ view: this.spView || 'behind' }, c))(this.spCamera()) });   // v394: weak GPUs cache the stadium between refreshes; the moving match layer and controls stay at display speed
       ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(U.canvas, 0, 0, CW, CH); ctx.restore();
       const proj = (x, y, z) => U.proj(x, y, z, VIEW_W, VIEW_H);
       this.proj = proj; this._cv = ctx.canvas;
@@ -4371,8 +4385,9 @@ void main(){
     };
     this.proj = proj; this._cv = ctx.canvas;
     // full screen: the drawing space follows the window's aspect (4:3 up to ultra-wide) at 1080 lines (times the adaptive quality)
-    if (this.gfx !== 'auto') this._q = GFX_Q[this.gfx] * (this._u3scale || 0.65);
-    else this._q = Math.min(this._q || 1, this._u3scale || 0.65);   // v200: 3D starts at 90% resolution (972 lines), smoothing hides it
+    const weakScale = window.RUT_LOW_GPU ? Math.min(this._u3scale || 0.44, 0.44) : (this._u3scale || 0.65);
+    if (this.gfx !== 'auto') this._q = GFX_Q[this.gfx] * weakScale;
+    else this._q = Math.min(this._q || 1, weakScale);   // v394: weak GPUs cap the internal resolution while keeping the high-quality materials and lighting
     const LQ = this._q || 1, lite = LQ <= 0.85, lite2 = LQ <= 0.5, lite3 = LQ <= 0.35;      // cheaper drawing on weak machines
     { const PX = RUT.PixelArt; if (PX && PX.setHD && PX.isHD() === lite) PX.setHD(!lite); }                                       // HD sprites (more parts, 1.4x supersampled) unless the machine is struggling
     { const cv = ctx.canvas, asp = cv.clientWidth > 50 && cv.clientHeight > 50 ? cv.clientWidth / cv.clientHeight : 4 / 3, q = this._q || 1;
@@ -5005,6 +5020,8 @@ void main(){
     if (this.added != null && this.phase === 'play') { ctx.fillStyle = '#1d8f3e'; ctx.fillRect(X + 32, Y + H, 14, 9); this.fcText(ctx, '+' + this.added, X + 39, Y + H + 4.6, '#ffffff', 'center', 7.5, 700); }
     }
     if (this.speed > 1) this.pixelText(ctx, 'x' + this.speed, VIEW_W - 6, 8, '#ff80ff', 'right');
+    { const ft = this.human == null ? -1 : this.human, n = ft >= 0 && this.flow ? this.flow[ft] || 0 : 0;
+      if (n >= 3) { const col = n >= 10 ? '#ffe14a' : '#66e8ff'; this.pixelText(ctx, 'FLOW x' + n, VIEW_W - 6, 8, col, 'right'); } }
     // ticker
     if (this.tickerT > 0) {
       ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0, VIEW_H - 14, VIEW_W, 14);

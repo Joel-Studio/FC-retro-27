@@ -371,9 +371,12 @@
   VIEWS.settings = function () {
     const opt = (key, cur, list) => `<div class="row">${list.map(([v, label, sub]) => `<button class="btn ${String(cur) === String(v) ? 'y' : ''}" data-act="set" data-k="${key}" data-v="${esc(v)}">${esc(label)}${sub ? `<br><span style="font-size:7px">${esc(sub)}</span>` : ''}</button>`).join('')}</div>`;
     const gfx = gfxPref();
+    const cloud = RUT.Auth.cloud || {}, pending = ['pending', 'syncing', 'offline-pending'].includes(cloud.status);
+    const cloudText = SET.net === 'offline' ? 'Offline · progress is safe on this device and will upload when Online mode returns' : cloud.err ? 'Waiting to sync · ' + cloud.err : pending ? (cloud.status === 'syncing' ? 'Syncing now…' : 'Changes waiting to sync…') : cloud.lastAt ? 'Cloud synced ' + new Date(cloud.lastAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Cloud save ready';
     return `<h1>Settings</h1><p class="dim">Every option in the game. Changes are saved in this browser and apply to the next match.</p>
       <div class="grid cols-2">
       <div class="px"><h3>Account</h3>
+        <div class="req ${cloud.err ? '' : 'ok'}" style="display:block"><b>${esc(cloudText)}</b><br><span class="dim" style="font-size:8px">Supabase stores your club name, password check and packed save chunks. Raw RUT1 transfer codes are never stored.</span><div class="row mt"><button class="btn sm y" data-act="cloud-sync" ${SET.net === 'offline' ? 'disabled' : ''}>Sync now</button></div></div>
         <p class="dim" style="font-size:8px;line-height:1.9">${RUT.Auth.cloud && RUT.Auth.cloud._db ? '<b class="good">Cloud save is on:</b> this club is copied to the cloud a few seconds after every change. On another device, log in with the same club name and password.' + (RUT.Auth.cloud.err ? ' (last upload failed: ' + esc(RUT.Auth.cloud.err) + ')' : '') + ' ' : '<b class="good">Your club is saved in this browser</b> (autosave every 3 seconds). Each site keeps its own save. '}To move <b>${esc((RUT.Auth.user || {}).name || '')}</b> to another device or browser, press <b>Show transfer code</b> here (a short text, or Export for a file), then use Import on that device's login screen and paste it. You must type the password to allow it. The file holds the club name, the password check and the save, never the password itself: keep it private, whoever has the file and guesses the password gets the club.</p>
         <div class="px mt" style="font-size:9px;line-height:2"><div>Club name: <b class="gold" style="user-select:all">${esc(RUT.Auth.user ? RUT.Auth.user.name : '')}</b></div><div>Password: ${RUT.Auth.savedPw() ? `<b class="gold" style="user-select:all">${esc(RUT.Auth.savedPw())}</b>` : '<span class="dim">log out and in once on this device to show it here</span>'}</div></div>
         ${sitesHTML()}
@@ -2004,12 +2007,14 @@
   function penBar() { const P = App.pen; if (!P || P.phase !== 'power') return; const t0 = performance.now(); clearInterval(P.tm); P.tm = setInterval(() => { const b = $('#pen-bar'); if (!b || !App.pen || App.pen.phase !== 'power') { clearInterval(P.tm); return; } const t = ((performance.now() - t0) / 900) % 2, v = t < 1 ? t : 2 - t; P.pow = Math.round(v * 100); b.style.left = 'calc(' + P.pow + '% - ' + Math.round(P.pow * 0.06) + 'px)'; }, 16); }
   VIEWS.friends = function () {
     const F = RUT.Friends, list = F.list().sort((a, b) => (b.last || 0) - (a.last || 0) || a.name.localeCompare(b.name));
-    const rows = list.map(f => { const n = f.w + f.d + f.l; return `<div class="mt" style="padding:8px;border:1px solid #334;border-radius:8px"><div class="row between"><b>${esc(f.name)}</b><span class="dim" style="font-size:11px">${n ? `W${f.w} D${f.d} L${f.l} · goals ${f.gf}-${f.ga}` : 'No matches yet'}</span></div><div class="row mt" style="gap:6px"><button class="btn sm y" data-act="fr-invite" data-n="${esc(f.name)}">Invite to play</button><button class="btn sm" data-act="fr-copy" data-n="${esc(f.name)}">Copy message</button><button class="btn sm r" data-act="fr-remove" data-n="${esc(f.name)}">Remove</button></div></div>`; }).join('');
+    const rows = list.map(f => { const n = f.w + f.d + f.l, a = f.agent && RUT.Agents.find(f.agent), ap = a && RUT.Agents.progress(a); return `<div class="mt" style="padding:8px;border:1px solid #334;border-radius:8px"><div class="row between"><b>${a ? '<span class="good">● ONLINE</span> [AI AGENT] ' : ''}${esc(f.name)}</b><span class="dim" style="font-size:11px">${ap ? `LV ${ap.level} · OVR ${ap.rating} · ${ap.wins}-${ap.draws}-${ap.losses}` : n ? `W${f.w} D${f.d} L${f.l} · goals ${f.gf}-${f.ga}` : 'No matches yet'}</span></div><div class="row mt" style="gap:6px">${a ? `<button class="btn sm y" data-act="agent-play" data-agent="${a.id}">Play now</button><button class="btn sm c" data-act="agent-chat" data-agent="${a.id}">Chat</button>` : `<button class="btn sm y" data-act="fr-invite" data-n="${esc(f.name)}">Invite to play</button><button class="btn sm" data-act="fr-copy" data-n="${esc(f.name)}">Copy message</button>`}<button class="btn sm r" data-act="fr-remove" data-n="${esc(f.name)}">Remove</button></div></div>`; }).join('');
+    const agents = RUT.Agents.list.map(a => { const p = RUT.Agents.progress(a), added = !!F.find(a.tag); return `<div style="padding:7px;border:1px solid #27364d;border-radius:7px"><div><span class="good">●</span> <b>${esc(a.tag)}</b> <span class="dim">[AI]</span></div><div class="dim" style="font-size:8px">LV ${p.level} · OVR ${p.rating} · ${esc(a.style)}</div><div class="row mt">${added ? '<span class="good" style="font-size:8px">FRIEND</span>' : `<button class="btn sm" data-act="agent-add" data-agent="${a.id}">Add</button>`}<button class="btn sm y" data-act="agent-play" data-agent="${a.id}">Play</button></div></div>`; }).join('');
     return `<h2>Friends</h2>
       <div class="px"><h3>Add a friend</h3><p class="dim" style="font-size:11px">Type their exact club name. Your friend code is your club name: <b class="gold">${esc(D().clubName)}</b>. Friends are saved with your club.</p>
         <div class="row" style="gap:6px"><input id="fr-name" placeholder="CLUB NAME" maxlength="20" style="width:200px" autocomplete="off"><button class="btn y" data-act="fr-add">Add friend</button></div><p id="fr-msg" class="dim" style="font-size:11px"></p></div>
       <div class="px mt"><h3>Your friends (${list.length})</h3>${rows || '<p class="dim" style="font-size:11px">No friends yet. Add a club above, or tap Add friend after an online match.</p>'}
-        <p class="dim" style="font-size:11px">Invite to play opens Online, makes a game code and copies a message you can send to your friend. The head-to-head record updates after each online match against them.</p></div>`;
+        <p class="dim" style="font-size:11px">Invite to play opens Online, makes a game code and copies a message you can send to your friend. The head-to-head record updates after each online match against them.</p></div>
+      <div class="px mt"><h3>Online FC Agents (50)</h3><p class="dim" style="font-size:9px">Always-available computer opponents with persistent public progression. They play through the normal match AI and are clearly tagged as AI.</p><div class="grid cols-3">${agents}</div></div>`;
   };
   VIEWS.quests = function () {
     const Q = RUT.Quests, tab = App.questTab || 'all', all = Q.list(), ready = all.filter(q => q.ready).length;
@@ -2659,6 +2664,21 @@
     document.body.appendChild(ov); setTimeout(() => ov.classList.add('out'), 2300); setTimeout(() => ov.remove(), 2800);
   }
   function quickRating() { try { return duelMode() ? (duelPlayer().rating || 70) : Net.avgRating(State.matchCards()); } catch (e) { return 70; } }
+  function agentChat(a) {
+    const all = D().agentChats || (D().agentChats = {}), log = all[a.id] || (all[a.id] = []);
+    modal(`<h2>[AI AGENT] ${esc(a.tag)}</h2><p class="dim" style="font-size:9px">Respectful automated replies. Messages stay in this club save.</p><div style="max-height:260px;overflow:auto">${log.slice(-20).map(m => `<p class="${m.me ? 'gold' : 'good'}"><b>${m.me ? 'You' : esc(a.tag)}:</b> ${esc(m.text)}</p>`).join('') || '<p class="dim">Say hello or ask for a match.</p>'}</div><div class="row mt"><input id="agent-msg" maxlength="240" placeholder="Type a message" style="flex:1"><button class="btn y" data-act="agent-send" data-agent="${a.id}">Send</button><button class="btn" data-act="close">Close</button></div>`);
+  }
+  function agentMatch(a) {
+    if (!a || App.match) return;
+    if (!onlineSquadReady()) { autoBuildSquad(); if (!onlineSquadReady()) { toast('Your XI needs 11 players.', 'bad'); return; } }
+    if (App.quick) { clearTimeout(App.quick.bot); clearTimeout(App.quick.wide); try { App.quick.q && App.quick.q.close(); } catch (e) { /* closed */ } App.quick = null; }
+    const p = RUT.Agents.progress(a), lo = Math.max(68, p.rating - 4), away = Engine.buildOpponent({ name: '[AI] ' + a.tag, lo, hi: Math.min(96, p.rating + 2), pool: 'all', specials: p.level >= 35, floor: lo - 3 }, a.seed + p.matches);
+    away.name = '[AI AGENT] ' + a.tag;
+    const home = { name: D().clubName, short: 'RFC', cards: State.matchCards() };
+    const O = App.online = { role: 'host', theirClub: a.tag, theirRating: p.rating, agent: a.id, quick: { agent: true, played: true } };
+    runMatch({ tag: 'Online · [AI AGENT] ' + a.tag, home, away, humans: [0], knockout: true, extraTime: true, noSpeed: true, pitch: 'colossal', halfSeconds: 150, seed: a.seed + p.matches, styles: [myTac(), withShape(a.style)],
+      onEnd: res => onlineResult(res, home, away, 0), onQuit: () => { if (App.online === O) App.online = null; render(); } });
+  }
   function quickSearch(skip, kind) {
     if (!Net || !Net.Quick) { toast('Online play is not available in this build.', 'bad'); return; }
     if (SET.net === 'offline') { if (kind) { toast('Offline mode: you face an AI rival.', 'good'); rivalsAI(kind); } else toast('Offline mode is on. Switch to Online mode in Settings to play online.', 'bad'); return; }   // v198
@@ -2667,18 +2687,19 @@
     if (App.quick && App.quick.q) App.quick.q.close();
     const duel = duelMode(), Q = App.quick = { status: 'Searching for an opponent...', online: 1, skip: skip || [], q: null, t0: Date.now(), kind: kind || null };
     if (kind) Q.ai = setTimeout(() => { if (App.quick !== Q) return; clearTimeout(Q.wide); Q.q.close(); App.quick = null; toast('No player free right now: you face an AI rival.', 'good'); rivalsAI(kind); }, RIV_WAIT * 1000);
+    else Q.bot = setTimeout(() => { if (App.quick !== Q) return; const a = RUT.Agents.pick(Q.skip); toast('Matched with [AI AGENT] ' + a.tag + '.', 'good'); agentMatch(a); }, 8000);
     // v229 (JODIO): look for someone close by first (same time-zone band, so likely the same country or wifi area: lower ping), then anyone after 12 s
     const near = 'z' + Math.round(-new Date().getTimezoneOffset() / 180);
     const mk = region => new Net.Quick({ mode: kind || (duel ? 'duel' : 'club'), region, club: duel ? duelPlayer().name : D().clubName, rating: quickRating(), skip: Q.skip,
       onStatus: (text, n) => { if (App.quick !== Q) return; Q.status = text; Q.online = n; const el = $('#qm-status'); if (el) { el.textContent = text; const c = $('#qm-count'); if (c) c.textContent = n + (n === 1 ? ' player' : ' players') + ' in the queue'; } else if (App.view === 'online' && !App.match) render(); },
-      onMatch: m => { if (App.quick !== Q) return; clearTimeout(Q.ai); clearTimeout(Q.wide); App.quick = null; onlineStartSession(m.role, m.code, null, { peer: m.peer, skip: Q.skip, t0: Date.now(), kind: Q.kind }); },
+      onMatch: m => { if (App.quick !== Q) return; clearTimeout(Q.ai); clearTimeout(Q.bot); clearTimeout(Q.wide); App.quick = null; onlineStartSession(m.role, m.code, null, { peer: m.peer, skip: Q.skip, t0: Date.now(), kind: Q.kind }); },
       onFail: text => { if (App.quick !== Q) return; App.quick = null; toast(text, 'bad'); if (App.view === 'online' && !App.match) render(); } });
     Q.q = mk(near); Q.status = 'Searching for a player near you...';
     Q.wide = setTimeout(() => { if (App.quick !== Q) return; try { Q.q.close(); } catch (e) { /* gone */ } Q.q = mk(''); Q.status = 'Searching everywhere...'; Q.q.start(); }, 12000);
     render();
     Q.q.start();
   }
-  function quickCancel() { if (App.quick) { clearTimeout(App.quick.ai); clearTimeout(App.quick.wide); if (App.quick.q) App.quick.q.close(); } App.quick = null; render(); }
+  function quickCancel() { if (App.quick) { clearTimeout(App.quick.ai); clearTimeout(App.quick.bot); clearTimeout(App.quick.wide); if (App.quick.q) App.quick.q.close(); } App.quick = null; render(); }
   /** If a quick match never comes together (the other player went away), go back to searching without them. */
   function quickRetry(O, why) {
     if (!O.quick || O.quick.played || App.online !== O || App.match) return false;
@@ -3831,11 +3852,12 @@ const NATION_FULL = {ARG: 'Argentina',AUT: 'Austria',BEL: 'Belgium',BFA: 'Burkin
       else if (k === 'camera') { SET.camera = v; App.camMode = v; }
       else if (k === 'netq') { SET.netq = v; }
       else if (k === 'perf') { SET.perf = v; try { localStorage.setItem(SETKEY, JSON.stringify(SET)); } catch (e) { /* ignore */ } location.reload(); return; }
-      else if (k === 'net') { SET.net = v; try { RUT.Auth.cloud._db = undefined; } catch (e) { /* ignore */ } toast(v === 'offline' ? 'Offline mode: no cloud save or online matches.' : 'Online mode is on.', 'good'); }
+      else if (k === 'net') { SET.net = v; try { RUT.Auth.cloud._db = undefined; if (v === 'online') RUT.Auth.cloud.schedule(); } catch (e) { /* ignore */ } toast(v === 'offline' ? 'Offline mode: progress stays on this device until you reconnect.' : 'Online mode is on. Cloud sync started.', 'good'); }
       else if (k === 'gfx') { try { localStorage.setItem('rut_gfx', v); } catch (e) { /* ignore */ } SET.gfx = v; }
       else SET[k] = v;
       saveSet(); render();
     },
+    'cloud-sync': () => { try { RUT.Auth.cloud.force = true; RUT.Auth.cloud.last = null; RUT.Auth.cloud.schedule(); toast('Cloud sync started.', 'good'); setTimeout(() => { if (App.view === 'settings') render(); }, 4500); } catch (e) { toast('Cloud sync could not start.', 'bad'); } },
 
     // play
     diff: el => { App.difficulty = el.dataset.d; saveSet(); render(); },
@@ -3860,6 +3882,10 @@ const NATION_FULL = {ARG: 'Argentina',AUT: 'Austria',BEL: 'Belgium',BFA: 'Burkin
     'fr-invite': el => { App.inviteFriend = el.dataset.n; if (!onlineSquadReady()) autoBuildSquad(); onlineStartSession('host', Net ? Net.newCode() : ''); App.view = 'online'; render(); setTimeout(() => { const O = App.online; if (O && O.code) frCopy(el.dataset.n, O.code); }, 300); },
     'fr-copy': el => { const O = App.online; if (O && O.code) frCopy(el.dataset.n, O.code); else toast('Tap Invite to play first: it makes the game code.', 'bad'); },
     'fr-addopp': () => { const O = App.online, n = O && O.theirClub; if (n && RUT.Friends.addKnown(n)) { toast(n + ' added to friends.', 'good'); const b = $('#fr-addopp'); if (b) b.remove(); } },
+    'agent-add': async el => { const a = RUT.Agents.find(el.dataset.agent); if (!a) return; const r = await RUT.Friends.add(a.tag); toast(r.msg, r.ok ? 'good' : 'bad'); if (r.ok) render(); },
+    'agent-play': el => agentMatch(RUT.Agents.find(el.dataset.agent)),
+    'agent-chat': el => { const a = RUT.Agents.find(el.dataset.agent); if (a) agentChat(a); },
+    'agent-send': el => { const a = RUT.Agents.find(el.dataset.agent), inp = $('#agent-msg'); if (!a || !inp || !inp.value.trim()) return; const all = D().agentChats || (D().agentChats = {}), log = all[a.id] || (all[a.id] = []), text = inp.value.trim(); log.push({ me: 1, text, at: Date.now() }, { me: 0, text: RUT.Agents.reply(a, text), at: Date.now() }); if (log.length > 40) all[a.id] = log.slice(-40); State.save(); agentChat(a); },
     'mom-play': el => { const m = RUT.Moments.get(el.dataset.id); if (!m) return; App.moment = m.id; aiChallenge('Moment: ' + m.name, m, 60, { after: x => { const r = RUT.Moments.finish(m.id, x); return r ? (r.ok ? `<p class="good">Moment complete!${r.first ? ' +' + fmt(r.coins) + ' coins' : ' (already done, no reward)'}</p>` : '<p class="bad">Moment not completed: ' + esc(m.desc) + '</p>') : ''; } }); },
     'sb-play': el => { const t = RUT.Battles.TIERS.find(x => x.id === el.dataset.t); if (!t) return; aiChallenge('Squad Battles: ' + t.name, t, 90, { after: x => { const r = RUT.Battles.result(t, x); if (r.win) State.addCoins(t.coins, 'Squad Battles win'); return `<p class="gold">Squad Battles: +${r.pts} points${r.win ? ' and +' + fmt(t.coins) + ' coins' : ''} (this week ${RUT.Battles.state().pts})</p>`; } }); },
     'sb-claim': el => { const st = RUT.Battles.claim(+el.dataset.i); if (st) { toast('+' + fmt(st.coins) + ' coins' + (st.pack ? ' and a ' + st.pack + ' pack' : ''), 'good'); updateHeader(); render(); } },
@@ -4157,7 +4183,7 @@ const NATION_FULL = {ARG: 'Argentina',AUT: 'Austria',BEL: 'Belgium',BFA: 'Burkin
         if (App.match || document.querySelector('#modal-root .modal') || document.getElementById('fcr-intro')) return;
         clearInterval(releaseTimer);
         modal(`<h1>What's new</h1><p class="gold">FC RETRO 27 · Version ${window.RUT_VERSION}</p>
-          <ul style="line-height:1.7"><li>Full 3D match players turn with movement and use shared player hairstyles.</li><li>Double-strength net stretch in every graphics mode.</li><li>Restored the original v370 block player model without appearance refinements.</li><li>Fixed side-view arm attachments and added detailed passing, shooting and movement animation.</li><li>Articulated keeper dives, landings, recovery and ready stance.</li><li>Closer dribbling with faster response and original player model geometry restored.</li><li>104 hair details up close with adaptive match detail.</li><li>Card figures have refined body proportions, layered hair and facial-hair texture, with simple hands and boots.</li><li>Champions League form now includes all November 3–4 results.</li><li>Home now features Future Stars cards with quick Play and Club actions.</li><li>Mobile menus have larger tiles and grouped section tabs.</li><li>Bottom navigation: Home, Play, Club, League and Store.</li><li>Landscape layout puts cards and controls side by side.</li></ul>
+          <ul style="line-height:1.7"><li>50 clearly labelled FC Agents can play, grind, chat respectfully and be added as friends.</li><li>Quick Match prefers real players, then offers an FC Agent so nobody waits forever.</li><li>Flow rewards completed passing streaks with sharper, faster team play.</li><li>The low-end Chromebook profile reuses alternate stadium frames while players and controls remain responsive.</li><li>Cloud status, pending offline progress and a manual Sync now control are visible in Settings.</li><li>A desktop quick bar makes Home, Play, Online, Squad, Friends, Store, Help and Settings easier to reach.</li><li>Transfer codes no longer include the locally saved plaintext password.</li></ul>
           <button class="btn y" data-act="release-dismiss">Let's play</button>`);
       }, 1000);
     }
