@@ -26,5 +26,7 @@ assert(auth.includes('delete j.pw'), 'RUT1 codes strip saved plaintext passwords
 assert(auth.includes('p_pw: null') && !auth.includes('pw: store.get'), 'cloud backups and transfer files do not send a plaintext password');
 const engine = fs.readFileSync('js/engine.js', 'utf8');
 assert(engine.includes('draw: draw3D') && engine.includes("'FLOW x' + n"), 'performance profile and Flow HUD are wired');
+const main = fs.readFileSync('js/main.js', 'utf8');
+assert(!main.includes('esc(RUT.Auth.savedPw())'), 'Settings never renders the saved password in plaintext');
 
 console.log('PASS 50 labelled agents, deterministic grinding, respectful chat, secure transfer codes, Flow and low-GPU frame caching.');
