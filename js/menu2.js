@@ -4,14 +4,7 @@
   window.RUT = window.RUT || {};
   const LAYOUT = { 1: 'A', 2: 'B', 3: 'A', 4: 'C', 5: 'C' }, NAMES = { 1: 'Foundations', 2: 'Team Management', 3: 'Season Objectives', 4: 'Play Hub', 5: 'Squad Battles' };
   let n = 5; try { const q = new URLSearchParams(location.search).get('menu'), ls = localStorage.getItem('rut_menu'); n = +(q != null ? q : ls != null ? ls : 5); } catch (e) { /* ignore */ }   // v285 (JODIO): option 5 is the menu; ?menu=0 turns it off
-  // Keep the mobile menu; desktop uses the original GUI and navigation.
-  const mobileMenu = matchMedia('(max-width: 800px), (max-height: 500px) and (pointer: coarse)');
-  const syncMenu = () => {
-    if (mobileMenu.matches && LAYOUT[n]) document.documentElement.setAttribute('data-menu', String(n));
-    else document.documentElement.removeAttribute('data-menu');
-  };
-  syncMenu();
-  mobileMenu.addEventListener('change', syncMenu);
+  if (LAYOUT[n]) document.documentElement.setAttribute('data-menu', String(n));
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const art = (k) => {   // simple card-shaped art for the tiles
     const g = { play: '#2fe0a0,#0a6a52', squad: '#4aa8ff,#12408a', store: '#ffd35a,#9a6a08', market: '#c07bff,#4a1a8a', sbc: '#ff7a5a,#8a2a12', club: '#5affd8,#0a5a6a', evo: '#7aff8a,#0a6a2a', quest: '#ff5ad8,#6a0a5a' }[k] || '#4aa8ff,#12408a', [a, b] = g.split(',');
@@ -52,5 +45,5 @@
       </div>
       <div class="m2-tiles m2-tiles3">${tile('play', 'Kick Off', 'Play a match', 'play')}${tile('quests', 'Moments', 'Daily challenges', 'quest')}${tile('store', 'Store', 'Open packs', 'store')}${tile('market', 'Transfer Market', 'Buy and sell', 'market')}</div>${hints}</section>`;
   }
-  RUT.Menu2 = { tile, art, home, on: () => mobileMenu.matches && !!LAYOUT[n], n, NAMES };
+  RUT.Menu2 = { tile, art, home, on: () => !!LAYOUT[n], n, NAMES };
 })();
